@@ -404,6 +404,8 @@
             mapLoaded: false,
             mapPixelWidth: 1080,
             mapPixelHeight: 1080,
+            mapRawWidth: 1920,
+            mapRawHeight: 1080,
             renderScaleX: 1,
             renderScaleY: 1,
             isSelectingPlayer: false,
@@ -750,12 +752,39 @@
             const textCache = [];
             const showAll = !settings.showmp && !settings.showsp && !settings.showtp;
             const selectedTeam = localPlayer.team;
-            const localX = localPlayer.pos?.x ?? 0;
-            const localY = localPlayer.pos?.y ?? 0;
+            const mapWidth = state.mapPixelWidth || 1080;
+            const mapHeight = state.mapPixelHeight || 1080;
+            const rawWidth = state.mapRawWidth || mapWidth;
+            const rawHeight = state.mapRawHeight || mapHeight;
+            const offsetX = rawWidth > mapWidth ? (rawWidth - mapWidth) / 2 : 0;
+            const offsetY = rawHeight > mapHeight ? (rawHeight - mapHeight) / 2 : 0;
+
+            const toCanvasX = (value) => {
+                if (typeof value !== 'number' || !Number.isFinite(value)) {
+                    return 0;
+                }
+                const adjusted = value - offsetX;
+                if (adjusted < 0) return 0;
+                if (adjusted > mapWidth) return mapWidth;
+                return adjusted;
+            };
+
+            const toCanvasY = (value) => {
+                if (typeof value !== 'number' || !Number.isFinite(value)) {
+                    return 0;
+                }
+                const adjusted = value - offsetY;
+                if (adjusted < 0) return 0;
+                if (adjusted > mapHeight) return mapHeight;
+                return adjusted;
+            };
+
+            const localX = toCanvasX(localPlayer.pos?.x ?? 0);
+            const localY = toCanvasY(localPlayer.pos?.y ?? 0);
 
             players.forEach(player => {
-                const px = player.pos?.x ?? 0;
-                const py = player.pos?.y ?? 0;
+                const px = toCanvasX(player.pos?.x ?? 0);
+                const py = toCanvasY(player.pos?.y ?? 0);
                 const color = player.team === selectedTeam ? '#FFFFFF' : teamColorFor(player.team);
 
                 bctx.beginPath();
