@@ -1,654 +1,1118 @@
 <!doctype html>
-<html data-theme="dark">
+<html lang="zh-CN" class="h-full">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HOOZI RADAR | 绿玩之家</title>
-    <link rel="stylesheet" href="static/pico.min.css">
-    <script src="static/jquery-3.5.1.min.js"></script>
-    <script src="static/modal.js"></script>
+    <title>HOOZI 网页雷达</title>
+    <meta name="theme-color" content="#020617">
+    <link href="./styles.css" rel="stylesheet">
     <style>
+        :root {
+            color-scheme: dark;
+        }
+
         body {
-            overflow: hidden;
+            min-height: 100vh;
+            font-family: "PingFang SC", "Microsoft YaHei", "Heiti SC", "STHeiti", "SimHei", sans-serif;
+            font-variant-east-asian: proportional-width;
+            font-variant-numeric: proportional-nums lining-nums;
+            font-feature-settings: "pwid" 1, "fwid" 0;
+            background:
+                radial-gradient(ellipse at top, rgba(16, 185, 129, 0.08), transparent 55%),
+                radial-gradient(ellipse at bottom, rgba(56, 189, 248, 0.05), transparent 60%),
+                #020617;
         }
 
-        #navbar {
-            min-width: 380px;
-            height: 40px;
-            padding: 0.5rem;
-
-            select,
-            button {
-                height: 35px;
-                border-radius: 5px;
-                font-size: 0.7rem;
-            }
-
-            button {
-                margin-right: -1.5rem;
-            }
-
-
+        .glass-panel {
+            background-color: rgba(15, 23, 42, 0.64);
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            backdrop-filter: blur(18px);
         }
 
-        #status {
-            margin-left: 0.35rem;
-            width: 0.5rem;
-            height: 0.5rem;
+        #mapStage {
+            touch-action: none;
+            cursor: grab;
+            max-width: 100%;
+            max-height: 100%;
         }
 
-        #map_box {
-            margin: 0 auto;
-            height: calc(100vh - 80px);
+        #mapStage.dragging {
+            cursor: grabbing;
         }
 
-        #map_container {
-            border: 1px solid #3D475C;
-            border-radius: 0.5rem;
-            overflow: hidden;
-            position: relative;
-            transform-origin: 50% 50%;
-            transition: transform .1s ease;
-            cursor: move;
-            height: 1015px;
-            width: 1015px;
-            margin: 0 auto;
-
-        }
-
-        #map_img {
-            display: block;
-            height: 100%;
-            user-select: none;
-        }
-
-        #map_canvas {
+        #mapViewport {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 1920px;
-            height: 1080px;
+            inset: 0;
+            transform-origin: top left;
+        }
+
+        #mapViewport img,
+        #mapViewport canvas {
+            position: absolute;
+            inset: 0;
+        }
+
+        #mapViewport img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            user-select: none;
             pointer-events: none;
+        }
+
+        #mapViewport canvas {
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        #mapOverlay {
+            transition: opacity 220ms ease, visibility 220ms ease;
+            pointer-events: none;
+        }
+
+        #mapOverlay[data-state="hidden"] {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        #mapOverlay[data-state="loading"] [data-role="spinner"] {
+            display: block;
+        }
+
+        #mapOverlay[data-state="info"] [data-role="spinner"] {
+            display: none;
+        }
+
+        @media (min-width: 1024px) {
+            .map-shell {
+                min-height: calc(100vh - 12rem);
+                display: flex;
+                align-items: center;
+                justify-content: flex-end;
+            }
+
+            .config-stack {
+                max-height: calc(100vh - 12rem);
+                overflow-y: auto;
+                padding-right: 0.25rem;
+                scrollbar-width: thin;
+            }
+        }
+
+        @media (max-width: 640px) {
+            header .mx-auto {
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
+
+            main .mx-auto {
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
+
+            body {
+                background-position: center;
+            }
         }
     </style>
 </head>
 
-<body>
-    <!-- Header -->
-    <header class="container">
-        <nav id="navbar">
-            <ul>
-                <li>
-                    <img src="static/default.png" alt="logo" srcset="" style="margin-top: 5px;">
-                </li>
-            </ul>
-            <ul>
-                <!-- 设置按钮，打开设置面板div (⚙) -->
-                <li>
-                    <button class="btn btn-sm" data-target="settings" onclick="toggleModal(event)">⚙</button>
-                </li>
-                <li>
-
-                </li>
-                <!-- 选择玩家，默认<hoozi> -->
-                <li>
-                    <select id="sel_player">
+<body class="min-h-screen text-slate-100 flex flex-col">
+    <header class="w-full border-b border-slate-800/60 bg-slate-950/60 backdrop-blur-xl">
+        <div class="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:flex-row lg:items-end lg:justify-between">
+            <div class="flex items-start gap-4">
+                <div class="flex size-12 items-center justify-center rounded-2xl bg-slate-900/80 ring-1 ring-emerald-500/40">
+                    <img src="static/default.png" alt="HOOZI" class="h-8 w-8 object-contain" draggable="false">
+                </div>
+                <div class="space-y-2">
+                    <h1 class="text-2xl font-semibold text-white sm:text-3xl">HOOZI 网页雷达</h1>
+                    <div class="flex items-center gap-2 text-[0.7rem] uppercase text-slate-400">
+                        <span>连接状态</span>
+                        <span data-role="status-indicator"
+                            class="size-2.5 rounded-full bg-slate-500 shadow-inner shadow-black/50 transition"></span>
+                        <span data-role="status-text" class="text-[0.75rem] font-medium text-slate-200">
+                            等待连接
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="flex w-full flex-col gap-4 sm:flex-row sm:items-end sm:justify-end lg:w-auto">
+                <div class="w-full sm:w-auto">
+                    <label for="sel_player" class="text-xs uppercase text-slate-400">关注玩家</label>
+                    <select id="sel_player" autocomplete="off"
+                        class="mt-2 min-w-[180px] rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm font-medium text-slate-100 outline-none focus:border-emerald-400/70 focus:ring-2 focus:ring-emerald-500/40">
                         <option value="<hoozi>">hoozi</option>
                     </select>
-                </li>
-            </ul>
-        </nav>
-        <!-- 设置面板 dialog -->
-        <dialog id="settings">
-            <article>
-                <header>
-                    <button aria-label="Close" rel="prev" data-target="settings" onclick="toggleModal(event)"></button>
-                    <h5>⚙ 设置面板</h5>
-                </header>
-                <!-- 服务器地址 -->
-                <section>
-                    <label for="server"><input id="status" type="radio" name="validation-states" aria-invalid="true"
-                            data-tooltip="服务器连接失败" data-placement="right" checked />服务器地址</label>
-                    <fieldset role="group">
-                        <input id="conf_ipaddr" name="conf_ipaddr" type="text" placeholder="auto" />
-                    </fieldset>
-                </section>
-                <section>
-                    <label for="server">字体大小</label>
-                    <input id="conf_fontsize" name="conf_fontsize" type="number" placeholder="10" />
-                </section>
-                <section>
-                    <label for="server">嫌疑玩家</label>
-                    <fieldset role="group">
-                        <input type="button" value="等级低于" disabled />
-                        <input id="conf_glevel" name="conf_glevel" type="number" placeholder="250" />
-                        <input type="button" value="击杀高于" disabled />
-                        <input id="conf_gkill" name="conf_gkill" type="number" placeholder="5" />
-                    </fieldset>
-                </section>
-                <section>
-                    <fieldset>
-                        <legend data-tooltip="✨不勾选则显示所有玩家位置" data-placement="right">地图设置 <span style="font-size: 0.8rem;">✨不勾选则显示所有玩家位置</span></legend>
-                        <!-- 显示名册玩家 -->
-                        <input type="checkbox" id="conf_showmp" name="conf_showmp" />
-                        <label htmlFor="conf_showmp">名册玩家位置</label>
-                        <!-- 显示嫌疑玩家 -->
-                        <input type="checkbox" id="conf_showsp" name="conf_showsp" />
-                        <label htmlFor="conf_showsp">嫌疑玩家位置</label>
-                        <!-- 显示队伍玩家 -->
-                        <input type="checkbox" id="conf_showtp" name="conf_showtp" />
-                        <label htmlFor="conf_showtp">队伍玩家位置</label>
-
-                    </fieldset>
-                </section>
-                <br>
-                <section>
-                    <fieldset>
-                        <legend>玩家信息</legend>
-                        <!-- 显示昵称 -->
-                        <input type="checkbox" id="conf_showname" name="conf_showname" checked />
-                        <label htmlFor="conf_showname">昵称信息</label>
-                        <!-- 击杀前缀 -->
-                        <input type="checkbox" id="conf_showkprefix" name="conf_showkprefix" checked />
-                        <label htmlFor="conf_showkprefix">击杀信息</label>
-                        <!-- 等级前缀 -->
-                        <input type="checkbox" id="conf_showlprefix" name="conf_showlprefix" checked />
-                        <label htmlFor="conf_showlprefix">等级信息</label>
-                        <!-- 段位 -->
-                        <input type="checkbox" id="conf_showrankprefix" name="conf_showrankprefix" checked />
-                        <label htmlFor="conf_showrankprefix">段位信息</label>
-                        <div></div>
-                        <!-- 名册前缀（黑/白/权） -->
-                        <input type="checkbox" id="conf_showmprefix" name="conf_showmprefix" checked />
-                        <label htmlFor="conf_showmprefix">名册标识</label>
-                        <!-- 嫌疑前缀 -->
-                        <input type="checkbox" id="conf_showsprefix" name="conf_showsprefix" checked />
-                        <label htmlFor="conf_showsprefix">嫌疑标识</label>
-                    </fieldset>
-                </section>
-            </article>
-        </dialog>
-    </header>
-    <div id="map_box">
-        <div id="map_container">
-            <article id="loadding" aria-busy="true" style="display: block;"></article>
-            <img id="map_img" src="" style="display:block;margin:0 auto;user-select:none;" />
-            <canvas id="map_canvas"></canvas>
+                </div>
+            </div>
         </div>
-    </div>
-    <!-- ./ Header -->
-    <script>
-        let settings_open = false;
-        $("#sel_player").on('focus', function () {
-            settings_open = true;
-        });
-
-        $("#sel_player").on('blur', function () {
-            settings_open = false;
-        });
-
-        // sel_player 选项改变时，保存到本地缓存
-        $("#sel_player").change(function () {
-            localStorage.setItem("sel_player", $(this).val());
-            $("#sel_player").blur();
-        });
-        // conf_ipaddr 选项改变时，保存到本地缓存
-        $("#conf_ipaddr").change(function () {
-            localStorage.setItem("conf_ipaddr", $(this).val());
-        });
-        // conf_fontsize 选项改变时，保存到本地缓存
-        $("#conf_fontsize").change(function () {
-            localStorage.setItem("conf_fontsize", $(this).val());
-        });
-        // conf_glevel 选项改变时，保存到本地缓存
-        $("#conf_glevel").change(function () {
-            localStorage.setItem("conf_glevel", $(this).val());
-        });
-        // conf_gkill 选项改变时，保存到本地缓存
-        $("#conf_gkill").change(function () {
-            localStorage.setItem("conf_gkill", $(this).val());
-        });
-        // conf_showmp 选项改变时，保存到本地缓存
-        $("#conf_showmp").change(function () {
-            localStorage.setItem("conf_showmp", $(this).prop("checked"));
-        });
-        // conf_showsp 选项改变时，保存到本地缓存
-        $("#conf_showsp").change(function () {
-            localStorage.setItem("conf_showsp", $(this).prop("checked"));
-        });
-        // conf_showtp 选项改变时，保存到本地缓存
-        $("#conf_showtp").change(function () {
-            localStorage.setItem("conf_showtp", $(this).prop("checked"));
-        });
-        // conf_showname 选项改变时，保存到本地缓存
-        $("#conf_showname").change(function () {
-            localStorage.setItem("conf_showname", $(this).prop("checked"));
-        });
-        // conf_showkprefix 选项改变时，保存到本地缓存
-        $("#conf_showkprefix").change(function () {
-            localStorage.setItem("conf_showkprefix", $(this).prop("checked"));
-        });
-        // conf_showlprefix 选项改变时，保存到本地缓存
-        $("#conf_showlprefix").change(function () {
-            localStorage.setItem("conf_showlprefix", $(this).prop("checked"));
-        });
-        // conf_showrankprefix 选项改变时，保存到本地缓存
-        $("#conf_showrankprefix").change(function () {
-            localStorage.setItem("conf_showrankprefix", $(this).prop("checked"));
-        });
-        // conf_showmprefix 选项改变时，保存到本地缓存
-        $("#conf_showmprefix").change(function () {
-            localStorage.setItem("conf_showmprefix", $(this).prop("checked"));
-        });
-        // conf_showsprefix 选项改变时，保存到本地缓存
-        $("#conf_showsprefix").change(function () {
-            localStorage.setItem("conf_showsprefix", $(this).prop("checked"));
-        });
-
-
-        // 网页刚加载时读取缓存的值
-        $("#sel_player").val(localStorage.getItem("sel_player") || "<hoozi>");
-        $("#conf_ipaddr").val(localStorage.getItem("conf_ipaddr") || "auto");
-        $("#conf_fontsize").val(localStorage.getItem("conf_fontsize") || 10);
-        $("#conf_glevel").val(localStorage.getItem("conf_glevel") || 250);
-        $("#conf_gkill").val(localStorage.getItem("conf_gkill") || 5);
-        $("#conf_showmp").prop("checked", localStorage.getItem("conf_showmp") === "true");
-        $("#conf_showsp").prop("checked", localStorage.getItem("conf_showsp") === "true");
-        $("#conf_showtp").prop("checked", localStorage.getItem("conf_showtp") === "true");
-        $("#conf_showname").prop("checked", localStorage.getItem("conf_showname") === "true");
-        $("#conf_showkprefix").prop("checked", localStorage.getItem("conf_showkprefix") === "true");
-        $("#conf_showlprefix").prop("checked", localStorage.getItem("conf_showlprefix") === "true");
-        $("#conf_showrankprefix").prop("checked", localStorage.getItem("conf_showrankprefix") === "true");
-        $("#conf_showmprefix").prop("checked", localStorage.getItem("conf_showmprefix") === "true");
-        $("#conf_showsprefix").prop("checked", localStorage.getItem("conf_showsprefix") === "true");
-
-        function team_color(teamID) {
-            const teamColors = [
-                "rgba(255, 200, 200, 1)", // Light Red
-                "rgba(200, 255, 200, 1)", // Light Green
-                "rgba(200, 200, 255, 1)", // Light Blue
-                "rgba(255, 255, 200, 1)", // Light Yellow
-                "rgba(200, 255, 255, 1)", // Light Cyan
-                "rgba(255, 200, 255, 1)", // Light Magenta
-                "rgba(255, 160, 160, 1)", // Soft Red
-                "rgba(160, 255, 160, 1)", // Soft Green
-                "rgba(160, 160, 255, 1)", // Soft Blue
-                "rgba(255, 255, 160, 1)", // Soft Yellow
-                "rgba(255, 210, 245, 1)", // Soft Pink
-                "rgba(230, 230, 230, 1)", // Light Gray
-                "rgba(255, 220, 180, 1)", // Light Orange
-                "rgba(255, 190, 220, 1)", // Soft Deep Pink
-                "rgba(220, 255, 200, 1)", // Light Chartreuse
-                "rgba(200, 190, 255, 1)", // Light Indigo
-                "rgba(255, 220, 150, 1)", // Bright Orange
-                "rgba(200, 240, 200, 1)", // Bright Light Green
-                "rgba(255, 200, 180, 1)", // Bright Tomato
-                "rgba(255, 245, 200, 1)", // Bright Gold
-                "rgba(200, 255, 245, 1)", // Bright Turquoise
-                "rgba(220, 245, 255, 1)", // Bright Sky Blue
-                "rgba(240, 200, 255, 1)", // Bright Orchid
-                "rgba(245, 220, 255, 1)", // Bright Plum
-                "rgba(250, 220, 255, 1)", // Bright Violet
-                "rgba(200, 245, 255, 1)", // Bright Deep Sky Blue
-                "rgba(230, 245, 255, 1)", // Bright Light Blue
-                "rgba(255, 200, 200, 1)", // Light Salmon
-                "rgba(255, 220, 200, 1)", // Light Dark Salmon
-                "rgba(255, 210, 210, 1)", // Light Coral
-                "rgba(220, 255, 235, 1)", // Light Aquamarine
-                "rgba(210, 230, 255, 1)", // Light Cornflower Blue
-                "rgba(200, 220, 255, 1)", // Light Dodger Blue
-                "rgba(245, 245, 245, 1)", // Very Light Grey
-                "rgba(255, 210, 230, 1)", // Light Pink
-                "rgba(255, 220, 235, 1)", // Bright Pink
-                "rgba(255, 230, 240, 1)", // Soft Bright Pink
-                "rgba(255, 200, 240, 1)", // Bright Deep Pink
-                "rgba(220, 255, 220, 1)", // Bright Spring Green
-                "rgba(210, 255, 220, 1)", // Light Sea Green
-                "rgba(220, 255, 220, 1)", // Pale Green
-                "rgba(200, 255, 200, 1)", // Light Green
-                "rgba(240, 255, 200, 1)", // Bright Chartreuse
-                "rgba(210, 255, 210, 1)", // Light Lime
-                "rgba(255, 210, 200, 1)", // Bright Orange Red
-                "rgba(200, 255, 255, 1)"  // Bright Teal
-            ];
-
-
-            return teamColors[teamID % teamColors.length];
-        }
-        const local_team_color = "#FFFFFF";
-
-        const map_container = document.getElementById("map_container");
-        const map_img = document.getElementById("map_img");
-        const loadding = document.getElementById("loadding");
-        const map_canvas = document.getElementById("map_canvas");
-        const ctx = map_canvas.getContext("2d");
-        let is_dragging = false;
-        let start_x = 0;
-        let start_y = 0;
-        let start_transform = "";
-        let current_translate_x = 0;
-        let current_translate_y = 0;
-        let scale = 1;
-        let scale_amount = 0.1;
-
-        // 鼠标事件
-        map_container.addEventListener('mousedown', function (e) {
-            is_dragging = true;
-            start_x = e.clientX;
-            start_y = e.clientY;
-            start_transform = window.getComputedStyle(map_container).getPropertyValue('transform');
-            e.preventDefault();
-        });
-        map_container.addEventListener('mousemove', function (e) {
-            if (is_dragging) {
-                const dx = e.clientX - start_x;
-                const dy = e.clientY - start_y;
-                let matrix = new WebKitCSSMatrix(start_transform);
-                current_translate_x = matrix.m41 + dx;
-                current_translate_y = matrix.m42 + dy;
-                map_container.style.transform = `translate(${current_translate_x}px, ${current_translate_y}px) scale(${scale})`;
+    </header>
+    <main class="w-full flex-1">
+        <div class="mx-auto flex w-full max-w-7xl flex-col-reverse gap-6 px-4 pb-10 sm:px-6 sm:pb-12 lg:flex-row lg:items-stretch">
+            <aside class="w-full lg:w-75 lg:flex-shrink-0">
+                <div class="config-stack space-y-6">
+                    <section class="glass-panel rounded-3xl p-5 shadow-xl shadow-emerald-500/10">
+                        <h2 class="text-sm font-semibold uppercase text-slate-300">连接配置</h2>
+                        <div class="mt-4 space-y-3">
+                            <label class="block space-y-2 text-xs uppercase text-slate-500">
+                                <div class="flex items-center gap-3">
+                                    <input id="conf_ipaddr" type="text" placeholder="auto"
+                                        class="w-full rounded-xl border border-slate-700/70 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:border-emerald-400/70 focus:outline-none focus:ring-2 focus:ring-emerald-500/40">
+                                    <button id="reconnectButton" type="button"
+                                        class="shrink-0 rounded-xl border border-emerald-500/60 bg-emerald-500/10 px-4 py-2 text-[0.75rem] font-semibold text-emerald-300 transition hover:bg-emerald-500/20 focus:outline-none focus:ring-2 focus:ring-emerald-500/60">
+                                        重连
+                                    </button>
+                                </div>
+                            </label>
+                            <p class="text-[0.7rem] text-slate-500">auto自动, 或手动填写ws/wss地址</p>
+                        </div>
+                    </section>
+                    <section class="glass-panel rounded-3xl p-5 shadow-xl shadow-fuchsia-500/10">
+                        <h2 class="text-sm font-semibold uppercase text-slate-300">信息开关</h2>
+                        <div class="mt-4 space-y-2">
+                            <div class="grid grid-cols-3 gap-2 text-sm text-slate-200">
+                                <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-3 py-2">
+                                    <input id="conf_showname" type="checkbox"
+                                           class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
+                                    <span>昵称</span>
+                                </label>
+                                <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-3 py-2">
+                                    <input id="conf_showlprefix" type="checkbox"
+                                           class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
+                                    <span>等级</span>
+                                </label>
+                                <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-3 py-2">
+                                    <input id="conf_showrankprefix" type="checkbox"
+                                           class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
+                                    <span>段位</span>
+                                </label>
+                            </div>
+                            <div class="grid grid-cols-3 gap-2 text-sm text-slate-200">
+                                <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-3 py-2">
+                                    <input id="conf_showkprefix" type="checkbox"
+                                           class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
+                                    <span>击杀</span>
+                                </label>
+                                <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-3 py-2">
+                                    <input id="conf_showmprefix" type="checkbox"
+                                           class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
+                                    <span>名册</span>
+                                </label>
+                                <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-3 py-2">
+                                    <input id="conf_showsprefix" type="checkbox"
+                                           class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
+                                    <span>嫌疑</span>
+                                </label>
+                            </div>
+                        </div>
+                    </section>
+                    <section class="glass-panel rounded-3xl p-5 shadow-xl shadow-sky-500/10">
+                        <h2 class="text-sm font-semibold uppercase text-slate-300">快捷过滤</h2>
+                        <div class="mt-4 space-y-3">
+                            <label class="flex items-center gap-3 rounded-2xl border border-slate-800/70 bg-slate-950/40 px-3 py-2 text-sm transition hover:border-emerald-400/60">
+                                <input id="conf_showmp" type="checkbox"
+                                    class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
+                                <span class="text-slate-200">仅显示 权 / 黑 / 白</span>
+                            </label>
+                            <label class="flex items-center gap-3 rounded-2xl border border-slate-800/70 bg-slate-950/40 px-3 py-2 text-sm transition hover:border-emerald-400/60">
+                                <input id="conf_showsp" type="checkbox"
+                                    class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
+                                <span class="text-slate-200">仅显示 低等级 / 高击杀</span>
+                            </label>
+                            <div class="grid grid-cols-3 gap-3 text-[0.7rem] uppercase text-slate-500">
+                                <label class="space-y-2">
+                                    <span>字体大小</span>
+                                    <input id="conf_fontsize" type="number" min="6" max="48" step="1"
+                                        class="w-full rounded-xl border border-slate-700/70 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:border-emerald-400/70 focus:outline-none focus:ring-2 focus:ring-emerald-500/40">
+                                </label>
+                                <label class="space-y-2">
+                                    <span>击杀达到</span>
+                                    <input id="conf_gkill" type="number" min="0" step="1"
+                                        class="w-full rounded-xl border border-slate-700/70 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:border-emerald-400/70 focus:outline-none focus:ring-2 focus:ring-emerald-500/40">
+                                </label>
+                                <label class="space-y-2">
+                                    <span>等级低于</span>
+                                    <input id="conf_glevel" type="number" min="0" step="1"
+                                        class="w-full rounded-xl border border-slate-700/70 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:border-emerald-400/70 focus:outline-none focus:ring-2 focus:ring-emerald-500/40">
+                                </label>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </aside>
+            <section class="map-shell flex-1">
+                <div class="relative w-full">
+                    <div id="mapStage"
+                        class="glass-panel relative aspect-square w-full overflow-hidden rounded-[1.75rem] border border-slate-800/80 shadow-[0_40px_120px_-60px_rgba(34,197,94,0.35)]">
+                        <div id="mapViewport" class="absolute inset-0">
+                            <img id="mapImage" src="" alt="" draggable="false">
+                            <canvas id="mapCanvas"></canvas>
+                        </div>
+                        <div id="mapOverlay" data-state="loading"
+                            class="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-slate-950/70 text-slate-200"
+                            role="status" aria-live="polite">
+                            <div data-role="spinner"
+                                class="h-12 w-12 rounded-full border-4 border-slate-700 border-t-emerald-400 animate-spin"></div>
+                            <div class="space-y-1 px-6 text-center">
+                                <p id="overlayTitle" class="text-lg font-semibold">等待连接</p>
+                                <p id="overlaySubtitle" class="text-sm text-slate-400">正在尝试与服务器建立通信</p>
+                            </div>
+                        </div>
+                        <div
+                            class="absolute top-4 right-4 flex items-center gap-1.5 rounded-full border border-slate-700 bg-slate-950/70 px-2.5 py-1 text-[0.7rem] uppercase text-slate-300">
+                            <span>玩家</span>
+                            <span id="playerCount" class="text-sm font-semibold text-white">0</span>
+                        </div>
+                    </div>
+                    <div id="mapControls"
+                        class="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-700/70 bg-slate-950/80 px-3 py-2 text-xs text-slate-200 lg:absolute lg:bottom-4 lg:left-4 lg:mt-0 lg:border-slate-700/60 lg:bg-slate-950/60">
+                        <div class="map-zoom-panel flex shrink-0 items-center gap-2">
+                            <button id="zoomOut" type="button"
+                                class="rounded-full border border-slate-700 bg-slate-950/70 px-2.5 py-1 text-xs text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60">
+                                -
+                            </button>
+                            <button id="zoomReset" type="button"
+                                class="rounded-full border border-slate-700 bg-slate-950/70 px-3 py-1 text-xs text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60">
+                                重置
+                            </button>
+                            <button id="zoomIn" type="button"
+                                class="rounded-full border border-slate-700 bg-slate-950/70 px-2.5 py-1 text-xs text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60">
+                                +
+                            </button>
+                        </div>
+                        <div id="focusPanel" class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                            <span class="text-[0.6rem] uppercase text-slate-500">焦点</span>
+                            <span id="focusTeamBadge" class="size-2 rounded-full bg-slate-500"></span>
+                            <span id="focusPlayerName" class="max-w-[140px] truncate text-sm font-semibold text-white sm:max-w-[240px]">—</span>
+                            <span id="focusMeta"
+                                class="rounded-full border border-slate-700/70 bg-slate-900/70 px-2 py-0.5 text-[0.65rem] font-medium text-slate-200">
+                                Lv — · K —
+                            </span>
+                            <div class="flex items-center gap-1 text-[0.7rem]">
+                                <span class="text-slate-500">X</span>
+                                <span id="playerPosX" class="font-mono text-sm text-white">—</span>
+                            </div>
+                            <div class="flex items-center gap-1 text-[0.7rem]">
+                                <span class="text-slate-500">Y</span>
+                                <span id="playerPosY" class="font-mono text-sm text-white">—</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+    <script type="module">
+        const doc = document;
+        const RAW_CANVAS_WIDTH = 1920;
+        const RAW_CANVAS_HEIGHT = 1080;
+        const RAW_OFFSET_LEFT = 454;
+        const RAW_OFFSET_TOP = 0;
+        const RAW_VISIBLE_WIDTH = 1015;
+        const RAW_VISIBLE_HEIGHT = 1015;
+        const refs = {
+            statusIndicator: doc.querySelector('[data-role="status-indicator"]'),
+            statusText: doc.querySelector('[data-role="status-text"]'),
+            playerSelect: doc.getElementById('sel_player'),
+            mapStage: doc.getElementById('mapStage'),
+            mapViewport: doc.getElementById('mapViewport'),
+            mapImage: doc.getElementById('mapImage'),
+            mapCanvas: doc.getElementById('mapCanvas'),
+            mapOverlay: doc.getElementById('mapOverlay'),
+            overlayTitle: doc.getElementById('overlayTitle'),
+            overlaySubtitle: doc.getElementById('overlaySubtitle'),
+            playerCount: doc.getElementById('playerCount'),
+            playerPosX: doc.getElementById('playerPosX'),
+            playerPosY: doc.getElementById('playerPosY'),
+            focusName: doc.getElementById('focusPlayerName'),
+            focusTeamBadge: doc.getElementById('focusTeamBadge'),
+            focusMeta: doc.getElementById('focusMeta'),
+            zoomIn: doc.getElementById('zoomIn'),
+            zoomOut: doc.getElementById('zoomOut'),
+            zoomReset: doc.getElementById('zoomReset'),
+            reconnectButton: doc.getElementById('reconnectButton'),
+            configStack: doc.querySelector('.config-stack'),
+            inputs: {
+                ip: doc.getElementById('conf_ipaddr'),
+                font: doc.getElementById('conf_fontsize'),
+                gkill: doc.getElementById('conf_gkill'),
+                glevel: doc.getElementById('conf_glevel'),
+                showmp: doc.getElementById('conf_showmp'),
+                showsp: doc.getElementById('conf_showsp'),
+                showname: doc.getElementById('conf_showname'),
+                showkprefix: doc.getElementById('conf_showkprefix'),
+                showlprefix: doc.getElementById('conf_showlprefix'),
+                showrankprefix: doc.getElementById('conf_showrankprefix'),
+                showmprefix: doc.getElementById('conf_showmprefix'),
+                showsprefix: doc.getElementById('conf_showsprefix')
             }
-        });
-        map_container.addEventListener('mouseup', function () {
-            is_dragging = false;
-        });
-        map_container.addEventListener('wheel', function (e) {
-            e.preventDefault();
-            let rect = map_container.getBoundingClientRect(),
-                offset_x = e.clientX - rect.left,
-                offset_y = e.clientY - rect.top;
-            if (e.deltaY < 0) {
-                if (scale > scale_amount) scale += scale_amount;
+        };
+
+        const state = {
+            socket: null,
+            reconnectTimer: null,
+            players: [],
+            mapId: null,
+            mapLoaded: false,
+            canvasCssWidth: 0,
+            canvasCssHeight: 0,
+            pixelRatio: window.devicePixelRatio || 1,
+            isSelectingPlayer: false,
+            viewport: { scale: 1, translateX: 0, translateY: 0 },
+            isConnected: false
+        };
+
+        const desktopQuery = window.matchMedia('(min-width: 1024px)');
+
+        const teamPalette = [
+            '#F87171', '#34D399', '#60A5FA', '#FBBF24', '#2DD4BF', '#A855F7', '#F97316', '#38BDF8', '#22C55E', '#F472B6',
+            '#A3A3A3', '#FDE68A', '#F9A8D4', '#C4B5FD', '#A7F3D0', '#7DD3FC', '#FDBA74', '#86EFAC', '#FCA5A5', '#FACC15',
+            '#67E8F9', '#E9D5FF', '#F0ABFC', '#BBF7D0', '#93C5FD', '#FECACA', '#FCD34D', '#FBCFE8', '#C7D2FE', '#A5F3FC',
+            '#FDBA74', '#86EFAC', '#FDE68A', '#F9A8D4', '#C4B5FD', '#D1D5DB', '#F472B6', '#FB7185', '#F97316', '#34D399',
+            '#60A5FA'
+        ];
+
+        function teamColorFor(teamId) {
+            if (teamId === undefined || teamId === null) {
+                return '#93C5FD';
+            }
+            const index = Math.abs(Number(teamId)) % teamPalette.length;
+            return teamPalette[index];
+        }
+
+        function readSetting(key, fallback) {
+            const stored = localStorage.getItem(key);
+            if (stored === null) return fallback;
+            if (typeof fallback === 'boolean') {
+                return stored === 'true';
+            }
+            if (typeof fallback === 'number') {
+                const parsed = Number(stored);
+                return Number.isFinite(parsed) ? parsed : fallback;
+            }
+            return stored;
+        }
+
+        const settings = {
+            ipaddr: readSetting('conf_ipaddr', 'auto'),
+            fontsize: readSetting('conf_fontsize', 10),
+            gkill: readSetting('conf_gkill', 3),
+            glevel: readSetting('conf_glevel', 250),
+            showmp: readSetting('conf_showmp', false),
+            showsp: readSetting('conf_showsp', false),
+            showname: readSetting('conf_showname', false),
+            showkprefix: readSetting('conf_showkprefix', false),
+            showlprefix: readSetting('conf_showlprefix', false),
+            showrankprefix: readSetting('conf_showrankprefix', false),
+            showmprefix: readSetting('conf_showmprefix', false),
+            showsprefix: readSetting('conf_showsprefix', false),
+            selectedPlayer: readSetting('sel_player', '<hoozi>')
+        };
+
+        // Initialize input values
+        refs.inputs.ip.value = settings.ipaddr;
+        refs.inputs.font.value = settings.fontsize;
+        refs.inputs.gkill.value = settings.gkill;
+        refs.inputs.glevel.value = settings.glevel;
+        refs.inputs.showmp.checked = settings.showmp;
+        refs.inputs.showsp.checked = settings.showsp;
+        refs.inputs.showname.checked = settings.showname;
+        refs.inputs.showkprefix.checked = settings.showkprefix;
+        refs.inputs.showlprefix.checked = settings.showlprefix;
+        refs.inputs.showrankprefix.checked = settings.showrankprefix;
+        refs.inputs.showmprefix.checked = settings.showmprefix;
+        refs.inputs.showsprefix.checked = settings.showsprefix;
+
+        const mapCtx = refs.mapCanvas.getContext('2d');
+
+        function setOverlayState(stateName, title, subtitle) {
+            if (!refs.mapOverlay) return;
+            refs.mapOverlay.dataset.state = stateName;
+            if (title !== undefined) refs.overlayTitle.textContent = title;
+            if (subtitle !== undefined) refs.overlaySubtitle.textContent = subtitle;
+        }
+
+        function updateStatus(stateName, label) {
+            if (label) {
+                refs.statusText.textContent = label;
+            }
+            const indicator = refs.statusIndicator;
+            indicator.classList.remove('bg-emerald-400', 'bg-amber-300', 'bg-rose-500', 'bg-slate-500', 'animate-pulse');
+            indicator.style.boxShadow = 'none';
+            switch (stateName) {
+                case 'connected':
+                    indicator.classList.add('bg-emerald-400');
+                    indicator.style.boxShadow = '0 0 0 6px rgba(16, 185, 129, 0.2)';
+                    break;
+                case 'connecting':
+                    indicator.classList.add('bg-amber-300', 'animate-pulse');
+                    indicator.style.boxShadow = '0 0 0 6px rgba(251, 191, 36, 0.18)';
+                    break;
+                case 'error':
+                    indicator.classList.add('bg-rose-500');
+                    indicator.style.boxShadow = '0 0 0 6px rgba(244, 63, 94, 0.18)';
+                    break;
+                default:
+                    indicator.classList.add('bg-slate-500');
+                    break;
+            }
+        }
+
+        function buildTarget() {
+            const raw = (settings.ipaddr || '').trim();
+            if (!raw || raw.toLowerCase() === 'auto') {
+                if (!location.host) {
+                    return null;
+                }
+                const scheme = location.protocol === 'https:' ? 'wss://' : 'ws://';
+                return `${scheme}${location.host}/ws`;
+            }
+            if (/^wss?:\/\//i.test(raw)) {
+                return raw;
+            }
+            const scheme = location.protocol === 'https:' ? 'wss://' : 'ws://';
+            const sanitized = raw.replace(/^\/+/, '');
+            return `${scheme}${sanitized}`;
+        }
+
+        function clearSocket() {
+            if (state.socket) {
+                try {
+                    state.socket.onclose = null;
+                    state.socket.onerror = null;
+                    state.socket.onmessage = null;
+                    state.socket.close();
+                } catch (error) {
+                    console.error('关闭连接时发生错误', error);
+                }
+            }
+            state.socket = null;
+        }
+
+        function connect(manual = false) {
+            clearTimeout(state.reconnectTimer);
+            clearSocket();
+
+            const target = buildTarget();
+            if (!target) {
+                updateStatus('error', '未连接');
+                setOverlayState('info', '无法确定服务器地址', '请填写有效的 ws/wss 地址');
+                state.reconnectTimer = setTimeout(() => connect(), 2500);
+                return;
+            }
+
+            updateStatus('connecting', '正在连接');
+            setOverlayState('loading', '等待连接', `正在连接到 ${target}`);
+
+            let socket;
+            try {
+                socket = new WebSocket(target);
+            } catch (error) {
+                console.error('无法创建 WebSocket', error);
+                updateStatus('error', '连接失败');
+                setOverlayState('info', '连接失败', '将在稍后自动重试');
+                state.reconnectTimer = setTimeout(() => connect(), 2000);
+                return;
+            }
+
+            state.socket = socket;
+
+            socket.onopen = () => {
+                state.isConnected = true;
+                updateStatus('connected', '已连接');
+                setOverlayState('loading', '已连接 等待数据传输', '游戏对局开始后才可查看');
+            };
+
+            socket.onmessage = (event) => {
+                handleMessage(event.data);
+            };
+
+            socket.onerror = () => {
+                socket.close();
+            };
+
+            socket.onclose = () => {
+                if (state.socket !== socket) {
+                    return;
+                }
+                state.isConnected = false;
+                updateStatus('error', '连接断开');
+                setOverlayState('info', '已断开连接', '将在稍后尝试重新连接');
+                state.mapLoaded = false;
+                state.players = [];
+                state.mapId = null;
+                refs.mapImage.removeAttribute('src');
+                refs.playerCount.textContent = '0';
+                updatePlayerInfo();
+                renderPlayers();
+                state.reconnectTimer = setTimeout(() => connect(), manual ? 2000 : 1500);
+            };
+        }
+
+        function syncMapStageSize() {
+            const stage = refs.mapStage;
+            if (!stage) return;
+            const container = stage.parentElement;
+            if (!container) return;
+            if (desktopQuery.matches) {
+                const containerRect = container.getBoundingClientRect();
+                const availableHeight = Math.max(0, window.innerHeight - containerRect.top - 32);
+                let availableWidth = container.clientWidth || containerRect.width;
+                if (!availableWidth && container.parentElement) {
+                    availableWidth = container.parentElement.getBoundingClientRect().width;
+                }
+                let size = Math.max(0, Math.min(availableWidth, availableHeight));
+                if (size <= 0) {
+                    const fallback = Math.min(window.innerWidth, window.innerHeight) - 80;
+                    size = Math.max(240, fallback);
+                }
+                if (availableWidth > 0) {
+                    size = Math.min(size, availableWidth);
+                }
+                if (availableHeight > 0) {
+                    size = Math.min(size, availableHeight);
+                }
+                stage.style.width = `${size}px`;
+                stage.style.height = `${size}px`;
+                if (refs.configStack) {
+                    refs.configStack.style.maxHeight = `${size}px`;
+                }
             } else {
-                scale -= scale_amount;
+                stage.style.width = '';
+                stage.style.height = '';
+                if (refs.configStack) {
+                    refs.configStack.style.maxHeight = '';
+                }
             }
-            let new_center_x = offset_x / scale;
-            let new_center_y = offset_y / scale;
-            current_translate_x -= (offset_x - new_center_x * scale) * (scale - 1);
-            current_translate_y -= (offset_y - new_center_y * scale) * (scale - 1);
-
-            let matrix = new WebKitCSSMatrix(window.getComputedStyle(map_container).getPropertyValue('transform'));
-            let centerX = (matrix.m41 + map_container.offsetWidth / 2) / scale;
-            let centerY = (matrix.m42 + map_container.offsetHeight / 2) / scale;
-            let newTranslateX = centerX * scale - map_container.offsetWidth / 2;
-            let newTranslateY = centerY * scale - map_container.offsetHeight / 2;
-            map_container.style.transform = `translate(${newTranslateX}px, ${newTranslateY}px) scale(${scale})`;
-
-        }, {
-            passive: false
-        });
-        // 手机事件
-        function getDistance(event) {
-            let touches = event.touches;
-            let dx = touches[0].pageX - touches[1].pageX;
-            let dy = touches[0].pageY - touches[1].pageY;
-            return Math.sqrt(dx * dx + dy * dy);
         }
 
-        map_container.addEventListener('touchstart', function (e) {
-            if (e.touches.length === 2) {
-                lastDistance = getDistance(e);
+        function resizeCanvas() {
+            syncMapStageSize();
+            const rect = refs.mapStage.getBoundingClientRect();
+            if (!rect.width || !rect.height) {
+                return;
             }
-        });
+            const ratio = window.devicePixelRatio || 1;
+            const deviceWidth = Math.max(1, Math.round(rect.width * ratio));
+            const deviceHeight = Math.max(1, Math.round(rect.height * ratio));
+            state.pixelRatio = ratio;
+            state.canvasCssWidth = rect.width;
+            state.canvasCssHeight = rect.height;
+            refs.mapCanvas.width = deviceWidth;
+            refs.mapCanvas.height = deviceHeight;
+            refs.mapCanvas.style.width = `${rect.width}px`;
+            refs.mapCanvas.style.height = `${rect.height}px`;
+        }
 
-        map_container.addEventListener('touchend', function (e) {
-            if (e.touches.length < 2) {
-                lastDistance = -1;
+        function applyTransform() {
+            const { scale, translateX, translateY } = state.viewport;
+            refs.mapViewport.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+        }
+
+        function resetViewport() {
+            state.viewport.scale = 1;
+            state.viewport.translateX = 0;
+            state.viewport.translateY = 0;
+            applyTransform();
+        }
+
+        function zoomAt(point, factor) {
+            const minScale = 0.4;
+            const maxScale = 5;
+            const previous = state.viewport.scale;
+            let next = previous * factor;
+            next = Math.min(maxScale, Math.max(minScale, next));
+            const scaleRatio = next / previous;
+            state.viewport.translateX = point.x - (point.x - state.viewport.translateX) * scaleRatio;
+            state.viewport.translateY = point.y - (point.y - state.viewport.translateY) * scaleRatio;
+            state.viewport.scale = next;
+            applyTransform();
+        }
+
+        function populatePlayerSelect(players) {
+            if (state.isSelectingPlayer) {
+                return;
             }
-        });
+            const select = refs.playerSelect;
+            const sorted = [...players].sort((a, b) => (a.team ?? 0) - (b.team ?? 0));
+            const fragment = doc.createDocumentFragment();
+            sorted.forEach(player => {
+                const option = doc.createElement('option');
+                option.value = player.name;
+                option.textContent = player.name === '<hoozi>' ? 'hoozi' : player.name;
+                option.style.color = teamColorFor(player.team);
+                fragment.appendChild(option);
+            });
+            select.innerHTML = '';
+            select.appendChild(fragment);
+            if (!players.some(player => player.name === settings.selectedPlayer)) {
+                const fallback = players.find(player => player.name === '<hoozi>') ?? players[0];
+                if (fallback) {
+                    settings.selectedPlayer = fallback.name;
+                    localStorage.setItem('sel_player', settings.selectedPlayer);
+                }
+            }
+            if (settings.selectedPlayer) {
+                select.value = settings.selectedPlayer;
+            }
+        }
 
-        // 绘制玩家
-        function draw_players(players) {
-            // 创建画布缓冲区
-            const buffer = document.createElement('canvas');
-            buffer.width = map_canvas.width;
-            buffer.height = map_canvas.height;
+        function formatCoordinate(value) {
+            if (typeof value !== 'number' || !Number.isFinite(value)) {
+                return '—';
+            }
+            return value.toFixed(1);
+        }
+
+        function updatePlayerInfo() {
+            const players = state.players;
+            if (!players.length) {
+                refs.focusName.textContent = '—';
+                refs.focusName.style.color = '#e2e8f0';
+                refs.focusName.title = '';
+                refs.focusTeamBadge.style.backgroundColor = 'rgba(148, 163, 184, 0.6)';
+                refs.focusMeta.textContent = 'Lv — · K —';
+                refs.focusMeta.style.backgroundColor = 'rgba(15, 23, 42, 0.7)';
+                refs.focusMeta.style.borderColor = 'rgba(148, 163, 184, 0.3)';
+                refs.playerPosX.textContent = '—';
+                refs.playerPosY.textContent = '—';
+                return;
+            }
+
+            let focus = players.find(player => player.name === settings.selectedPlayer);
+            if (!focus) {
+                focus = players[0];
+                settings.selectedPlayer = focus.name;
+                localStorage.setItem('sel_player', settings.selectedPlayer);
+                if (!state.isSelectingPlayer) {
+                    refs.playerSelect.value = focus.name;
+                }
+            }
+
+            const teamColor = teamColorFor(focus.team);
+            refs.focusName.textContent = focus.name === '<hoozi>' ? 'hoozi' : focus.name;
+            refs.focusName.style.color = teamColor;
+            const teamLabel = focus.team !== undefined && focus.team !== null ? `Team ${focus.team}` : 'Team —';
+            refs.focusName.title = focus.rank ? `${teamLabel} · ${focus.rank}` : teamLabel;
+            refs.focusTeamBadge.style.backgroundColor = teamColor;
+            const level = typeof focus.level === 'number' ? focus.level : '—';
+            const kills = typeof focus.kills === 'number' ? focus.kills : '—';
+            refs.focusMeta.textContent = `Lv ${level} · K ${kills}`;
+            if (focus.hostile === true) {
+                refs.focusMeta.style.backgroundColor = 'rgba(244, 63, 94, 0.18)';
+                refs.focusMeta.style.borderColor = 'rgba(244, 63, 94, 0.45)';
+            } else if (focus.hostile === false) {
+                refs.focusMeta.style.backgroundColor = 'rgba(34, 197, 94, 0.16)';
+                refs.focusMeta.style.borderColor = 'rgba(34, 197, 94, 0.45)';
+            } else {
+                refs.focusMeta.style.backgroundColor = 'rgba(15, 23, 42, 0.7)';
+                refs.focusMeta.style.borderColor = 'rgba(148, 163, 184, 0.35)';
+            }
+            refs.playerPosX.textContent = formatCoordinate(focus.pos?.x);
+            refs.playerPosY.textContent = formatCoordinate(focus.pos?.y);
+        }
+
+        function renderPlayers() {
+            mapCtx.setTransform(1, 0, 0, 1, 0, 0);
+            mapCtx.clearRect(0, 0, refs.mapCanvas.width, refs.mapCanvas.height);
+
+            if (!state.mapLoaded || !state.players.length || !state.canvasCssWidth || !state.canvasCssHeight) {
+                return;
+            }
+
+            const players = state.players;
+            let localPlayer = players.find(player => player.name === settings.selectedPlayer);
+            if (!localPlayer) {
+                localPlayer = players[0];
+            }
+            if (!localPlayer) return;
+
+            const buffer = doc.createElement('canvas');
+            buffer.width = RAW_CANVAS_WIDTH;
+            buffer.height = RAW_CANVAS_HEIGHT;
             const bctx = buffer.getContext('2d');
-            // 获取设置
-            const sel_player = $("#sel_player").val();
-            const conf_fontsize = $("#conf_fontsize").val();
-            const conf_glevel = $("#conf_glevel").val();
-            const conf_gkill = $("#conf_gkill").val();
-            const conf_showmp = $("#conf_showmp").is(":checked"); // 显示名册玩家
-            const conf_showsp = $("#conf_showsp").is(":checked"); // 显示嫌疑玩家
-            const conf_showtp = $("#conf_showtp").is(":checked"); // 显示队伍玩家
-            const conf_showname = $("#conf_showname").is(":checked");
-            const conf_showkprefix = $("#conf_showkprefix").is(":checked");
-            const conf_showlprefix = $("#conf_showlprefix").is(":checked");
-            const conf_showrankprefix = $("#conf_showrankprefix").is(":checked");
-            const conf_showmprefix = $("#conf_showmprefix").is(":checked");
-            const conf_showsprefix = $("#conf_showsprefix").is(":checked");
+            bctx.imageSmoothingEnabled = false;
 
-            // 不勾选则显示所有玩家信息
-            const conf_showall = !conf_showmp && !conf_showsp && !conf_showtp;
-
-            // 设置字体 微软雅黑加粗
-            bctx.font = `${conf_fontsize}px 微软雅黑 bold`;
+            const fontSize = Number(settings.fontsize) || 10;
+            bctx.font = `${fontSize}px "Microsoft YaHei", "Noto Sans SC", "Inter", sans-serif`;
             bctx.textAlign = 'center';
-            // 体积碰撞缓存，用于判断昵称是否重叠
-            const text_cache = [];
-            // 选中玩家
-            let local_player = players.find(p => p.name === sel_player);
-            const local_x = local_player.pos.x;
-            const local_y = local_player.pos.y;
+            bctx.textBaseline = 'bottom';
 
-            // 绘制玩家信息并判定体积碰撞
+            const textCache = [];
+            const showAll = !settings.showmp && !settings.showsp;
+            const selectedTeam = localPlayer.team;
+            const localX = Number(localPlayer.pos?.x) || 0;
+            const localY = Number(localPlayer.pos?.y) || 0;
+
             players.forEach(player => {
-                // 判断玩家颜色
-                const color = player.team == local_player.team ? local_team_color : team_color(player.team);
-                const x = player.pos.x;
-                const y = player.pos.y;
+                const px = Number(player.pos?.x) || 0;
+                const py = Number(player.pos?.y) || 0;
+                const color = player.team === selectedTeam ? '#FFFFFF' : teamColorFor(player.team);
 
-                // 绘制玩家圆形
                 bctx.beginPath();
-                bctx.arc(x, y, 4.5, 0, 2 * Math.PI);
+                bctx.arc(px, py, 4.8, 0, Math.PI * 2);
                 bctx.fillStyle = color;
                 bctx.fill();
-                bctx.lineWidth = 1;
-                bctx.strokeStyle = '#000000';
+                bctx.lineWidth = 1.2;
+                bctx.strokeStyle = 'rgba(2, 6, 23, 0.9)';
                 bctx.stroke();
+                bctx.closePath();
 
-                // 队友连接线
-                if (player.team == local_player.team) {
-                    bctx.lineWidth = 1.5;
-                    bctx.strokeStyle = color;
-                    bctx.moveTo(local_x, local_y);
-                    bctx.lineTo(x, y);
+                if (player.team === selectedTeam && player.name !== localPlayer.name) {
+                    bctx.beginPath();
+                    bctx.moveTo(localX, localY);
+                    bctx.lineTo(px, py);
+                    bctx.strokeStyle = `${color}80`;
+                    bctx.lineWidth = 1.2;
                     bctx.stroke();
-                }
-
-                // 绘制玩家信息
-                if (conf_showmp || conf_showsp || conf_showtp || conf_showall) {
-                    let level_low = player.level < conf_glevel;
-                    let kill_high = player.kills > conf_gkill;
-                    let is_roster = player.pro || player.white || player.black;
-
-                    // 排除自己和选中的玩家
-                    if (player.name === sel_player) {
-                        return;
-                    }
-
-                    if (!conf_showall) {
-                        let show_player = false; // 默认不显示
-
-                        // 如果配置显示队伍玩家，且玩家属于同一队伍
-                        if (conf_showtp && player.team === local_player.team) {
-                            show_player = true;
-                        }
-
-                        // 如果配置显示名册玩家，且玩家是名册成员
-                        if (conf_showmp && is_roster) {
-                            show_player = true;
-                        }
-
-                        // 如果配置显示嫌疑玩家，且玩家是嫌疑对象
-                        if (conf_showsp && (level_low || kill_high)) {
-                            show_player = true;
-                        }
-                        // 如果玩家不符合任何条件，剔除
-                        if (!show_player) return;
-                    }
-
-                    let text = "";
-                    if (player.team != local_player.team) {
-                        if (conf_showmprefix && is_roster) text += " [" + (player.pro ? "权" : player.white ? "白" : player.black ? "黑" : "") + "]";
-                        if (conf_showsprefix && (level_low || kill_high)) {
-                            if (level_low && kill_high) text += " [嫌]";
-                            else {
-                                if (level_low) text += " [低级]";
-                                if (kill_high) text += " [高杀]";
-                            }
-                        }
-                        if (conf_showkprefix) text += " [K:" + player.kills + "]";
-                        if (conf_showlprefix) text += " [Lv:" + player.level + "]";
-                        if (conf_showrankprefix) text += " [" + player.rank + "]";
-                    }
-                    if (conf_showname) text += player.name;
-                    if (text.length > 38) text = text.substring(0, 38) + "...";
-
-                    // 判定体积碰撞
-                    const fontSize = parseInt($("#conf_fontsize").val());
-                    const textHeight = fontSize * 1.2; // 1.2 是行高调整系数
-                    let adjustedY = y - fontSize;
-
-                    text_cache.forEach(cachedText => {
-                        if (cachedText.team === player.team) { // 检测同队伍玩家的文本
-                            const { cx, cy, width, height } = cachedText;
-                            const dx = Math.abs(cx - x);
-                            const dy = Math.abs(cy - adjustedY);
-                            if (dx < width / 2 && dy < height) {
-                                adjustedY -= height; // 如果有碰撞，继续向上偏移
-                            }
-                        }
-                    });
-
-                    // 绘制玩家昵称信息
-                    bctx.lineWidth = 2;
-                    bctx.strokeStyle = "rgba(5,5,5,1)";
-                    bctx.strokeText(text, x, adjustedY);
-                    bctx.fillStyle = color;
-                    bctx.fillText(text, x, adjustedY);
                     bctx.closePath();
-
-                    // 缓存当前文本信息位置
-                    const textWidth = bctx.measureText(text).width;
-                    text_cache.push({ cx: x, cy: adjustedY, width: textWidth, height: textHeight, team: player.team });
                 }
+
+                if (player.name === localPlayer.name) {
+                    return;
+                }
+
+                const isRoster = Boolean(player.pro || player.white || player.black);
+                const levelLow = typeof player.level === 'number' && player.level < settings.glevel;
+                const killHigh = typeof player.kills === 'number' && player.kills > settings.gkill;
+
+                if (!showAll) {
+                    let visible = player.team === selectedTeam;
+                    if (settings.showmp && isRoster) visible = true;
+                    if (settings.showsp && (levelLow || killHigh)) visible = true;
+                    if (!visible) return;
+                }
+
+                const labelParts = [];
+                if (player.team !== selectedTeam) {
+                    if (settings.showmprefix && isRoster) {
+                        labelParts.push(`[${player.pro ? '权' : player.white ? '白' : player.black ? '黑' : ''}]`);
+                    }
+                    if (settings.showsprefix && (levelLow || killHigh)) {
+                        if (levelLow && killHigh) {
+                            labelParts.push('[嫌]');
+                        } else {
+                            if (levelLow) labelParts.push('[低级]');
+                            if (killHigh) labelParts.push('[高杀]');
+                        }
+                    }
+                    if (settings.showkprefix && typeof player.kills === 'number') {
+                        labelParts.push(`[K:${player.kills}]`);
+                    }
+                    if (settings.showlprefix && typeof player.level === 'number') {
+                        labelParts.push(`[Lv:${player.level}]`);
+                    }
+                    if (settings.showrankprefix && player.rank) {
+                        labelParts.push(`[${player.rank}]`);
+                    }
+                }
+                if (settings.showname) {
+                    labelParts.push(player.name);
+                }
+                if (!labelParts.length) return;
+
+                let label = labelParts.join(' ');
+                if (label.length > 48) {
+                    label = `${label.slice(0, 48)}…`;
+                }
+
+                const textHeight = fontSize * 1.2;
+                let adjustedY = py - 10;
+                textCache.forEach(cached => {
+                    if (cached.team === player.team) {
+                        const dx = Math.abs(cached.cx - px);
+                        const dy = Math.abs(cached.cy - adjustedY);
+                        if (dx < cached.width / 2 && dy < cached.height) {
+                            adjustedY -= cached.height;
+                        }
+                    }
+                });
+
+                bctx.lineWidth = 3;
+                bctx.strokeStyle = 'rgba(2, 6, 23, 0.85)';
+                bctx.strokeText(label, px, adjustedY);
+                bctx.fillStyle = color;
+                bctx.fillText(label, px, adjustedY);
+
+                const textWidth = bctx.measureText(label).width;
+                textCache.push({ cx: px, cy: adjustedY, width: textWidth, height: textHeight, team: player.team });
             });
 
-
-            // 选中玩家十字线
             bctx.beginPath();
             bctx.lineWidth = 1.5;
-            bctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
-            bctx.moveTo(0, local_y);
-            bctx.lineTo(map_canvas.width, local_y);
-            bctx.moveTo(local_x, 0);
-            bctx.lineTo(local_x, map_canvas.height);
+            bctx.strokeStyle = 'rgba(255, 255, 255, 0.55)';
+            bctx.moveTo(0, localY);
+            bctx.lineTo(RAW_CANVAS_WIDTH, localY);
+            bctx.moveTo(localX, 0);
+            bctx.lineTo(localX, RAW_CANVAS_HEIGHT);
             bctx.stroke();
             bctx.closePath();
 
-            // 将缓冲区绘制到画布
-            ctx.drawImage(buffer, 0, 0);
+            bctx.beginPath();
+            bctx.arc(localX, localY, 6, 0, Math.PI * 2);
+            bctx.lineWidth = 2.2;
+            bctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+            bctx.stroke();
+            bctx.closePath();
+
+            const sourceX = RAW_OFFSET_LEFT;
+            const sourceY = RAW_OFFSET_TOP;
+            const sourceWidth = RAW_VISIBLE_WIDTH;
+            const sourceHeight = RAW_VISIBLE_HEIGHT;
+
+            mapCtx.imageSmoothingEnabled = true;
+            mapCtx.drawImage(
+                buffer,
+                sourceX,
+                sourceY,
+                sourceWidth,
+                sourceHeight,
+                0,
+                0,
+                refs.mapCanvas.width,
+                refs.mapCanvas.height
+            );
         }
 
-        $(document).ready(function () {
-            function connect() {
-                // 读取表单并决定目标
-                var raw = ($("#conf_ipaddr").val() || '').trim();
-                var isAuto = !raw || raw.toLowerCase() === 'auto';
-
-                // 允许用户直接填完整 ws(s):// 开头的地址；否则按协议自动拼
-                var target;
-                if (!isAuto && /^wss?:\/\//i.test(raw)) {
-                    target = raw; // 用户已写完整
-                } else {
-                    var scheme = (location.protocol === 'https:') ? 'wss://' : 'ws://';
-                    var host = window.location.host; // 在 https/http 下可用；file:// 为空
-                    if (isAuto) {
-                        // auto：HTTP 用 ws://<host>/ws，HTTPS 用 wss://<host>/ws
-                        if (!host) {
-                            // 本地 file:// 无 host，auto 无法推断，提示手填
-                            $("#status").attr("data-tooltip", "请在输入框填写服务器地址").attr("aria-invalid", "true");
-                            setTimeout(connect, 1000);
-                            return;
-                        }
-                        target = scheme + host + "/ws";
-                    } else {
-                        // 用户只填了 host[:port][path]（不含协议）的情况
-                        raw = raw.replace(/^\/+/, ""); // 去掉可能的前导斜杠
-                        target = scheme + raw;
-                    }
-                }
-
-                // 建立连接
-                var socket = new WebSocket(target);
-
-                // 设置连接状态
-                socket.onopen = function () {
-                    loadding.style.display = "none";
-                    $("#status").attr("data-tooltip", "服务器连接成功").attr("aria-invalid", "false");
-                };
-
-                // 接收服务器消息
-                socket.onmessage = function (event) {
-                    if (settings_open) { return; }
-                    loadding.style.display = "none";
-                    const data = JSON.parse(event.data);
-
-                    // 调整画布背景和玩家位置
-                    if (data.map) {
-                        var map_src = "static/" + data.map + ".png";
-                        if (map_src !== map_img.src) {
-                            map_img.src = map_src; // 更新地图
-                            // 更新玩家列表
-                            if (data.players) {
-                                data.players.sort((a, b) => a.team - b.team); // 按队伍排序
-
-                                // 清空并重新填充玩家选择框
-                                const sel_local = $("#sel_player");
-                                sel_local.empty();
-                                data.players.forEach(player => {
-                                    sel_local.append(`<option value="${player.name}" style="color:${team_color(parseInt(player.team))};">${player.name === '<hoozi>' ? "hoozi" : player.name}</option>`);
-                                });
-
-                                // 读取缓存选中的值，无则默认为<hoozi>
-                                const sel_val = localStorage.getItem("sel_player") || "<hoozi>";
-                                sel_local.val(sel_val);
-                            }
-                        }
-
-                        // 加载地图后绘制玩家
-                        map_img.onload = function () {
-                            map_canvas.width = 1920;
-                            map_canvas.height = 1080;
-                            map_canvas.style.left = map_img.offsetLeft - 454 + "px";
-                            map_canvas.style.top = map_img.offsetTop + "px";
-                            ctx.clearRect(0, 0, map_canvas.width, map_canvas.height);
-                            requestAnimationFrame(() => draw_players(data.players));
-                        };
-
-                    } else {
-                        map_img.src = "";
-                        loadding.style.display = "block";
-                        ctx.clearRect(0, 0, map_canvas.width, map_canvas.height);
-                    }
-                };
-
-                // 连接关闭时重试
-                socket.onclose = function () {
-                    map_img.src = "";
-                    loadding.style.display = "block";
-                    ctx.clearRect(0, 0, map_canvas.width, map_canvas.height);
-                    $("#status").attr("data-tooltip", "服务器连接失败").attr("aria-invalid", "true");
-                    setTimeout(connect, 1000); // 1秒后重试
-                };
+        function handleMessage(raw) {
+            if (!raw) return;
+            let payload;
+            try {
+                payload = JSON.parse(raw);
+            } catch (error) {
+                console.error('无法解析服务器数据', raw);
+                return;
             }
 
-            connect(); // 初始化连接
+            if (payload.map) {
+                updateMap(payload.map);
+            }
+            if (Array.isArray(payload.players)) {
+                updatePlayers(payload.players);
+            }
+        }
+
+        function updateMap(mapId) {
+            if (!mapId) return;
+            if (state.mapId === mapId && state.mapLoaded) {
+                return;
+            }
+            state.mapId = mapId;
+            state.mapLoaded = false;
+            setOverlayState('loading', '加载地图', '正在载入地图资源');
+            const src = `static/${mapId}.png`;
+            if (refs.mapImage.getAttribute('src') === src && refs.mapImage.complete) {
+                onMapReady();
+            } else {
+                refs.mapImage.src = src;
+            }
+        }
+
+        function updatePlayers(players) {
+            state.players = players;
+            refs.playerCount.textContent = players.length.toString();
+            if (players.length) {
+                populatePlayerSelect(players);
+                if (state.mapLoaded) {
+                    setOverlayState('hidden');
+                }
+            } else if (state.mapLoaded) {
+                setOverlayState('info', '等待玩家数据', '当前地图暂无玩家或数据尚未同步');
+            }
+            updatePlayerInfo();
+            renderPlayers();
+        }
+
+        function onMapReady() {
+            if (!refs.mapImage.naturalWidth || !refs.mapImage.naturalHeight) {
+                return;
+            }
+            resizeCanvas();
+            resetViewport();
+            state.mapLoaded = true;
+            if (state.players.length) {
+                setOverlayState('hidden');
+            } else {
+                setOverlayState('info', '等待玩家数据', '当前地图暂无玩家或数据尚未同步');
+            }
+            renderPlayers();
+        }
+
+        refs.mapImage.addEventListener('load', onMapReady);
+        refs.mapImage.addEventListener('error', () => {
+            setOverlayState('info', '地图资源缺失', `未找到 static/${state.mapId}.png`);
         });
 
+        refs.playerSelect.addEventListener('focus', () => {
+            state.isSelectingPlayer = true;
+        });
+        refs.playerSelect.addEventListener('blur', () => {
+            state.isSelectingPlayer = false;
+        });
+        refs.playerSelect.addEventListener('change', (event) => {
+            settings.selectedPlayer = event.target.value;
+            localStorage.setItem('sel_player', settings.selectedPlayer);
+            updatePlayerInfo();
+            renderPlayers();
+        });
+
+        refs.inputs.ip.addEventListener('change', (event) => {
+            const value = (event.target.value || '').trim() || 'auto';
+            settings.ipaddr = value;
+            event.target.value = value;
+            localStorage.setItem('conf_ipaddr', value);
+        });
+
+        refs.inputs.font.addEventListener('input', (event) => {
+            let value = Number(event.target.value);
+            if (!Number.isFinite(value)) value = settings.fontsize;
+            value = Math.max(6, Math.min(48, value));
+            settings.fontsize = value;
+            localStorage.setItem('conf_fontsize', value);
+            renderPlayers();
+        });
+
+        refs.inputs.gkill.addEventListener('input', (event) => {
+            let value = Number(event.target.value);
+            if (!Number.isFinite(value) || value < 0) value = 0;
+            settings.gkill = value;
+            localStorage.setItem('conf_gkill', value);
+            renderPlayers();
+        });
+
+        refs.inputs.glevel.addEventListener('input', (event) => {
+            let value = Number(event.target.value);
+            if (!Number.isFinite(value) || value < 0) value = 0;
+            settings.glevel = value;
+            localStorage.setItem('conf_glevel', value);
+            renderPlayers();
+        });
+
+        const checkboxBindings = [
+            ['conf_showmp', 'showmp'],
+            ['conf_showsp', 'showsp'],
+            ['conf_showname', 'showname'],
+            ['conf_showkprefix', 'showkprefix'],
+            ['conf_showlprefix', 'showlprefix'],
+            ['conf_showrankprefix', 'showrankprefix'],
+            ['conf_showmprefix', 'showmprefix'],
+            ['conf_showsprefix', 'showsprefix']
+        ];
+
+        checkboxBindings.forEach(([key, settingKey]) => {
+            const input = refs.inputs[settingKey];
+            if (!input) return;
+            input.addEventListener('change', (event) => {
+                const checked = event.target.checked;
+                settings[settingKey] = checked;
+                localStorage.setItem(key, checked);
+                renderPlayers();
+            });
+        });
+
+        refs.reconnectButton.addEventListener('click', () => {
+            connect(true);
+        });
+
+        let activePointerId = null;
+        let pointerStart = null;
+        let pointerTranslate = null;
+
+        refs.mapStage.addEventListener('pointerdown', (event) => {
+            activePointerId = event.pointerId;
+            pointerStart = { x: event.clientX, y: event.clientY };
+            pointerTranslate = { x: state.viewport.translateX, y: state.viewport.translateY };
+            refs.mapStage.classList.add('dragging');
+            refs.mapStage.setPointerCapture(activePointerId);
+        });
+
+        refs.mapStage.addEventListener('pointermove', (event) => {
+            if (event.pointerId !== activePointerId || !pointerStart) return;
+            const dx = event.clientX - pointerStart.x;
+            const dy = event.clientY - pointerStart.y;
+            state.viewport.translateX = pointerTranslate.x + dx;
+            state.viewport.translateY = pointerTranslate.y + dy;
+            applyTransform();
+        });
+
+        function releasePointer(event) {
+            if (event.pointerId !== activePointerId) return;
+            refs.mapStage.classList.remove('dragging');
+            refs.mapStage.releasePointerCapture(activePointerId);
+            activePointerId = null;
+            pointerStart = null;
+            pointerTranslate = null;
+        }
+
+        refs.mapStage.addEventListener('pointerup', releasePointer);
+        refs.mapStage.addEventListener('pointercancel', releasePointer);
+
+        refs.mapStage.addEventListener('wheel', (event) => {
+            event.preventDefault();
+            const rect = refs.mapStage.getBoundingClientRect();
+            const point = {
+                x: event.clientX - rect.left,
+                y: event.clientY - rect.top
+            };
+            const factor = event.deltaY < 0 ? 1.12 : 0.88;
+            zoomAt(point, factor);
+        }, { passive: false });
+
+        refs.mapStage.addEventListener('dblclick', (event) => {
+            const rect = refs.mapStage.getBoundingClientRect();
+            const point = {
+                x: event.clientX - rect.left,
+                y: event.clientY - rect.top
+            };
+            zoomAt(point, 1.35);
+        });
+
+        refs.zoomIn.addEventListener('click', () => {
+            const rect = refs.mapStage.getBoundingClientRect();
+            zoomAt({ x: rect.width / 2, y: rect.height / 2 }, 1.18);
+        });
+
+        refs.zoomOut.addEventListener('click', () => {
+            const rect = refs.mapStage.getBoundingClientRect();
+            zoomAt({ x: rect.width / 2, y: rect.height / 2 }, 0.85);
+        });
+
+        refs.zoomReset.addEventListener('click', () => {
+            resetViewport();
+        });
+
+        const handleLayoutChange = () => {
+            resizeCanvas();
+            renderPlayers();
+        };
+
+        if (typeof desktopQuery.addEventListener === 'function') {
+            desktopQuery.addEventListener('change', handleLayoutChange);
+        } else if (typeof desktopQuery.addListener === 'function') {
+            desktopQuery.addListener(handleLayoutChange);
+        }
+
+        let resizeTimer = null;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                resizeCanvas();
+                renderPlayers();
+            }, 150);
+        });
+
+        window.addEventListener('beforeunload', () => {
+            clearTimeout(state.reconnectTimer);
+            clearSocket();
+        });
+
+        resizeCanvas();
+        updateStatus('connecting', '等待连接');
+        setOverlayState('loading', '等待连接', '正在尝试与服务器建立通信');
+        connect();
     </script>
 </body>
 
