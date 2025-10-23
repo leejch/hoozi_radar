@@ -78,12 +78,20 @@
             visibility: hidden;
         }
 
-        #mapOverlay[data-state="loading"] [data-role="spinner"] {
+        #mapOverlay [data-role="spinner"] {
+            display: none;
+        }
+
+        #mapOverlay[data-state="loading"][data-reconnect="false"] [data-role="spinner"] {
             display: block;
         }
 
-        #mapOverlay[data-state="info"] [data-role="spinner"] {
+        #mapOverlay [data-role="reconnect"] {
             display: none;
+        }
+
+        #mapOverlay[data-reconnect="true"] [data-role="reconnect"] {
+            display: inline-flex;
         }
 
         @media (min-width: 1024px) {
@@ -161,10 +169,6 @@
                                 <div class="flex items-center gap-3">
                                     <input id="conf_ipaddr" type="text" placeholder="auto"
                                         class="w-full rounded-xl border border-slate-700/70 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:border-emerald-400/70 focus:outline-none focus:ring-2 focus:ring-emerald-500/40">
-                                    <button id="reconnectButton" type="button"
-                                        class="shrink-0 rounded-xl border border-emerald-500/60 bg-emerald-500/10 px-4 py-2 text-[0.75rem] font-semibold text-emerald-300 transition hover:bg-emerald-500/20 focus:outline-none focus:ring-2 focus:ring-emerald-500/60">
-                                        重连
-                                    </button>
                                 </div>
                             </label>
                             <p class="text-[0.7rem] text-slate-500">auto自动, 或手动填写ws/wss地址</p>
@@ -251,11 +255,15 @@
                             <img id="mapImage" src="" alt="" draggable="false">
                             <canvas id="mapCanvas"></canvas>
                         </div>
-                        <div id="mapOverlay" data-state="loading"
+                        <div id="mapOverlay" data-state="loading" data-reconnect="false"
                             class="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-slate-950/70 text-slate-200"
                             role="status" aria-live="polite">
                             <div data-role="spinner"
                                 class="h-12 w-12 rounded-full border-4 border-slate-700 border-t-emerald-400 animate-spin"></div>
+                            <button id="reconnectButton" type="button" data-role="reconnect"
+                                class="shrink-0 rounded-xl border border-emerald-500/60 bg-emerald-500/10 px-4 py-2 text-[0.75rem] font-semibold text-emerald-300 transition hover:bg-emerald-500/20 focus:outline-none focus:ring-2 focus:ring-emerald-500/60">
+                                重连
+                            </button>
                             <div class="space-y-1 px-6 text-center">
                                 <p id="overlayTitle" class="text-lg font-semibold">等待连接</p>
                                 <p id="overlaySubtitle" class="text-sm text-slate-400">正在尝试与服务器建立通信</p>
@@ -353,7 +361,6 @@
 
         const state = {
             socket: null,
-            reconnectTimer: null,
             players: [],
             mapId: null,
             mapLoaded: false,
@@ -428,9 +435,10 @@
 
         const mapCtx = refs.mapCanvas.getContext('2d');
 
-        function setOverlayState(stateName, title, subtitle) {
+        function setOverlayState(stateName, title, subtitle, options = {}) {
             if (!refs.mapOverlay) return;
             refs.mapOverlay.dataset.state = stateName;
+            refs.mapOverlay.dataset.reconnect = options.showReconnect ? 'true' : 'false';
             if (title !== undefined) refs.overlayTitle.textContent = title;
             if (subtitle !== undefined) refs.overlaySubtitle.textContent = subtitle;
         }
@@ -492,29 +500,26 @@
             state.socket = null;
         }
 
-        function connect(manual = false) {
-            clearTimeout(state.reconnectTimer);
+        function connect() {
             clearSocket();
 
             const target = buildTarget();
             if (!target) {
                 updateStatus('error', '未连接');
-                setOverlayState('info', '无法确定服务器地址', '请填写有效的 ws/wss 地址');
-                state.reconnectTimer = setTimeout(() => connect(), 2500);
+                setOverlayState('info', '未连接', '请检查是否已启动HOOZI和FRP', { showReconnect: true });
                 return;
             }
 
             updateStatus('connecting', '正在连接');
-            setOverlayState('loading', '等待连接', `正在连接到 ${target}`);
+            setOverlayState('loading', '等待连接', `正在连接到 ${target}`, { showReconnect: false });
 
             let socket;
             try {
                 socket = new WebSocket(target);
             } catch (error) {
                 console.error('无法创建 WebSocket', error);
-                updateStatus('error', '连接失败');
-                setOverlayState('info', '连接失败', '将在稍后自动重试');
-                state.reconnectTimer = setTimeout(() => connect(), 2000);
+                updateStatus('error', '未连接');
+                setOverlayState('info', '未连接', '请检查是否已启动HOOZI和FRP', { showReconnect: true });
                 return;
             }
 
@@ -539,8 +544,8 @@
                     return;
                 }
                 state.isConnected = false;
-                updateStatus('error', '连接断开');
-                setOverlayState('info', '已断开连接', '将在稍后尝试重新连接');
+                updateStatus('error', '未连接');
+                setOverlayState('info', '未连接', '请检查是否已启动HOOZI和FRP', { showReconnect: true });
                 state.mapLoaded = false;
                 state.players = [];
                 state.mapId = null;
@@ -548,7 +553,6 @@
                 refs.playerCount.textContent = '0';
                 updatePlayerInfo();
                 renderPlayers();
-                state.reconnectTimer = setTimeout(() => connect(), manual ? 2000 : 1500);
             };
         }
 
@@ -1014,7 +1018,7 @@
         });
 
         refs.reconnectButton.addEventListener('click', () => {
-            connect(true);
+            connect();
         });
 
         let activePointerId = null;
@@ -1105,7 +1109,6 @@
         });
 
         window.addEventListener('beforeunload', () => {
-            clearTimeout(state.reconnectTimer);
             clearSocket();
         });
 
