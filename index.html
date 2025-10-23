@@ -23,13 +23,6 @@
     <style>
         :root {
             color-scheme: dark;
-            --map-max-size: min(48rem, calc(100vh - 12rem));
-        }
-
-        @media (max-width: 1023px) {
-            :root {
-                --map-max-size: min(100vw - 2.5rem, calc(100vh - 10rem));
-            }
         }
 
         body {
@@ -105,17 +98,14 @@
 
         @media (min-width: 1024px) {
             .map-shell {
-                min-height: var(--map-max-size);
-            }
-
-            #mapStage {
-                width: var(--map-max-size);
-                height: var(--map-max-size);
-                aspect-ratio: auto;
+                min-height: calc(100vh - 12rem);
+                display: flex;
+                align-items: center;
+                justify-content: flex-end;
             }
 
             .config-stack {
-                max-height: var(--map-max-size);
+                max-height: calc(100vh - 12rem);
                 overflow-y: auto;
                 padding-right: 0.25rem;
                 scrollbar-width: thin;
@@ -142,22 +132,24 @@
 
 <body class="min-h-screen text-slate-100 flex flex-col">
     <header class="w-full border-b border-slate-800/60 bg-slate-950/60 backdrop-blur-xl">
-        <div class="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
-            <div class="flex items-center gap-4">
+        <div class="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:flex-row lg:items-end lg:justify-between">
+            <div class="flex items-start gap-4">
                 <div class="flex size-12 items-center justify-center rounded-2xl bg-slate-900/80 ring-1 ring-emerald-500/40">
                     <img src="static/default.png" alt="HOOZI Radar" class="h-8 w-8 object-contain" draggable="false">
                 </div>
-                <div>
+                <div class="space-y-2">
                     <h1 class="text-2xl font-semibold tracking-tight text-white sm:text-3xl">HOOZI 雷达指挥中心</h1>
-                    <p class="text-sm text-slate-400">实时洞察战局，规划攻守策略</p>
+                    <div class="flex items-center gap-2 text-[0.7rem] uppercase tracking-[0.3em] text-slate-400">
+                        <span>连接状态</span>
+                        <span data-role="status-indicator"
+                            class="size-2.5 rounded-full bg-slate-500 shadow-inner shadow-black/50 transition"></span>
+                        <span data-role="status-text" class="text-[0.75rem] font-medium tracking-normal text-slate-200">
+                            等待连接
+                        </span>
+                    </div>
                 </div>
             </div>
-            <div class="flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-end lg:w-auto">
-                <div class="flex w-full items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900/50 px-4 py-2 sm:w-auto">
-                    <span data-role="status-indicator" class="size-3 rounded-full bg-slate-500 shadow-inner shadow-black/50 transition"></span>
-                    <div class="text-xs uppercase tracking-[0.25em] text-slate-400">状态</div>
-                    <span data-role="status-text" class="text-sm font-medium text-slate-200">等待连接</span>
-                </div>
+            <div class="flex w-full flex-col gap-4 sm:flex-row sm:items-end sm:justify-end lg:w-auto">
                 <div class="w-full sm:w-auto">
                     <label for="sel_player" class="text-xs uppercase tracking-[0.25em] text-slate-400">关注玩家</label>
                     <select id="sel_player" autocomplete="off"
@@ -172,182 +164,150 @@
         <div class="mx-auto flex w-full max-w-7xl flex-col-reverse gap-6 px-4 pb-10 sm:px-6 sm:pb-12 lg:flex-row lg:items-stretch">
             <aside class="w-full lg:w-80 lg:flex-shrink-0">
                 <div class="config-stack space-y-6">
-                    <section class="glass-panel rounded-3xl p-6 shadow-xl shadow-emerald-500/10">
-                        <div class="flex items-center justify-between gap-4">
-                            <h2 class="text-sm font-semibold uppercase tracking-[0.3em] text-slate-300">连接配置</h2>
-                            <button id="reconnectButton" type="button"
-                                class="rounded-full border border-emerald-500/70 bg-emerald-500/10 px-4 py-1.5 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-500/20 focus:outline-none focus:ring-2 focus:ring-emerald-500/60">
-                                重连
-                            </button>
-                        </div>
-                        <div class="mt-5 space-y-5">
-                            <div>
-                                <label for="conf_ipaddr" class="text-xs uppercase tracking-[0.3em] text-slate-500">服务器地址</label>
-                                <input id="conf_ipaddr" type="text" placeholder="auto"
-                                    class="mt-2 w-full rounded-xl border border-slate-700/70 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:border-emerald-400/70 focus:outline-none focus:ring-2 focus:ring-emerald-500/40">
-                                <p class="mt-2 text-xs text-slate-500">留空或填写 auto 将自动使用当前域名的 <span class="font-mono">/ws</span>。</p>
-                            </div>
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label for="conf_fontsize" class="text-xs uppercase tracking-[0.3em] text-slate-500">字体大小</label>
-                                    <input id="conf_fontsize" type="number" min="6" max="48" step="1"
-                                        class="mt-2 w-full rounded-xl border border-slate-700/70 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:border-emerald-400/70 focus:outline-none focus:ring-2 focus:ring-emerald-500/40">
+                    <section class="glass-panel rounded-3xl p-5 shadow-xl shadow-emerald-500/10">
+                        <h2 class="text-sm font-semibold uppercase tracking-[0.3em] text-slate-300">连接配置</h2>
+                        <div class="mt-4 space-y-3">
+                            <label class="block space-y-2 text-xs uppercase tracking-[0.3em] text-slate-500">
+                                <span>服务器地址</span>
+                                <div class="flex items-center gap-3">
+                                    <input id="conf_ipaddr" type="text" placeholder="auto"
+                                        class="w-full rounded-xl border border-slate-700/70 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:border-emerald-400/70 focus:outline-none focus:ring-2 focus:ring-emerald-500/40">
+                                    <button id="reconnectButton" type="button"
+                                        class="shrink-0 rounded-xl border border-emerald-500/60 bg-emerald-500/10 px-4 py-2 text-[0.75rem] font-semibold text-emerald-300 transition hover:bg-emerald-500/20 focus:outline-none focus:ring-2 focus:ring-emerald-500/60">
+                                        重连
+                                    </button>
                                 </div>
-                                <div>
-                                    <label for="conf_gkill" class="text-xs uppercase tracking-[0.3em] text-slate-500">击杀高于</label>
-                                    <input id="conf_gkill" type="number" min="0" step="1"
-                                        class="mt-2 w-full rounded-xl border border-slate-700/70 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:border-emerald-400/70 focus:outline-none focus:ring-2 focus:ring-emerald-500/40">
-                                </div>
-                                <div class="col-span-2">
-                                    <label for="conf_glevel" class="text-xs uppercase tracking-[0.3em] text-slate-500">等级低于</label>
-                                    <input id="conf_glevel" type="number" min="0" step="1"
-                                        class="mt-2 w-full rounded-xl border border-slate-700/70 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:border-emerald-400/70 focus:outline-none focus:ring-2 focus:ring-emerald-500/40">
-                                </div>
-                            </div>
+                            </label>
+                            <p class="text-[0.7rem] text-slate-500">留空或填写 auto 将自动使用当前域名的 <span class="font-mono">/ws</span>。</p>
                         </div>
                     </section>
-                    <section class="glass-panel rounded-3xl p-6 shadow-xl shadow-sky-500/10">
-                        <h2 class="text-sm font-semibold uppercase tracking-[0.3em] text-slate-300">显示过滤</h2>
-                        <p class="mt-2 text-xs text-slate-500">全部取消时将显示所有玩家。</p>
+                    <section class="glass-panel rounded-3xl p-5 shadow-xl shadow-sky-500/10">
+                        <h2 class="text-sm font-semibold uppercase tracking-[0.3em] text-slate-300">快捷过滤</h2>
                         <div class="mt-4 space-y-3">
-                            <label class="group flex items-start gap-3 rounded-2xl border border-slate-800/80 bg-slate-950/40 px-4 py-3 transition hover:border-emerald-400/60">
+                            <label class="flex items-center gap-3 rounded-2xl border border-slate-800/70 bg-slate-950/40 px-3 py-2 text-sm transition hover:border-emerald-400/60">
                                 <input id="conf_showmp" type="checkbox"
-                                    class="mt-1 size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                                <div>
-                                    <p class="text-sm font-medium text-slate-100">名册玩家位置</p>
-                                    <p class="text-xs text-slate-500">仅标注白名单 / 黑名单 / 权限玩家。</p>
-                                </div>
+                                    class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
+                                <span class="text-slate-200">仅显示权 / 黑 / 白玩家</span>
                             </label>
-                            <label class="group flex items-start gap-3 rounded-2xl border border-slate-800/80 bg-slate-950/40 px-4 py-3 transition hover:border-emerald-400/60">
+                            <label class="flex items-center gap-3 rounded-2xl border border-slate-800/70 bg-slate-950/40 px-3 py-2 text-sm transition hover:border-emerald-400/60">
                                 <input id="conf_showsp" type="checkbox"
-                                    class="mt-1 size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                                <div>
-                                    <p class="text-sm font-medium text-slate-100">嫌疑玩家位置</p>
-                                    <p class="text-xs text-slate-500">低等级或高击杀的异常玩家。</p>
-                                </div>
+                                    class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
+                                <span class="text-slate-200">仅显示低等级 / 高击杀玩家</span>
                             </label>
-                            <label class="group flex items-start gap-3 rounded-2xl border border-slate-800/80 bg-slate-950/40 px-4 py-3 transition hover:border-emerald-400/60">
-                                <input id="conf_showtp" type="checkbox"
-                                    class="mt-1 size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                                <div>
-                                    <p class="text-sm font-medium text-slate-100">队伍玩家位置</p>
-                                    <p class="text-xs text-slate-500">突出当前关注玩家所属队伍。</p>
-                                </div>
-                            </label>
+                            <div class="grid grid-cols-3 gap-3 text-[0.7rem] uppercase tracking-[0.25em] text-slate-500">
+                                <label class="space-y-2">
+                                    <span>字体大小</span>
+                                    <input id="conf_fontsize" type="number" min="6" max="48" step="1"
+                                        class="w-full rounded-xl border border-slate-700/70 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:border-emerald-400/70 focus:outline-none focus:ring-2 focus:ring-emerald-500/40">
+                                </label>
+                                <label class="space-y-2">
+                                    <span>击杀高于(含)</span>
+                                    <input id="conf_gkill" type="number" min="0" step="1"
+                                        class="w-full rounded-xl border border-slate-700/70 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:border-emerald-400/70 focus:outline-none focus:ring-2 focus:ring-emerald-500/40">
+                                </label>
+                                <label class="space-y-2">
+                                    <span>等级低于(含)</span>
+                                    <input id="conf_glevel" type="number" min="0" step="1"
+                                        class="w-full rounded-xl border border-slate-700/70 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:border-emerald-400/70 focus:outline-none focus:ring-2 focus:ring-emerald-500/40">
+                                </label>
+                            </div>
                         </div>
                     </section>
-                    <section class="glass-panel rounded-3xl p-6 shadow-xl shadow-fuchsia-500/10">
-                        <h2 class="text-sm font-semibold uppercase tracking-[0.3em] text-slate-300">信息呈现</h2>
-                        <p class="mt-2 text-xs text-slate-500">自定义玩家标签所包含的内容。</p>
-                        <div class="mt-4 space-y-3">
-                            <label class="flex items-center justify-between gap-3 rounded-2xl border border-slate-800/70 bg-slate-950/40 px-4 py-3">
-                                <div>
-                                    <p class="text-sm font-medium text-slate-100">昵称信息</p>
-                                    <p class="text-xs text-slate-500">显示玩家的昵称文本。</p>
-                                </div>
-                                <input id="conf_showname" type="checkbox" checked
-                                    class="size-5 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                            </label>
-                            <label class="flex items-center justify-between gap-3 rounded-2xl border border-slate-800/70 bg-slate-950/40 px-4 py-3">
-                                <div>
-                                    <p class="text-sm font-medium text-slate-100">击杀信息</p>
-                                    <p class="text-xs text-slate-500">在昵称前附加 [K:x] 标识。</p>
-                                </div>
-                                <input id="conf_showkprefix" type="checkbox" checked
-                                    class="size-5 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                            </label>
-                            <label class="flex items-center justify-between gap-3 rounded-2xl border border-slate-800/70 bg-slate-950/40 px-4 py-3">
-                                <div>
-                                    <p class="text-sm font-medium text-slate-100">等级信息</p>
-                                    <p class="text-xs text-slate-500">在昵称前附加 [Lv:x] 标识。</p>
-                                </div>
-                                <input id="conf_showlprefix" type="checkbox" checked
-                                    class="size-5 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                            </label>
-                            <label class="flex items-center justify-between gap-3 rounded-2xl border border-slate-800/70 bg-slate-950/40 px-4 py-3">
-                                <div>
-                                    <p class="text-sm font-medium text-slate-100">段位信息</p>
-                                    <p class="text-xs text-slate-500">显示玩家段位名称。</p>
-                                </div>
-                                <input id="conf_showrankprefix" type="checkbox" checked
-                                    class="size-5 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                            </label>
-                            <label class="flex items-center justify-between gap-3 rounded-2xl border border-slate-800/70 bg-slate-950/40 px-4 py-3">
-                                <div>
-                                    <p class="text-sm font-medium text-slate-100">名册标识</p>
-                                    <p class="text-xs text-slate-500">显示 [黑] / [白] / [权] 标签。</p>
-                                </div>
-                                <input id="conf_showmprefix" type="checkbox" checked
-                                    class="size-5 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                            </label>
-                            <label class="flex items-center justify-between gap-3 rounded-2xl border border-slate-800/70 bg-slate-950/40 px-4 py-3">
-                                <div>
-                                    <p class="text-sm font-medium text-slate-100">嫌疑标识</p>
-                                    <p class="text-xs text-slate-500">显示 [低级] / [高杀] / [嫌] 标签。</p>
-                                </div>
-                                <input id="conf_showsprefix" type="checkbox" checked
-                                    class="size-5 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                            </label>
+                    <section class="glass-panel rounded-3xl p-5 shadow-xl shadow-fuchsia-500/10">
+                        <h2 class="text-sm font-semibold uppercase tracking-[0.3em] text-slate-300">信息开关</h2>
+                        <p class="mt-2 text-[0.7rem] text-slate-500">选择需要显示的标签内容（自动保存）。</p>
+                        <div class="mt-4 space-y-2">
+                            <div class="grid grid-cols-3 gap-2 text-sm text-slate-200">
+                                <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-3 py-2">
+                                    <input id="conf_showname" type="checkbox"
+                                        class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
+                                    <span>昵称</span>
+                                </label>
+                                <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-3 py-2">
+                                    <input id="conf_showlprefix" type="checkbox"
+                                        class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
+                                    <span>等级</span>
+                                </label>
+                                <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-3 py-2">
+                                    <input id="conf_showrankprefix" type="checkbox"
+                                        class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
+                                    <span>段位</span>
+                                </label>
+                            </div>
+                            <div class="grid grid-cols-3 gap-2 text-sm text-slate-200">
+                                <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-3 py-2">
+                                    <input id="conf_showkprefix" type="checkbox"
+                                        class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
+                                    <span>击杀</span>
+                                </label>
+                                <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-3 py-2">
+                                    <input id="conf_showmprefix" type="checkbox"
+                                        class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
+                                    <span>名册</span>
+                                </label>
+                                <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-3 py-2">
+                                    <input id="conf_showsprefix" type="checkbox"
+                                        class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
+                                    <span>嫌疑</span>
+                                </label>
+                            </div>
                         </div>
                     </section>
                 </div>
             </aside>
-            <section class="map-shell flex-1 flex flex-col lg:items-end">
-                <div id="mapStage"
-                    class="glass-panel relative aspect-square w-full overflow-hidden rounded-[2rem] border border-slate-800/80 shadow-[0_40px_120px_-60px_rgba(34,197,94,0.35)]">
-                    <div id="mapViewport" class="absolute inset-0">
-                        <img id="mapImage" src="" alt="地图背景" draggable="false">
-                        <canvas id="mapCanvas"></canvas>
-                    </div>
-                    <div id="mapOverlay" data-state="loading"
-                        class="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-slate-950/70 text-slate-200"
-                        role="status" aria-live="polite">
-                        <div data-role="spinner"
-                            class="h-12 w-12 rounded-full border-4 border-slate-700 border-t-emerald-400 animate-spin"></div>
-                        <div class="space-y-1 px-6 text-center">
-                            <p id="overlayTitle" class="text-lg font-semibold">等待连接...</p>
-                            <p id="overlaySubtitle" class="text-sm text-slate-400">正在尝试与服务器建立通信</p>
+            <section class="map-shell flex-1">
+                <div class="relative w-full">
+                    <div id="mapStage"
+                        class="glass-panel relative aspect-square w-full overflow-hidden rounded-[1.75rem] border border-slate-800/80 shadow-[0_40px_120px_-60px_rgba(34,197,94,0.35)]">
+                        <div id="mapViewport" class="absolute inset-0">
+                            <img id="mapImage" src="" alt="地图背景" draggable="false">
+                            <canvas id="mapCanvas"></canvas>
+                        </div>
+                        <div id="mapOverlay" data-state="loading"
+                            class="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-slate-950/70 text-slate-200"
+                            role="status" aria-live="polite">
+                            <div data-role="spinner"
+                                class="h-12 w-12 rounded-full border-4 border-slate-700 border-t-emerald-400 animate-spin"></div>
+                            <div class="space-y-1 px-6 text-center">
+                                <p id="overlayTitle" class="text-lg font-semibold">等待连接...</p>
+                                <p id="overlaySubtitle" class="text-sm text-slate-400">正在尝试与服务器建立通信</p>
+                            </div>
+                        </div>
+                        <div
+                            class="absolute top-4 right-4 flex items-center gap-1.5 rounded-full border border-slate-700 bg-slate-950/70 px-2.5 py-1 text-[0.7rem] uppercase tracking-[0.3em] text-slate-300">
+                            <span>玩家</span>
+                            <span id="playerCount" class="text-sm font-semibold tracking-normal text-white">0</span>
                         </div>
                     </div>
-                    <div
-                        class="absolute top-5 left-5 flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-4 py-2 text-xs font-semibold text-emerald-200">
-                        <span class="size-2 rounded-full bg-emerald-400"></span>
-                        <span id="mapName">地图 -</span>
-                    </div>
-                    <div
-                        class="absolute top-5 right-5 flex items-center gap-2 rounded-full border border-slate-700 bg-slate-950/70 px-3 py-1.5 text-xs text-slate-300">
-                        <span class="tracking-[0.3em] text-slate-500">玩家</span>
-                        <span id="playerCount" class="text-sm font-semibold text-white">0</span>
-                    </div>
-                    <div
-                        class="absolute bottom-5 left-5 flex flex-wrap items-center gap-3 rounded-full border border-slate-700 bg-slate-950/70 px-4 py-2 text-xs text-slate-200">
-                        <div class="flex flex-wrap items-center gap-2 text-sm font-semibold text-white">
-                            <span class="text-[0.65rem] uppercase tracking-[0.35em] text-slate-500">焦点</span>
-                            <span id="focusTeamBadge" class="size-2.5 rounded-full bg-slate-500"></span>
-                            <span id="focusPlayerName" class="max-w-[150px] truncate text-sm font-semibold text-white sm:max-w-[220px]">—</span>
-                            <span id="focusMeta"
-                                class="rounded-full border border-slate-700/70 bg-slate-900/70 px-2 py-0.5 text-[0.7rem] font-medium text-slate-200">Lv — · K —</span>
-                        </div>
-                        <div class="flex items-center gap-1 text-sm">
+                    <div id="focusPanel"
+                        class="mt-4 flex flex-wrap items-center gap-2 rounded-2xl border border-slate-700/70 bg-slate-950/80 px-3 py-2 text-xs text-slate-200 lg:absolute lg:bottom-4 lg:left-4 lg:mt-0 lg:max-w-[60%] lg:bg-slate-950/60">
+                        <span class="text-[0.6rem] uppercase tracking-[0.35em] text-slate-500">焦点</span>
+                        <span id="focusTeamBadge" class="size-2.5 rounded-full bg-slate-500"></span>
+                        <span id="focusPlayerName" class="max-w-[120px] truncate text-sm font-semibold text-white sm:max-w-[220px]">—</span>
+                        <span id="focusMeta"
+                            class="rounded-full border border-slate-700/70 bg-slate-900/70 px-2 py-0.5 text-[0.65rem] font-medium text-slate-200">
+                            Lv — · K —
+                        </span>
+                        <div class="flex items-center gap-1 text-[0.7rem]">
                             <span class="text-slate-500">X</span>
                             <span id="playerPosX" class="font-mono text-sm text-white">—</span>
                         </div>
-                        <div class="flex items-center gap-1 text-sm">
+                        <div class="flex items-center gap-1 text-[0.7rem]">
                             <span class="text-slate-500">Y</span>
                             <span id="playerPosY" class="font-mono text-sm text-white">—</span>
                         </div>
                     </div>
-                    <div class="absolute bottom-5 right-5 flex items-center gap-2">
+                    <div class="map-zoom-panel mt-3 flex items-center gap-2 lg:absolute lg:bottom-4 lg:right-4 lg:mt-0">
                         <button id="zoomOut" type="button"
-                            class="rounded-full border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60">
+                            class="rounded-full border border-slate-700 bg-slate-950/70 px-2.5 py-1.5 text-xs text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60">
                             -
                         </button>
                         <button id="zoomReset" type="button"
-                            class="rounded-full border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60">
+                            class="rounded-full border border-slate-700 bg-slate-950/70 px-3 py-1.5 text-xs text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60">
                             重置
                         </button>
                         <button id="zoomIn" type="button"
-                            class="rounded-full border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60">
+                            class="rounded-full border border-slate-700 bg-slate-950/70 px-2.5 py-1.5 text-xs text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60">
                             +
                         </button>
                     </div>
@@ -374,7 +334,6 @@
             mapOverlay: doc.getElementById('mapOverlay'),
             overlayTitle: doc.getElementById('overlayTitle'),
             overlaySubtitle: doc.getElementById('overlaySubtitle'),
-            mapName: doc.getElementById('mapName'),
             playerCount: doc.getElementById('playerCount'),
             playerPosX: doc.getElementById('playerPosX'),
             playerPosY: doc.getElementById('playerPosY'),
@@ -385,6 +344,7 @@
             zoomOut: doc.getElementById('zoomOut'),
             zoomReset: doc.getElementById('zoomReset'),
             reconnectButton: doc.getElementById('reconnectButton'),
+            configStack: doc.querySelector('.config-stack'),
             inputs: {
                 ip: doc.getElementById('conf_ipaddr'),
                 font: doc.getElementById('conf_fontsize'),
@@ -392,7 +352,6 @@
                 glevel: doc.getElementById('conf_glevel'),
                 showmp: doc.getElementById('conf_showmp'),
                 showsp: doc.getElementById('conf_showsp'),
-                showtp: doc.getElementById('conf_showtp'),
                 showname: doc.getElementById('conf_showname'),
                 showkprefix: doc.getElementById('conf_showkprefix'),
                 showlprefix: doc.getElementById('conf_showlprefix'),
@@ -415,6 +374,8 @@
             viewport: { scale: 1, translateX: 0, translateY: 0 },
             isConnected: false
         };
+
+        const desktopQuery = window.matchMedia('(min-width: 1024px)');
 
         const teamPalette = [
             '#F87171', '#34D399', '#60A5FA', '#FBBF24', '#2DD4BF', '#A855F7', '#F97316', '#38BDF8', '#22C55E', '#F472B6',
@@ -452,13 +413,12 @@
             glevel: readSetting('conf_glevel', 250),
             showmp: readSetting('conf_showmp', false),
             showsp: readSetting('conf_showsp', false),
-            showtp: readSetting('conf_showtp', false),
-            showname: readSetting('conf_showname', true),
-            showkprefix: readSetting('conf_showkprefix', true),
-            showlprefix: readSetting('conf_showlprefix', true),
-            showrankprefix: readSetting('conf_showrankprefix', true),
-            showmprefix: readSetting('conf_showmprefix', true),
-            showsprefix: readSetting('conf_showsprefix', true),
+            showname: readSetting('conf_showname', false),
+            showkprefix: readSetting('conf_showkprefix', false),
+            showlprefix: readSetting('conf_showlprefix', false),
+            showrankprefix: readSetting('conf_showrankprefix', false),
+            showmprefix: readSetting('conf_showmprefix', false),
+            showsprefix: readSetting('conf_showsprefix', false),
             selectedPlayer: readSetting('sel_player', '<hoozi>')
         };
 
@@ -469,7 +429,6 @@
         refs.inputs.glevel.value = settings.glevel;
         refs.inputs.showmp.checked = settings.showmp;
         refs.inputs.showsp.checked = settings.showsp;
-        refs.inputs.showtp.checked = settings.showtp;
         refs.inputs.showname.checked = settings.showname;
         refs.inputs.showkprefix.checked = settings.showkprefix;
         refs.inputs.showlprefix.checked = settings.showlprefix;
@@ -603,7 +562,45 @@
             };
         }
 
+        function syncMapStageSize() {
+            const stage = refs.mapStage;
+            if (!stage) return;
+            const container = stage.parentElement;
+            if (!container) return;
+            if (desktopQuery.matches) {
+                const containerRect = container.getBoundingClientRect();
+                const availableHeight = Math.max(0, window.innerHeight - containerRect.top - 32);
+                let availableWidth = container.clientWidth || containerRect.width;
+                if (!availableWidth && container.parentElement) {
+                    availableWidth = container.parentElement.getBoundingClientRect().width;
+                }
+                let size = Math.max(0, Math.min(availableWidth, availableHeight));
+                if (size <= 0) {
+                    const fallback = Math.min(window.innerWidth, window.innerHeight) - 80;
+                    size = Math.max(240, fallback);
+                }
+                if (availableWidth > 0) {
+                    size = Math.min(size, availableWidth);
+                }
+                if (availableHeight > 0) {
+                    size = Math.min(size, availableHeight);
+                }
+                stage.style.width = `${size}px`;
+                stage.style.height = `${size}px`;
+                if (refs.configStack) {
+                    refs.configStack.style.maxHeight = `${size}px`;
+                }
+            } else {
+                stage.style.width = '';
+                stage.style.height = '';
+                if (refs.configStack) {
+                    refs.configStack.style.maxHeight = '';
+                }
+            }
+        }
+
         function resizeCanvas() {
+            syncMapStageSize();
             const rect = refs.mapStage.getBoundingClientRect();
             if (!rect.width || !rect.height) {
                 return;
@@ -755,7 +752,7 @@
             bctx.textBaseline = 'bottom';
 
             const textCache = [];
-            const showAll = !settings.showmp && !settings.showsp && !settings.showtp;
+            const showAll = !settings.showmp && !settings.showsp;
             const selectedTeam = localPlayer.team;
             const localX = Number(localPlayer.pos?.x) || 0;
             const localY = Number(localPlayer.pos?.y) || 0;
@@ -788,20 +785,16 @@
                     return;
                 }
 
-                if (!showAll) {
-                    let visible = false;
-                    if (settings.showtp && player.team === selectedTeam) visible = true;
-                    const isRoster = Boolean(player.pro || player.white || player.black);
-                    if (settings.showmp && isRoster) visible = true;
-                    const levelLow = typeof player.level === 'number' && player.level < settings.glevel;
-                    const killHigh = typeof player.kills === 'number' && player.kills > settings.gkill;
-                    if (settings.showsp && (levelLow || killHigh)) visible = true;
-                    if (!visible) return;
-                }
-
                 const isRoster = Boolean(player.pro || player.white || player.black);
                 const levelLow = typeof player.level === 'number' && player.level < settings.glevel;
                 const killHigh = typeof player.kills === 'number' && player.kills > settings.gkill;
+
+                if (!showAll) {
+                    let visible = player.team === selectedTeam;
+                    if (settings.showmp && isRoster) visible = true;
+                    if (settings.showsp && (levelLow || killHigh)) visible = true;
+                    if (!visible) return;
+                }
 
                 const labelParts = [];
                 if (player.team !== selectedTeam) {
@@ -894,14 +887,6 @@
             );
         }
 
-        function updateMapBadge() {
-            if (state.mapId) {
-                refs.mapName.textContent = `地图 ${state.mapId}`;
-            } else {
-                refs.mapName.textContent = '地图 -';
-            }
-        }
-
         function handleMessage(raw) {
             if (!raw) return;
             let payload;
@@ -927,7 +912,6 @@
             }
             state.mapId = mapId;
             state.mapLoaded = false;
-            updateMapBadge();
             setOverlayState('loading', '加载地图', '正在载入地图资源...');
             const src = `static/${mapId}.png`;
             if (refs.mapImage.getAttribute('src') === src && refs.mapImage.complete) {
@@ -1020,7 +1004,6 @@
         const checkboxBindings = [
             ['conf_showmp', 'showmp'],
             ['conf_showsp', 'showsp'],
-            ['conf_showtp', 'showtp'],
             ['conf_showname', 'showname'],
             ['conf_showkprefix', 'showkprefix'],
             ['conf_showlprefix', 'showlprefix'],
@@ -1110,6 +1093,17 @@
         refs.zoomReset.addEventListener('click', () => {
             resetViewport();
         });
+
+        const handleLayoutChange = () => {
+            resizeCanvas();
+            renderPlayers();
+        };
+
+        if (typeof desktopQuery.addEventListener === 'function') {
+            desktopQuery.addEventListener('change', handleLayoutChange);
+        } else if (typeof desktopQuery.addListener === 'function') {
+            desktopQuery.addListener(handleLayoutChange);
+        }
 
         let resizeTimer = null;
         window.addEventListener('resize', () => {
