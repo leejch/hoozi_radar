@@ -111,11 +111,6 @@
                     <label for="server"><input id="status" type="radio" name="validation-states" aria-invalid="true"
                             data-tooltip="服务器连接失败" data-placement="right" checked />服务器地址</label>
                     <fieldset role="group">
-                        <select id="conf_protocol" name="conf_protocol">
-                            <option value="auto">auto</option>
-                            <option value="ws">ws://</option>
-                            <option value="wss">wss://</option>
-                        </select>
                         <input id="conf_ipaddr" name="conf_ipaddr" type="text" placeholder="auto" />
                     </fieldset>
                 </section>
@@ -198,10 +193,6 @@
             localStorage.setItem("sel_player", $(this).val());
             $("#sel_player").blur();
         });
-        // conf_protocol 选项改变时，保存到本地缓存
-        $("#conf_protocol").change(function () {
-            localStorage.setItem("conf_protocol", $(this).val());
-        });
         // conf_ipaddr 选项改变时，保存到本地缓存
         $("#conf_ipaddr").change(function () {
             localStorage.setItem("conf_ipaddr", $(this).val());
@@ -258,7 +249,6 @@
 
         // 网页刚加载时读取缓存的值
         $("#sel_player").val(localStorage.getItem("sel_player") || "<hoozi>");
-        $("#conf_protocol").val(localStorage.getItem("conf_protocol") || "auto");
         $("#conf_ipaddr").val(localStorage.getItem("conf_ipaddr") || "auto");
         $("#conf_fontsize").val(localStorage.getItem("conf_fontsize") || 10);
         $("#conf_glevel").val(localStorage.getItem("conf_glevel") || 250);
@@ -565,25 +555,35 @@
 
         $(document).ready(function () {
             function connect() {
-                // 创建连接
-                var ipaddr = ($("#conf_ipaddr").val() || "auto").trim();
-                var protocol = ($("#conf_protocol").val() || "auto").trim();
+                // 读取表单并决定目标
+                var raw = ($("#conf_ipaddr").val() || '').trim();
+                var isAuto = !raw || raw.toLowerCase() === 'auto';
 
-                if (protocol === "auto") {
-                    protocol = window.location.protocol === "https:" ? "wss" : "ws";
+                // 允许用户直接填完整 ws(s):// 开头的地址；否则按协议自动拼
+                var target;
+                if (!isAuto && /^wss?:\/\//i.test(raw)) {
+                    target = raw; // 用户已写完整
+                } else {
+                    var scheme = (location.protocol === 'https:') ? 'wss://' : 'ws://';
+                    var host = window.location.host; // 在 https/http 下可用；file:// 为空
+                    if (isAuto) {
+                        // auto：HTTP 用 ws://<host>/ws，HTTPS 用 wss://<host>/ws
+                        if (!host) {
+                            // 本地 file:// 无 host，auto 无法推断，提示手填
+                            $("#status").attr("data-tooltip", "请在输入框填写服务器地址").attr("aria-invalid", "true");
+                            setTimeout(connect, 1000);
+                            return;
+                        }
+                        target = scheme + host + "/ws";
+                    } else {
+                        // 用户只填了 host[:port][path]（不含协议）的情况
+                        raw = raw.replace(/^\/+/, ""); // 去掉可能的前导斜杠
+                        target = scheme + raw;
+                    }
                 }
 
-                if (ipaddr === "" || ipaddr === "auto") {
-                    ipaddr = window.location.host + "/ws"; // 自动获取本机IP
-                }
-
-                var socket_url = ipaddr.includes("://") ? ipaddr : `${protocol}://${ipaddr}`;
-                if (socket_url.startsWith("http://")) {
-                    socket_url = "ws://" + socket_url.substring(7);
-                } else if (socket_url.startsWith("https://")) {
-                    socket_url = "wss://" + socket_url.substring(8);
-                }
-                var socket = new WebSocket(socket_url);
+                // 建立连接
+                var socket = new WebSocket(target);
 
                 // 设置连接状态
                 socket.onopen = function () {
