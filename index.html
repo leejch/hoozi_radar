@@ -357,6 +357,12 @@
     </main>
     <script type="module">
         const doc = document;
+        const RAW_CANVAS_WIDTH = 1920;
+        const RAW_CANVAS_HEIGHT = 1080;
+        const RAW_OFFSET_LEFT = 454;
+        const RAW_OFFSET_TOP = 0;
+        const RAW_VISIBLE_WIDTH = 1015;
+        const RAW_VISIBLE_HEIGHT = 1015;
         const refs = {
             statusIndicator: doc.querySelector('[data-role="status-indicator"]'),
             statusText: doc.querySelector('[data-role="status-text"]'),
@@ -402,12 +408,9 @@
             players: [],
             mapId: null,
             mapLoaded: false,
-            mapPixelWidth: 1080,
-            mapPixelHeight: 1080,
-            mapRawWidth: 1920,
-            mapRawHeight: 1080,
-            renderScaleX: 1,
-            renderScaleY: 1,
+            canvasCssWidth: 0,
+            canvasCssHeight: 0,
+            pixelRatio: window.devicePixelRatio || 1,
             isSelectingPlayer: false,
             viewport: { scale: 1, translateX: 0, translateY: 0 },
             isConnected: false
@@ -602,15 +605,19 @@
 
         function resizeCanvas() {
             const rect = refs.mapStage.getBoundingClientRect();
+            if (!rect.width || !rect.height) {
+                return;
+            }
             const ratio = window.devicePixelRatio || 1;
-            const width = Math.max(1, Math.round(rect.width * ratio));
-            const height = Math.max(1, Math.round(rect.height * ratio));
-            refs.mapCanvas.width = width;
-            refs.mapCanvas.height = height;
+            const deviceWidth = Math.max(1, Math.round(rect.width * ratio));
+            const deviceHeight = Math.max(1, Math.round(rect.height * ratio));
+            state.pixelRatio = ratio;
+            state.canvasCssWidth = rect.width;
+            state.canvasCssHeight = rect.height;
+            refs.mapCanvas.width = deviceWidth;
+            refs.mapCanvas.height = deviceHeight;
             refs.mapCanvas.style.width = `${rect.width}px`;
             refs.mapCanvas.style.height = `${rect.height}px`;
-            state.renderScaleX = width / (state.mapPixelWidth || 1080);
-            state.renderScaleY = height / (state.mapPixelHeight || 1080);
         }
 
         function applyTransform() {
@@ -725,7 +732,7 @@
             mapCtx.setTransform(1, 0, 0, 1, 0, 0);
             mapCtx.clearRect(0, 0, refs.mapCanvas.width, refs.mapCanvas.height);
 
-            if (!state.mapLoaded || !state.players.length) {
+            if (!state.mapLoaded || !state.players.length || !state.canvasCssWidth || !state.canvasCssHeight) {
                 return;
             }
 
@@ -737,13 +744,11 @@
             if (!localPlayer) return;
 
             const buffer = doc.createElement('canvas');
-            buffer.width = refs.mapCanvas.width;
-            buffer.height = refs.mapCanvas.height;
+            buffer.width = RAW_CANVAS_WIDTH;
+            buffer.height = RAW_CANVAS_HEIGHT;
             const bctx = buffer.getContext('2d');
-            const scaleX = state.renderScaleX || 1;
-            const scaleY = state.renderScaleY || scaleX;
-            bctx.scale(scaleX, scaleY);
-            bctx.imageSmoothingEnabled = true;
+            bctx.imageSmoothingEnabled = false;
+
             const fontSize = Number(settings.fontsize) || 10;
             bctx.font = `${fontSize}px "Microsoft YaHei", "Noto Sans SC", "Inter", sans-serif`;
             bctx.textAlign = 'center';
@@ -752,39 +757,12 @@
             const textCache = [];
             const showAll = !settings.showmp && !settings.showsp && !settings.showtp;
             const selectedTeam = localPlayer.team;
-            const mapWidth = state.mapPixelWidth || 1080;
-            const mapHeight = state.mapPixelHeight || 1080;
-            const rawWidth = state.mapRawWidth || mapWidth;
-            const rawHeight = state.mapRawHeight || mapHeight;
-            const offsetX = rawWidth > mapWidth ? (rawWidth - mapWidth) / 2 : 0;
-            const offsetY = rawHeight > mapHeight ? (rawHeight - mapHeight) / 2 : 0;
-
-            const toCanvasX = (value) => {
-                if (typeof value !== 'number' || !Number.isFinite(value)) {
-                    return 0;
-                }
-                const adjusted = value - offsetX;
-                if (adjusted < 0) return 0;
-                if (adjusted > mapWidth) return mapWidth;
-                return adjusted;
-            };
-
-            const toCanvasY = (value) => {
-                if (typeof value !== 'number' || !Number.isFinite(value)) {
-                    return 0;
-                }
-                const adjusted = value - offsetY;
-                if (adjusted < 0) return 0;
-                if (adjusted > mapHeight) return mapHeight;
-                return adjusted;
-            };
-
-            const localX = toCanvasX(localPlayer.pos?.x ?? 0);
-            const localY = toCanvasY(localPlayer.pos?.y ?? 0);
+            const localX = Number(localPlayer.pos?.x) || 0;
+            const localY = Number(localPlayer.pos?.y) || 0;
 
             players.forEach(player => {
-                const px = toCanvasX(player.pos?.x ?? 0);
-                const py = toCanvasY(player.pos?.y ?? 0);
+                const px = Number(player.pos?.x) || 0;
+                const py = Number(player.pos?.y) || 0;
                 const color = player.team === selectedTeam ? '#FFFFFF' : teamColorFor(player.team);
 
                 bctx.beginPath();
@@ -797,14 +775,13 @@
                 bctx.closePath();
 
                 if (player.team === selectedTeam && player.name !== localPlayer.name) {
-                    bctx.save();
                     bctx.beginPath();
                     bctx.moveTo(localX, localY);
                     bctx.lineTo(px, py);
                     bctx.strokeStyle = `${color}80`;
                     bctx.lineWidth = 1.2;
                     bctx.stroke();
-                    bctx.restore();
+                    bctx.closePath();
                 }
 
                 if (player.name === localPlayer.name) {
@@ -885,9 +862,9 @@
             bctx.lineWidth = 1.5;
             bctx.strokeStyle = 'rgba(255, 255, 255, 0.55)';
             bctx.moveTo(0, localY);
-            bctx.lineTo(state.mapPixelWidth, localY);
+            bctx.lineTo(RAW_CANVAS_WIDTH, localY);
             bctx.moveTo(localX, 0);
-            bctx.lineTo(localX, state.mapPixelHeight);
+            bctx.lineTo(localX, RAW_CANVAS_HEIGHT);
             bctx.stroke();
             bctx.closePath();
 
@@ -898,7 +875,23 @@
             bctx.stroke();
             bctx.closePath();
 
-            mapCtx.drawImage(buffer, 0, 0);
+            const sourceX = RAW_OFFSET_LEFT;
+            const sourceY = RAW_OFFSET_TOP;
+            const sourceWidth = RAW_VISIBLE_WIDTH;
+            const sourceHeight = RAW_VISIBLE_HEIGHT;
+
+            mapCtx.imageSmoothingEnabled = true;
+            mapCtx.drawImage(
+                buffer,
+                sourceX,
+                sourceY,
+                sourceWidth,
+                sourceHeight,
+                0,
+                0,
+                refs.mapCanvas.width,
+                refs.mapCanvas.height
+            );
         }
 
         function updateMapBadge() {
@@ -963,8 +956,6 @@
             if (!refs.mapImage.naturalWidth || !refs.mapImage.naturalHeight) {
                 return;
             }
-            state.mapPixelWidth = refs.mapImage.naturalWidth;
-            state.mapPixelHeight = refs.mapImage.naturalHeight;
             resizeCanvas();
             resetViewport();
             state.mapLoaded = true;
