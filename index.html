@@ -94,6 +94,55 @@
             display: inline-flex;
         }
 
+        .player-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .player-table thead th {
+            position: sticky;
+            top: 0;
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.92));
+            color: #cbd5f5;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+            z-index: 2;
+        }
+
+        .player-table tbody td {
+            padding: 0.7rem 1rem;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+
+        .player-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .player-row-variant-a {
+            background: rgba(15, 23, 42, 0.62);
+        }
+
+        .player-row-variant-b {
+            background: rgba(30, 41, 59, 0.58);
+        }
+
+        .player-table tbody tr:hover {
+            background: rgba(59, 130, 246, 0.14);
+        }
+
+        .player-marker {
+            color: #f8fafc;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
         @media (min-width: 1024px) {
             .map-shell {
                 min-height: calc(100vh - 12rem);
@@ -104,6 +153,12 @@
 
             .config-stack {
                 max-height: calc(100vh - 12rem);
+                overflow-y: auto;
+                padding-right: 0.25rem;
+                scrollbar-width: thin;
+            }
+
+            .player-table-scroll {
                 overflow-y: auto;
                 padding-right: 0.25rem;
                 scrollbar-width: thin;
@@ -311,6 +366,36 @@
                     </div>
                 </div>
             </section>
+            <section class="hidden w-full lg:w-[28rem] lg:flex-shrink-0 lg:flex">
+                <div id="playerTablePanel"
+                    class="glass-panel flex h-full w-full flex-col overflow-hidden rounded-[1.75rem] border border-slate-800/80 shadow-xl shadow-sky-500/10">
+                    <div class="border-b border-slate-800/60 bg-slate-900/60 px-5 py-4">
+                        <h2 class="text-sm font-semibold uppercase text-slate-300">玩家名册</h2>
+                        <p class="mt-1 text-[0.7rem] text-slate-500">实时展示队伍与玩家状态</p>
+                    </div>
+                    <div class="player-table-scroll flex-1">
+                        <table class="player-table text-slate-100">
+                            <thead>
+                                <tr>
+                                    <th scope="col" class="w-16">队伍</th>
+                                    <th scope="col">昵称</th>
+                                    <th scope="col" class="w-16">等级</th>
+                                    <th scope="col" class="w-20">段位</th>
+                                    <th scope="col" class="w-16">击杀</th>
+                                    <th scope="col" class="w-36">标记</th>
+                                </tr>
+                            </thead>
+                            <tbody id="playerTableBody">
+                                <tr>
+                                    <td colspan="6" class="px-5 py-6 text-center text-sm text-slate-500">
+                                        暂无玩家数据
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
         </div>
     </main>
     <script type="module">
@@ -343,6 +428,8 @@
             zoomReset: doc.getElementById('zoomReset'),
             reconnectButton: doc.getElementById('reconnectButton'),
             configStack: doc.querySelector('.config-stack'),
+            playerTableBody: doc.getElementById('playerTableBody'),
+            playerTablePanel: doc.getElementById('playerTablePanel'),
             inputs: {
                 ip: doc.getElementById('conf_ipaddr'),
                 font: doc.getElementById('conf_fontsize'),
@@ -373,6 +460,8 @@
         };
 
         const desktopQuery = window.matchMedia('(min-width: 1024px)');
+        const nameCollator = new Intl.Collator('zh-Hans-CN', { numeric: true, sensitivity: 'base' });
+        const tableRowVariants = ['player-row-variant-a', 'player-row-variant-b'];
 
         const teamPalette = [
             '#F87171', '#34D399', '#60A5FA', '#FBBF24', '#2DD4BF', '#A855F7', '#F97316', '#38BDF8', '#22C55E', '#F472B6',
@@ -584,11 +673,17 @@
                 if (refs.configStack) {
                     refs.configStack.style.maxHeight = `${size}px`;
                 }
+                if (refs.playerTablePanel) {
+                    refs.playerTablePanel.style.maxHeight = `${size}px`;
+                }
             } else {
                 stage.style.width = '';
                 stage.style.height = '';
                 if (refs.configStack) {
                     refs.configStack.style.maxHeight = '';
+                }
+                if (refs.playerTablePanel) {
+                    refs.playerTablePanel.style.maxHeight = '';
                 }
             }
         }
@@ -717,6 +812,90 @@
             }
             refs.playerPosX.textContent = formatCoordinate(focus.pos?.x);
             refs.playerPosY.textContent = formatCoordinate(focus.pos?.y);
+        }
+
+        function formatPlayerMarkers(player) {
+            const markers = [];
+            if (player?.pro) markers.push('权');
+            if (player?.black) markers.push('黑');
+            if (player?.white) markers.push('白');
+            const lowThreshold = Number(settings.glevel);
+            if (Number.isFinite(lowThreshold) && lowThreshold > 0 && typeof player?.level === 'number' && player.level < lowThreshold) {
+                markers.push('低级');
+            }
+            if (!markers.length) {
+                return '—';
+            }
+            return markers.map(marker => `[${marker}]`).join('');
+        }
+
+        function renderPlayerTable() {
+            const body = refs.playerTableBody;
+            if (!body) return;
+            body.innerHTML = '';
+            const players = state.players;
+            if (!players.length) {
+                const row = doc.createElement('tr');
+                const cell = doc.createElement('td');
+                cell.colSpan = 6;
+                cell.className = 'px-5 py-6 text-center text-sm text-slate-500';
+                cell.textContent = '暂无玩家数据';
+                row.appendChild(cell);
+                body.appendChild(row);
+                return;
+            }
+
+            const sorted = [...players].sort((a, b) => {
+                const teamA = a.team ?? Number.POSITIVE_INFINITY;
+                const teamB = b.team ?? Number.POSITIVE_INFINITY;
+                if (teamA !== teamB) {
+                    return teamA - teamB;
+                }
+                return nameCollator.compare(a.name ?? '', b.name ?? '');
+            });
+
+            let lastTeam = null;
+            let variantIndex = 0;
+
+            sorted.forEach(player => {
+                if (player.team !== lastTeam) {
+                    if (lastTeam !== null) {
+                        variantIndex = (variantIndex + 1) % tableRowVariants.length;
+                    }
+                    lastTeam = player.team;
+                }
+                const row = doc.createElement('tr');
+                row.className = tableRowVariants[variantIndex];
+
+                const teamCell = doc.createElement('td');
+                teamCell.textContent = player.team ?? '—';
+                teamCell.style.color = teamColorFor(player.team);
+                row.appendChild(teamCell);
+
+                const nameCell = doc.createElement('td');
+                nameCell.textContent = player.name === '<hoozi>' ? 'hoozi' : player.name ?? '—';
+                nameCell.style.color = teamColorFor(player.team);
+                row.appendChild(nameCell);
+
+                const levelCell = doc.createElement('td');
+                levelCell.textContent = typeof player.level === 'number' ? player.level : '—';
+                row.appendChild(levelCell);
+
+                const rankCell = doc.createElement('td');
+                rankCell.textContent = player.rank ?? '—';
+                row.appendChild(rankCell);
+
+                const killsCell = doc.createElement('td');
+                killsCell.textContent = typeof player.kills === 'number' ? player.kills : '—';
+                row.appendChild(killsCell);
+
+                const markerCell = doc.createElement('td');
+                const markerText = formatPlayerMarkers(player);
+                markerCell.innerHTML = markerText === '—' ? '<span class="text-slate-500">—</span>' : `<span class="player-marker">${markerText}</span>`;
+                row.appendChild(markerCell);
+
+                body.appendChild(row);
+            });
         }
 
         function renderPlayers() {
@@ -927,6 +1106,7 @@
                 setOverlayState('info', '等待玩家数据', '当前地图暂无玩家或数据尚未同步');
             }
             updatePlayerInfo();
+            renderPlayerTable();
             renderPlayers();
         }
 
@@ -985,6 +1165,7 @@
             settings.gkill = value;
             localStorage.setItem('conf_gkill', value);
             renderPlayers();
+            renderPlayerTable();
         });
 
         refs.inputs.glevel.addEventListener('input', (event) => {
@@ -993,6 +1174,7 @@
             settings.glevel = value;
             localStorage.setItem('conf_glevel', value);
             renderPlayers();
+            renderPlayerTable();
         });
 
         const checkboxBindings = [
@@ -1014,6 +1196,7 @@
                 settings[settingKey] = checked;
                 localStorage.setItem(key, checked);
                 renderPlayers();
+                renderPlayerTable();
             });
         });
 
@@ -1111,6 +1294,7 @@
             clearTimeout(resizeTimer);
             resizeTimer = setTimeout(() => {
                 resizeCanvas();
+                renderPlayerTable();
                 renderPlayers();
             }, 150);
         });
@@ -1120,6 +1304,7 @@
         });
 
         resizeCanvas();
+        renderPlayerTable();
         updateStatus('connecting', '等待连接');
         setOverlayState('loading', '等待连接', '正在尝试与服务器建立通信');
         connect();
