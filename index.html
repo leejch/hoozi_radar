@@ -94,19 +94,97 @@
             display: inline-flex;
         }
 
+        .three-column-layout {
+            display: flex;
+            flex-direction: column-reverse;
+            gap: 1rem;
+            width: 100%;
+            flex: 1;
+        }
+
+        .three-column-layout > * {
+            min-width: 0;
+        }
+
+        .map-stage-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
         @media (min-width: 1024px) {
-            .map-shell {
-                min-height: calc(100vh - 12rem);
+            .three-column-layout {
+                display: grid;
+                grid-template-columns: 300px auto minmax(320px, 1fr);
+                column-gap: 1rem;
+                row-gap: 1rem;
+                align-items: stretch;
+            }
+
+            .three-column-layout > * {
+                min-height: 0;
+            }
+
+            .config-column {
                 display: flex;
-                align-items: center;
-                justify-content: flex-end;
+                flex-direction: column;
+                min-height: 0;
+                max-height: 100vh;
             }
 
             .config-stack {
-                max-height: calc(100vh - 12rem);
+                flex: 1;
                 overflow-y: auto;
                 padding-right: 0.25rem;
                 scrollbar-width: thin;
+                min-height: 0;
+            }
+
+            .map-shell {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-height: 0;
+            }
+
+            .map-stage-container {
+                position: relative;
+                display: grid;
+                grid-template-areas: 'stage';
+                align-items: stretch;
+                justify-items: center;
+                gap: 0;
+            }
+
+            #mapStage {
+                grid-area: stage;
+            }
+
+            .player-table-shell {
+                height: 100%;
+                overflow: hidden;
+                max-height: 100vh;
+            }
+
+            .player-table-wrapper {
+                display: flex;
+                flex: 1;
+                flex-direction: column;
+                min-height: 0;
+            }
+
+            .player-table-scroll {
+                flex: 1;
+                min-height: 0;
+            }
+
+            #mapControls {
+                position: absolute;
+                left: 1rem;
+                bottom: 1rem;
+                margin: 0;
+                transform: none;
             }
         }
 
@@ -125,34 +203,63 @@
                 background-position: center;
             }
         }
+
+        .player-table-wrapper {
+            background-color: rgba(15, 23, 42, 0.55);
+            border: 1px solid rgba(71, 85, 105, 0.55);
+        }
+
+        .player-table thead th {
+            background: linear-gradient(180deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.88));
+            color: rgb(226, 232, 240);
+            font-size: 0.7rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .player-table-row {
+            transition: background-color 160ms ease, color 160ms ease;
+        }
+
+        .player-table-row-band-0 {
+            background-color: rgba(15, 23, 42, 0.78);
+        }
+
+        .player-table-row-band-1 {
+            background-color: rgba(30, 41, 59, 0.78);
+        }
+
+        .player-table-row:hover {
+            background-color: rgba(34, 197, 94, 0.12);
+        }
     </style>
 </head>
 
 <body class="min-h-screen text-slate-100 flex flex-col">
     <header class="w-full border-b border-slate-800/60 bg-slate-950/60 backdrop-blur-xl">
-        <div class="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:flex-row lg:items-end lg:justify-between">
-            <div class="flex items-start gap-4">
-                <div class="flex size-12 items-center justify-center rounded-2xl bg-slate-900/80 ring-1 ring-emerald-500/40">
-                    <img src="static/default.png" alt="HOOZi" class="h-8 w-8 object-contain" draggable="false">
+        <div class="mx-auto flex w-full max-w-7xl flex-col gap-4 px-3 py-4 sm:px-4 lg:flex-row lg:items-end lg:justify-between">
+            <div class="flex items-start gap-3">
+                <div class="flex size-11 items-center justify-center rounded-2xl bg-slate-900/80 ring-1 ring-emerald-500/40">
+                    <img src="static/default.png" alt="HOOZi" class="h-7 w-7 object-contain" draggable="false">
                 </div>
                 <div class="space-y-1">
-                    <h1 class="text-2xl font-semibold text-white sm:text-3xl">HOOZi 网页雷达</h1>
-                    <div class="flex items-center gap-2 text-[0.7rem] text-slate-400">
+                    <h1 class="text-[1.6rem] font-semibold text-white sm:text-[1.75rem]">HOOZi 网页雷达</h1>
+                    <div class="flex items-center gap-1.5 text-[0.68rem] text-slate-400">
                         <span>连接状态</span>
                         <span data-role="status-indicator"
                             class="size-2.5 rounded-full bg-slate-500 shadow-inner shadow-black/50 transition"></span>
-                        <span data-role="status-text" class="text-[0.75rem] font-medium text-slate-200">
+                        <span data-role="status-text" class="text-[0.72rem] font-medium text-slate-200">
                             等待连接
                         </span>
-                        <a href="https://m.tb.cn/h.SP0IB1U?tk=dfDef38nAvO" target="_blank" rel="noopener noreferrer" class="mx-3 text-[0.9rem] hover:text-emerald-300">HOOZi卡密购买</a>
+                        <a href="https://m.tb.cn/h.SP0IB1U?tk=dfDef38nAvO" target="_blank" rel="noopener noreferrer" class="mx-2 text-[0.85rem] hover:text-emerald-300">HOOZi卡密购买</a>
                     </div>
                 </div>
             </div>
-            <div class="flex w-full flex-col gap-4 sm:flex-row sm:items-end sm:justify-end lg:w-auto">
+            <div class="flex w-full flex-col gap-3 sm:flex-row sm:items-end sm:justify-end lg:w-auto">
                 <div class="w-full sm:w-auto">
                     <label for="sel_player" class="text-xs text-slate-400">关注玩家</label>
                     <select id="sel_player" autocomplete="off"
-                        class="mt-2 min-w-[180px] rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm font-medium text-slate-100 outline-none focus:border-emerald-400/70 focus:ring-2 focus:ring-emerald-500/40">
+                        class="mt-1.5 min-w-[180px] rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm font-medium text-slate-100 outline-none focus:border-emerald-400/70 focus:ring-2 focus:ring-emerald-500/40">
                         <option value="<hoozi>">hoozi</option>
                     </select>
                 </div>
@@ -160,25 +267,25 @@
         </div>
     </header>
     <main class="w-full flex-1">
-        <div class="mx-auto flex w-full max-w-7xl flex-col-reverse gap-6 px-4 pb-2 sm:px-6 lg:flex-row lg:items-stretch">
-            <aside class="w-full lg:w-75 lg:flex-shrink-0">
-                <div class="config-stack space-y-6">
-                    <section class="glass-panel rounded-3xl p-5 shadow-xl shadow-emerald-500/10">
+        <div class="three-column-layout mx-auto w-full px-3 pb-1.5 sm:px-4 lg:px-6" data-role="layout">
+            <aside class="config-column w-full">
+                <div class="config-stack flex flex-1 flex-col space-y-4">
+                    <section class="glass-panel rounded-3xl p-4 shadow-xl shadow-emerald-500/10">
                         <h2 class="text-sm font-semibold uppercase text-slate-300">连接配置</h2>
-                        <div class="mt-4 space-y-3">
+                        <div class="mt-3 space-y-2.5">
                             <label class="block space-y-2 text-xs uppercase text-slate-500">
                                 <div class="flex items-center gap-3">
                                     <input id="conf_ipaddr" type="text" placeholder="auto"
                                         class="w-full rounded-xl border border-slate-700/70 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:border-emerald-400/70 focus:outline-none focus:ring-2 focus:ring-emerald-500/40">
                                 </div>
                             </label>
-                            <p class="text-[0.7rem] text-slate-500">auto自动, 或手动填写ws/wss地址</p>
+                            <p class="text-[0.68rem] text-slate-500">auto自动, 或手动填写ws/wss地址</p>
                         </div>
                     </section>
-                    <section class="glass-panel rounded-3xl p-5 shadow-xl shadow-fuchsia-500/10">
+                    <section class="glass-panel rounded-3xl p-4 shadow-xl shadow-fuchsia-500/10">
                         <h2 class="text-sm font-semibold uppercase text-slate-300">信息开关</h2>
-                        <div class="mt-4 space-y-2">
-                            <div class="grid grid-cols-3 gap-2 text-sm text-slate-200">
+                        <div class="mt-3 space-y-1.5">
+                            <div class="grid grid-cols-3 gap-1.5 text-sm text-slate-200">
                                 <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-3 py-2">
                                     <input id="conf_showname" type="checkbox"
                                            class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
@@ -195,7 +302,7 @@
                                     <span>段位</span>
                                 </label>
                             </div>
-                            <div class="grid grid-cols-3 gap-2 text-sm text-slate-200">
+                            <div class="grid grid-cols-3 gap-1.5 text-sm text-slate-200">
                                 <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-3 py-2">
                                     <input id="conf_showkprefix" type="checkbox"
                                            class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
@@ -214,20 +321,20 @@
                             </div>
                         </div>
                     </section>
-                    <section class="glass-panel rounded-3xl p-5 shadow-xl shadow-sky-500/10">
+                    <section class="glass-panel rounded-3xl p-4 shadow-xl shadow-sky-500/10">
                         <h2 class="text-sm font-semibold uppercase text-slate-300">快捷过滤</h2>
-                        <div class="mt-4 space-y-3">
-                            <label class="flex items-center gap-3 rounded-2xl border border-slate-800/70 bg-slate-950/40 px-3 py-2 text-sm transition hover:border-emerald-400/60">
+                        <div class="mt-3 space-y-2">
+                            <label class="flex items-center gap-2.5 rounded-2xl border border-slate-800/70 bg-slate-950/40 px-3 py-2 text-sm transition hover:border-emerald-400/60">
                                 <input id="conf_showmp" type="checkbox"
                                     class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
                                 <span class="text-slate-200">仅显示 权 / 黑 / 白</span>
                             </label>
-                            <label class="flex items-center gap-3 rounded-2xl border border-slate-800/70 bg-slate-950/40 px-3 py-2 text-sm transition hover:border-emerald-400/60">
+                            <label class="flex items-center gap-2.5 rounded-2xl border border-slate-800/70 bg-slate-950/40 px-3 py-2 text-sm transition hover:border-emerald-400/60">
                                 <input id="conf_showsp" type="checkbox"
                                     class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
                                 <span class="text-slate-200">仅显示 低等级 / 高击杀</span>
                             </label>
-                            <div class="grid grid-cols-3 gap-3 text-[0.7rem] uppercase text-slate-500">
+                            <div class="grid grid-cols-3 gap-2.5 text-[0.7rem] uppercase text-slate-500">
                                 <label class="space-y-2">
                                     <span>字体大小</span>
                                     <input id="conf_fontsize" type="number" min="6" max="48" step="1"
@@ -248,51 +355,51 @@
                     </section>
                 </div>
             </aside>
-            <section class="map-shell flex-1">
-                <div class="relative w-full">
-                    <div id="mapStage"
-                        class="glass-panel relative aspect-square w-full overflow-hidden rounded-[1.75rem] border border-slate-800/80 shadow-[0_40px_120px_-60px_rgba(34,197,94,0.35)]">
+            <section class="map-shell">
+                    <div class="map-stage-container relative flex flex-1 flex-col">
+                        <div id="mapStage"
+                        class="glass-panel relative aspect-square w-full overflow-hidden rounded-[1.75rem] border border-slate-800/80 shadow-[0_32px_100px_-64px_rgba(34,197,94,0.35)]">
                         <div id="mapViewport" class="absolute inset-0">
                             <img id="mapImage" src="" alt="" draggable="false">
                             <canvas id="mapCanvas"></canvas>
                         </div>
                         <div id="mapOverlay" data-state="loading" data-reconnect="false"
-                            class="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-slate-950/70 text-slate-200"
+                            class="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-950/70 text-slate-200"
                             role="status" aria-live="polite">
                             <div data-role="spinner"
                                 class="h-12 w-12 rounded-full border-4 border-slate-700 border-t-emerald-400 animate-spin"></div>
                             <button id="reconnectButton" type="button" data-role="reconnect"
-                                class="shrink-0 rounded-xl border border-emerald-500/60 bg-emerald-500/10 px-4 py-2 text-[0.75rem] font-semibold text-emerald-300 transition hover:bg-emerald-500/20 focus:outline-none focus:ring-2 focus:ring-emerald-500/60">
+                                class="shrink-0 rounded-xl border border-emerald-500/60 bg-emerald-500/10 px-3.5 py-1.5 text-[0.75rem] font-semibold text-emerald-300 transition hover:bg-emerald-500/20 focus:outline-none focus:ring-2 focus:ring-emerald-500/60">
                                 重连
                             </button>
-                            <div class="space-y-1 px-6 text-center">
+                            <div class="space-y-1 px-5 text-center">
                                 <p id="overlayTitle" class="text-lg font-semibold">等待连接</p>
                                 <p id="overlaySubtitle" class="text-sm text-slate-400">正在尝试与服务器建立通信</p>
                             </div>
                         </div>
                         <div
-                            class="absolute top-4 right-4 flex items-center gap-1.5 rounded-full border border-slate-700 bg-slate-950/70 px-2.5 py-1 text-[0.7rem] uppercase text-slate-300">
+                            class="absolute top-3 right-3 flex items-center gap-1.5 rounded-full border border-slate-700 bg-slate-950/70 px-2 py-0.5 text-[0.66rem] uppercase text-slate-300">
                             <span>玩家</span>
-                            <span id="playerCount" class="text-sm font-semibold text-white">0</span>
+                            <span id="playerCount" class="text-[0.95rem] font-semibold text-white">0</span>
                         </div>
                     </div>
                     <div id="mapControls"
-                        class="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-700/70 bg-slate-950/80 px-3 py-2 text-xs text-slate-200 lg:absolute lg:bottom-4 lg:left-4 lg:mt-0 lg:border-slate-700/60 lg:bg-slate-950/60">
-                        <div class="map-zoom-panel flex shrink-0 items-center gap-2">
+                        class="mt-2.5 flex flex-wrap items-center justify-between gap-2.5 rounded-2xl border border-slate-700/70 bg-slate-950/80 px-2.5 py-1.5 text-xs text-slate-200 lg:mt-0 lg:border-slate-700/60 lg:bg-slate-950/60">
+                        <div class="map-zoom-panel flex shrink-0 items-center gap-1.5">
                             <button id="zoomOut" type="button"
-                                class="rounded-full border border-slate-700 bg-slate-950/70 px-2.5 py-1 text-xs text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60">
+                                class="rounded-full border border-slate-700 bg-slate-950/70 px-2 py-1 text-xs text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60">
                                 -
                             </button>
                             <button id="zoomReset" type="button"
-                                class="rounded-full border border-slate-700 bg-slate-950/70 px-3 py-1 text-xs text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60">
+                                class="rounded-full border border-slate-700 bg-slate-950/70 px-2.5 py-1 text-xs text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60">
                                 重置
                             </button>
                             <button id="zoomIn" type="button"
-                                class="rounded-full border border-slate-700 bg-slate-950/70 px-2.5 py-1 text-xs text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60">
+                                class="rounded-full border border-slate-700 bg-slate-950/70 px-2 py-1 text-xs text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60">
                                 +
                             </button>
                         </div>
-                        <div id="focusPanel" class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                        <div id="focusPanel" class="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
                             <span class="text-[0.6rem] uppercase text-slate-500">焦点</span>
                             <span id="focusTeamBadge" class="size-2 rounded-full bg-slate-500"></span>
                             <span id="focusPlayerName" class="max-w-[140px] truncate text-sm font-semibold text-white sm:max-w-[240px]">—</span>
@@ -300,11 +407,11 @@
                                 class="rounded-full border border-slate-700/70 bg-slate-900/70 px-2 py-0.5 text-[0.65rem] font-medium text-slate-200">
                                 Lv — · K —
                             </span>
-                            <div class="flex items-center gap-1 text-[0.7rem]">
+                            <div class="flex items-center gap-1 text-[0.66rem]">
                                 <span class="text-slate-500">X</span>
                                 <span id="playerPosX" class="font-mono text-sm text-white">—</span>
                             </div>
-                            <div class="flex items-center gap-1 text-[0.7rem]">
+                            <div class="flex items-center gap-1 text-[0.66rem]">
                                 <span class="text-slate-500">Y</span>
                                 <span id="playerPosY" class="font-mono text-sm text-white">—</span>
                             </div>
@@ -312,10 +419,39 @@
                     </div>
                 </div>
             </section>
+            <section class="hidden lg:flex lg:h-full lg:flex-shrink-0">
+                <div class="player-table-shell glass-panel flex h-full w-full flex-col rounded-3xl p-4 shadow-xl shadow-sky-500/10" data-role="player-table-shell">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-sm font-semibold uppercase text-slate-300">玩家信息</h2>
+                        <span class="rounded-full border border-slate-700/70 bg-slate-900/60 px-1.5 py-0.5 text-[0.62rem] text-slate-300">实时更新</span>
+                    </div>
+                    <div class="player-table-wrapper mt-3 flex-1 overflow-hidden rounded-2xl" data-role="player-table-wrapper">
+                        <div class="h-full overflow-auto" data-role="player-table-scroll">
+                            <table class="player-table w-full text-sm text-slate-200">
+                                <thead>
+                                    <tr>
+                                        <th class="px-3 py-1.5 text-left">队伍</th>
+                                        <th class="px-3 py-1.5 text-left">昵称</th>
+                                        <th class="px-3 py-1.5 text-left">等级</th>
+                                        <th class="px-3 py-1.5 text-left">段位</th>
+                                        <th class="px-3 py-1.5 text-left">击杀</th>
+                                        <th class="px-3 py-1.5 text-left">标记</th>
+                                    </tr>
+                                </thead>
+                                <tbody data-role="player-table-body">
+                                    <tr data-role="player-table-empty">
+                                        <td colspan="6" class="px-3 py-5 text-center text-xs text-slate-500">等待玩家数据</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
         </div>
     </main>
-    <footer class="w-full py-2 border-t border-slate-800/60 bg-slate-950/80 backdrop-blur-xl text-sm text-slate-700">
-        <div class="max-w-6xl mx-auto flex flex-col sm:flex-row justify-center items-center sm:space-x-4 px-4 gap-1">
+    <footer class="w-full py-1.5 border-t border-slate-800/60 bg-slate-950/80 backdrop-blur-xl text-sm text-slate-700">
+        <div class="max-w-6xl mx-auto flex flex-col sm:flex-row justify-center items-center sm:space-x-3 px-3 gap-1">
             <p>Copyright © hoozi.net 版权所有</p>
             <p>所有其他商标、标志及著作权均为其各自所有者所有</p>
         </div>
@@ -328,11 +464,19 @@
         const RAW_OFFSET_TOP = 0;
         const RAW_VISIBLE_WIDTH = 1015;
         const RAW_VISIBLE_HEIGHT = 1015;
+        const DESKTOP_LEFT_COLUMN_WIDTH = 300;
+        const DESKTOP_RIGHT_MIN_WIDTH = 320;
+        const DESKTOP_MIN_MAP_SIZE = 320;
         const refs = {
+            layout: doc.querySelector('[data-role="layout"]'),
+            main: doc.querySelector('main'),
+            header: doc.querySelector('header'),
+            footer: doc.querySelector('footer'),
             statusIndicator: doc.querySelector('[data-role="status-indicator"]'),
             statusText: doc.querySelector('[data-role="status-text"]'),
             playerSelect: doc.getElementById('sel_player'),
             mapStage: doc.getElementById('mapStage'),
+            mapStageContainer: doc.querySelector('.map-stage-container'),
             mapViewport: doc.getElementById('mapViewport'),
             mapImage: doc.getElementById('mapImage'),
             mapCanvas: doc.getElementById('mapCanvas'),
@@ -349,7 +493,14 @@
             zoomOut: doc.getElementById('zoomOut'),
             zoomReset: doc.getElementById('zoomReset'),
             reconnectButton: doc.getElementById('reconnectButton'),
+            configColumn: doc.querySelector('.config-column'),
             configStack: doc.querySelector('.config-stack'),
+            mapShell: doc.querySelector('.map-shell'),
+            playerTableShell: doc.querySelector('[data-role="player-table-shell"]'),
+            playerTableWrapper: doc.querySelector('[data-role="player-table-wrapper"]'),
+            playerTableScroll: doc.querySelector('[data-role="player-table-scroll"]'),
+            playerTableBody: doc.querySelector('[data-role="player-table-body"]'),
+            playerTableEmpty: doc.querySelector('[data-role="player-table-empty"]'),
             inputs: {
                 ip: doc.getElementById('conf_ipaddr'),
                 font: doc.getElementById('conf_fontsize'),
@@ -388,6 +539,11 @@
             '#FDBA74', '#86EFAC', '#FDE68A', '#F9A8D4', '#C4B5FD', '#D1D5DB', '#F472B6', '#FB7185', '#F97316', '#34D399',
             '#60A5FA'
         ];
+
+        const nameCollator = new Intl.Collator('zh-Hans-u-co-pinyin', {
+            numeric: true,
+            sensitivity: 'base'
+        });
 
         function teamColorFor(teamId) {
             if (teamId === undefined || teamId === null) {
@@ -560,42 +716,113 @@
                 refs.playerCount.textContent = '0';
                 updatePlayerInfo();
                 renderPlayers();
+                renderPlayerTable();
             };
         }
 
         function syncMapStageSize() {
             const stage = refs.mapStage;
-            if (!stage) return;
-            const container = stage.parentElement;
-            if (!container) return;
+            const layout = refs.layout;
+            if (!stage || !layout) {
+                return;
+            }
+
             if (desktopQuery.matches) {
-                const containerRect = container.getBoundingClientRect();
-                const availableHeight = Math.max(0, window.innerHeight - containerRect.top - 32);
-                let availableWidth = container.clientWidth || containerRect.width;
-                if (!availableWidth && container.parentElement) {
-                    availableWidth = container.parentElement.getBoundingClientRect().width;
+                const viewportWidth = window.innerWidth;
+                const viewportHeight = window.innerHeight;
+                const layoutStyles = window.getComputedStyle(layout);
+                const paddingLeft = parseFloat(layoutStyles.paddingLeft) || 0;
+                const paddingRight = parseFloat(layoutStyles.paddingRight) || 0;
+                const paddingTop = parseFloat(layoutStyles.paddingTop) || 0;
+                const paddingBottom = parseFloat(layoutStyles.paddingBottom) || 0;
+                const horizontalPadding = paddingLeft + paddingRight;
+                const gapX = parseFloat(layoutStyles.columnGap || layoutStyles.gap) || 0;
+
+                const headerRect = refs.header?.getBoundingClientRect();
+                const footerRect = refs.footer?.getBoundingClientRect();
+                const headerHeight = headerRect?.height || 0;
+                const footerHeight = footerRect?.height || 0;
+                const availableHeight = Math.max(0, viewportHeight - headerHeight - footerHeight);
+
+                layout.style.height = `${availableHeight}px`;
+                layout.style.minHeight = `${availableHeight}px`;
+
+                const columnHeight = Math.max(0, availableHeight - paddingTop - paddingBottom);
+                const availableWidth = Math.max(
+                    0,
+                    viewportWidth - DESKTOP_LEFT_COLUMN_WIDTH - horizontalPadding - gapX * 2
+                );
+                const widthCandidate = Math.max(0, availableWidth - DESKTOP_RIGHT_MIN_WIDTH);
+                const widthLimit = widthCandidate > 0 ? widthCandidate : availableWidth;
+                const maxPossible = Math.min(widthLimit, columnHeight);
+                let size = maxPossible;
+                if (!Number.isFinite(size) || size < 0) {
+                    size = 0;
                 }
-                let size = Math.max(0, Math.min(availableWidth, availableHeight));
-                if (size <= 0) {
-                    const fallback = Math.min(window.innerWidth, window.innerHeight) - 80;
-                    size = Math.max(240, fallback);
+                if (size > 0 && size < DESKTOP_MIN_MAP_SIZE && widthLimit >= DESKTOP_MIN_MAP_SIZE && columnHeight >= DESKTOP_MIN_MAP_SIZE) {
+                    size = DESKTOP_MIN_MAP_SIZE;
                 }
-                if (availableWidth > 0) {
-                    size = Math.min(size, availableWidth);
-                }
-                if (availableHeight > 0) {
-                    size = Math.min(size, availableHeight);
-                }
+                size = Math.min(size, maxPossible);
+
                 stage.style.width = `${size}px`;
                 stage.style.height = `${size}px`;
+
+                if (refs.mapStageContainer) {
+                    refs.mapStageContainer.style.width = `${size}px`;
+                    refs.mapStageContainer.style.height = `${size}px`;
+                }
+
+                const sideHeight = size;
+                if (refs.configColumn) {
+                    refs.configColumn.style.height = `${sideHeight}px`;
+                    refs.configColumn.style.maxHeight = `${columnHeight}px`;
+                }
                 if (refs.configStack) {
-                    refs.configStack.style.maxHeight = `${size}px`;
+                    refs.configStack.style.height = `${sideHeight}px`;
+                    refs.configStack.style.maxHeight = `${sideHeight}px`;
+                }
+                if (refs.playerTableShell) {
+                    refs.playerTableShell.style.height = `${sideHeight}px`;
+                    refs.playerTableShell.style.maxHeight = `${columnHeight}px`;
+                }
+                if (refs.playerTableWrapper) {
+                    refs.playerTableWrapper.style.maxHeight = `${sideHeight}px`;
+                }
+                if (refs.playerTableScroll) {
+                    refs.playerTableScroll.style.maxHeight = `${sideHeight}px`;
+                }
+                if (refs.mapShell) {
+                    refs.mapShell.style.minHeight = `${size}px`;
                 }
             } else {
                 stage.style.width = '';
                 stage.style.height = '';
+                if (refs.mapStageContainer) {
+                    refs.mapStageContainer.style.width = '';
+                    refs.mapStageContainer.style.height = '';
+                }
+                layout.style.removeProperty('height');
+                layout.style.removeProperty('min-height');
+                if (refs.mapShell) {
+                    refs.mapShell.style.minHeight = '';
+                }
+                if (refs.configColumn) {
+                    refs.configColumn.style.height = '';
+                    refs.configColumn.style.maxHeight = '';
+                }
                 if (refs.configStack) {
+                    refs.configStack.style.height = '';
                     refs.configStack.style.maxHeight = '';
+                }
+                if (refs.playerTableShell) {
+                    refs.playerTableShell.style.height = '';
+                    refs.playerTableShell.style.maxHeight = '';
+                }
+                if (refs.playerTableWrapper) {
+                    refs.playerTableWrapper.style.maxHeight = '';
+                }
+                if (refs.playerTableScroll) {
+                    refs.playerTableScroll.style.maxHeight = '';
                 }
             }
         }
@@ -888,6 +1115,117 @@
             );
         }
 
+        function renderPlayerTable() {
+            const body = refs.playerTableBody;
+            if (!body) return;
+            const players = state.players;
+            const emptyRow = refs.playerTableEmpty;
+
+            if (!players.length) {
+                body.innerHTML = '';
+                if (emptyRow) {
+                    emptyRow.classList.remove('hidden');
+                    body.appendChild(emptyRow);
+                }
+                return;
+            }
+
+            const sorted = [...players].sort((a, b) => {
+                const teamA = Number.isFinite(Number(a.team)) ? Number(a.team) : Number.POSITIVE_INFINITY;
+                const teamB = Number.isFinite(Number(b.team)) ? Number(b.team) : Number.POSITIVE_INFINITY;
+                if (teamA !== teamB) {
+                    return teamA - teamB;
+                }
+                const nameA = typeof a.name === 'string' ? a.name : '';
+                const nameB = typeof b.name === 'string' ? b.name : '';
+                return nameCollator.compare(nameA, nameB);
+            });
+
+            body.innerHTML = '';
+            if (emptyRow) {
+                emptyRow.classList.add('hidden');
+            }
+
+            let currentTeam = null;
+            let bandIndex = 0;
+            const fragment = doc.createDocumentFragment();
+
+            sorted.forEach((player) => {
+                const team = Number.isFinite(Number(player.team)) ? Number(player.team) : null;
+                if (currentTeam === null) {
+                    currentTeam = team;
+                } else if (team !== currentTeam) {
+                    bandIndex = bandIndex === 0 ? 1 : 0;
+                    currentTeam = team;
+                }
+
+                const row = doc.createElement('tr');
+                row.className = `player-table-row player-table-row-band-${bandIndex}`;
+
+                const teamCell = doc.createElement('td');
+                teamCell.className = 'whitespace-nowrap px-2.5 py-1.5 text-sm font-semibold text-slate-100';
+                const teamWrapper = doc.createElement('div');
+                teamWrapper.className = 'flex items-center gap-1.5';
+                const teamBadge = doc.createElement('span');
+                teamBadge.className = 'inline-flex size-2.5 rounded-full';
+                teamBadge.style.backgroundColor = teamColorFor(player.team);
+                const teamText = doc.createElement('span');
+                teamText.textContent = team !== null ? String(team) : '—';
+                teamWrapper.appendChild(teamBadge);
+                teamWrapper.appendChild(teamText);
+                teamCell.appendChild(teamWrapper);
+                row.appendChild(teamCell);
+
+                const nameCell = doc.createElement('td');
+                nameCell.className = 'max-w-[12rem] px-2.5 py-1.5 text-sm text-slate-100';
+                const displayName = typeof player.name === 'string' ? (player.name === '<hoozi>' ? 'hoozi' : player.name) : '—';
+                const nameSpan = doc.createElement('span');
+                nameSpan.className = 'block truncate';
+                nameSpan.textContent = displayName;
+                nameCell.appendChild(nameSpan);
+                row.appendChild(nameCell);
+
+                const levelCell = doc.createElement('td');
+                levelCell.className = 'px-2.5 py-1.5 text-sm text-slate-200';
+                if (typeof player.level === 'number' && Number.isFinite(player.level)) {
+                    levelCell.textContent = String(player.level);
+                } else {
+                    levelCell.textContent = '—';
+                }
+                row.appendChild(levelCell);
+
+                const rankCell = doc.createElement('td');
+                rankCell.className = 'px-2.5 py-1.5 text-sm text-slate-200';
+                rankCell.textContent = player.rank ? String(player.rank) : '—';
+                row.appendChild(rankCell);
+
+                const killsCell = doc.createElement('td');
+                killsCell.className = 'px-2.5 py-1.5 text-sm text-slate-200';
+                if (typeof player.kills === 'number' && Number.isFinite(player.kills)) {
+                    killsCell.textContent = String(player.kills);
+                } else {
+                    killsCell.textContent = '—';
+                }
+                row.appendChild(killsCell);
+
+                const marksCell = doc.createElement('td');
+                marksCell.className = 'px-2.5 py-1.5 text-sm text-slate-200';
+                const marks = [];
+                if (player.pro) marks.push('[权]');
+                if (player.black) marks.push('[黑]');
+                if (player.white) marks.push('[白]');
+                if (typeof player.level === 'number' && Number.isFinite(player.level) && player.level < settings.glevel) {
+                    marks.push('[低级]');
+                }
+                marksCell.textContent = marks.length ? marks.join('') : '—';
+                row.appendChild(marksCell);
+
+                fragment.appendChild(row);
+            });
+
+            body.appendChild(fragment);
+        }
+
         function handleMessage(raw) {
             if (!raw) return;
             let payload;
@@ -935,6 +1273,7 @@
             }
             updatePlayerInfo();
             renderPlayers();
+            renderPlayerTable();
         }
 
         function onMapReady() {
@@ -1000,6 +1339,7 @@
             settings.glevel = value;
             localStorage.setItem('conf_glevel', value);
             renderPlayers();
+            renderPlayerTable();
         });
 
         const checkboxBindings = [
