@@ -98,20 +98,27 @@
             display: flex;
             flex-direction: column-reverse;
             gap: 1.5rem;
-            max-width: min(128rem, 100%);
+            width: 100%;
         }
 
         .three-column-layout > * {
             min-width: 0;
         }
 
+        .map-stage-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
         @media (min-width: 1024px) {
             .three-column-layout {
                 display: grid;
-                grid-template-columns: 23rem minmax(0, 1fr) 25rem;
+                grid-template-columns: minmax(0, 20vw) minmax(0, 1fr) minmax(0, 20vw);
+                column-gap: 1.5rem;
+                row-gap: 1.5rem;
                 align-items: stretch;
-                grid-auto-rows: minmax(0, 1fr);
-                min-height: calc(100vh - 9rem);
             }
 
             .three-column-layout > * {
@@ -121,8 +128,8 @@
             .config-column {
                 display: flex;
                 flex-direction: column;
-                height: 100%;
                 min-height: 0;
+                max-height: 100vh;
             }
 
             .config-stack {
@@ -135,26 +142,28 @@
 
             .map-shell {
                 display: flex;
-                flex-direction: column;
-                height: 100%;
+                align-items: center;
+                justify-content: center;
                 min-height: 0;
             }
 
             .map-stage-container {
-                display: flex;
-                flex: 1;
-                flex-direction: column;
-                min-height: 0;
+                position: relative;
+                display: grid;
+                grid-template-areas: 'stage';
+                align-items: stretch;
+                justify-items: center;
+                gap: 0;
             }
 
             #mapStage {
-                margin-left: auto;
-                margin-right: auto;
+                grid-area: stage;
             }
 
             .player-table-shell {
                 height: 100%;
                 overflow: hidden;
+                max-height: 100vh;
             }
 
             .player-table-wrapper {
@@ -167,6 +176,14 @@
             .player-table-scroll {
                 flex: 1;
                 min-height: 0;
+            }
+
+            #mapControls {
+                grid-area: stage;
+                align-self: end;
+                justify-self: start;
+                margin: 0;
+                transform: translate(1rem, -1rem);
             }
         }
 
@@ -366,7 +383,7 @@
                         </div>
                     </div>
                     <div id="mapControls"
-                        class="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-700/70 bg-slate-950/80 px-3 py-2 text-xs text-slate-200 lg:absolute lg:bottom-4 lg:left-4 lg:mt-0 lg:border-slate-700/60 lg:bg-slate-950/60">
+                        class="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-700/70 bg-slate-950/80 px-3 py-2 text-xs text-slate-200 lg:mt-0 lg:border-slate-700/60 lg:bg-slate-950/60">
                         <div class="map-zoom-panel flex shrink-0 items-center gap-2">
                             <button id="zoomOut" type="button"
                                 class="rounded-full border border-slate-700 bg-slate-950/70 px-2.5 py-1 text-xs text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60">
@@ -452,6 +469,7 @@
             statusText: doc.querySelector('[data-role="status-text"]'),
             playerSelect: doc.getElementById('sel_player'),
             mapStage: doc.getElementById('mapStage'),
+            mapStageContainer: doc.querySelector('.map-stage-container'),
             mapViewport: doc.getElementById('mapViewport'),
             mapImage: doc.getElementById('mapImage'),
             mapCanvas: doc.getElementById('mapCanvas'),
@@ -468,7 +486,9 @@
             zoomOut: doc.getElementById('zoomOut'),
             zoomReset: doc.getElementById('zoomReset'),
             reconnectButton: doc.getElementById('reconnectButton'),
+            configColumn: doc.querySelector('.config-column'),
             configStack: doc.querySelector('.config-stack'),
+            mapShell: doc.querySelector('.map-shell'),
             playerTableShell: doc.querySelector('[data-role="player-table-shell"]'),
             playerTableWrapper: doc.querySelector('[data-role="player-table-wrapper"]'),
             playerTableScroll: doc.querySelector('[data-role="player-table-scroll"]'),
@@ -695,50 +715,88 @@
 
         function syncMapStageSize() {
             const stage = refs.mapStage;
-            if (!stage) return;
-            const container = stage.parentElement;
-            if (!container) return;
+            const layout = refs.layout;
+            if (!stage || !layout) {
+                return;
+            }
+
             if (desktopQuery.matches) {
-                const containerRect = container.getBoundingClientRect();
-                const availableHeight = Math.max(0, window.innerHeight - containerRect.top - 32);
-                let availableWidth = container.clientWidth || containerRect.width;
-                if (!availableWidth && container.parentElement) {
-                    availableWidth = container.parentElement.getBoundingClientRect().width;
+                const layoutStyles = window.getComputedStyle(layout);
+                const paddingLeft = parseFloat(layoutStyles.paddingLeft) || 0;
+                const paddingRight = parseFloat(layoutStyles.paddingRight) || 0;
+                const horizontalPadding = paddingLeft + paddingRight;
+                const gapX = parseFloat(layoutStyles.columnGap || layoutStyles.gap) || 0;
+                const totalGap = gapX * 2;
+                const viewportWidth = window.innerWidth;
+                const viewportHeight = window.innerHeight;
+                const sideWidth = viewportWidth * 0.2;
+                const totalSideWidth = sideWidth * 2;
+                const availableWidth = Math.max(0, viewportWidth - totalSideWidth - totalGap - horizontalPadding);
+
+                const stageContainer = refs.mapStageContainer || stage.parentElement;
+                const containerRect = stageContainer ? stageContainer.getBoundingClientRect() : layout.getBoundingClientRect();
+                const containerStyles = stageContainer ? window.getComputedStyle(stageContainer) : null;
+                const containerMarginBottom = containerStyles ? parseFloat(containerStyles.marginBottom) || 0 : 0;
+                const paddingBottom = parseFloat(layoutStyles.paddingBottom) || 0;
+                const availableHeight = Math.max(0, viewportHeight - containerRect.top - containerMarginBottom - paddingBottom);
+
+                let size = Math.max(availableWidth, availableHeight);
+                if (!Number.isFinite(size) || size <= 0) {
+                    const fallback = Math.max(viewportWidth * 0.6, viewportHeight * 0.6);
+                    size = Math.max(320, fallback);
                 }
-                let size = Math.max(0, Math.min(availableWidth, availableHeight));
-                if (size <= 0) {
-                    const fallback = Math.min(window.innerWidth, window.innerHeight) - 80;
-                    size = Math.max(240, fallback);
-                }
-                if (availableWidth > 0) {
-                    size = Math.min(size, availableWidth);
-                }
-                if (availableHeight > 0) {
-                    size = Math.min(size, availableHeight);
-                }
+
                 stage.style.width = `${size}px`;
                 stage.style.height = `${size}px`;
-                const layout = refs.layout;
-                if (layout) {
-                    const layoutHeight = Math.max(size, availableHeight);
-                    layout.style.minHeight = `${layoutHeight}px`;
+
+                if (refs.mapStageContainer) {
+                    refs.mapStageContainer.style.width = `${size}px`;
+                    refs.mapStageContainer.style.height = `${size}px`;
+                }
+
+                const layoutHeight = Math.max(size, availableHeight);
+                layout.style.minHeight = `${layoutHeight}px`;
+
+                const layoutWidth = Math.max(size + totalSideWidth + totalGap, viewportWidth - horizontalPadding);
+                layout.style.width = `${layoutWidth}px`;
+
+                const sideHeight = Math.min(size, viewportHeight);
+                if (refs.configColumn) {
+                    refs.configColumn.style.height = `${sideHeight}px`;
+                    refs.configColumn.style.maxHeight = `${viewportHeight}px`;
                 }
                 if (refs.configStack) {
-                    refs.configStack.style.height = `${size}px`;
-                    refs.configStack.style.maxHeight = `${size}px`;
+                    refs.configStack.style.height = `${sideHeight}px`;
+                    refs.configStack.style.maxHeight = `${sideHeight}px`;
                 }
                 if (refs.playerTableShell) {
-                    refs.playerTableShell.style.height = `${size}px`;
-                    refs.playerTableShell.style.maxHeight = `${size}px`;
+                    refs.playerTableShell.style.height = `${sideHeight}px`;
+                    refs.playerTableShell.style.maxHeight = `${viewportHeight}px`;
+                }
+                if (refs.playerTableWrapper) {
+                    refs.playerTableWrapper.style.maxHeight = `${sideHeight}px`;
                 }
                 if (refs.playerTableScroll) {
-                    refs.playerTableScroll.style.maxHeight = `${size}px`;
+                    refs.playerTableScroll.style.maxHeight = `${sideHeight}px`;
+                }
+                if (refs.mapShell) {
+                    refs.mapShell.style.minHeight = `${size}px`;
                 }
             } else {
                 stage.style.width = '';
                 stage.style.height = '';
-                if (refs.layout) {
-                    refs.layout.style.minHeight = '';
+                if (refs.mapStageContainer) {
+                    refs.mapStageContainer.style.width = '';
+                    refs.mapStageContainer.style.height = '';
+                }
+                layout.style.minHeight = '';
+                layout.style.width = '';
+                if (refs.mapShell) {
+                    refs.mapShell.style.minHeight = '';
+                }
+                if (refs.configColumn) {
+                    refs.configColumn.style.height = '';
+                    refs.configColumn.style.maxHeight = '';
                 }
                 if (refs.configStack) {
                     refs.configStack.style.height = '';
@@ -747,6 +805,9 @@
                 if (refs.playerTableShell) {
                     refs.playerTableShell.style.height = '';
                     refs.playerTableShell.style.maxHeight = '';
+                }
+                if (refs.playerTableWrapper) {
+                    refs.playerTableWrapper.style.maxHeight = '';
                 }
                 if (refs.playerTableScroll) {
                     refs.playerTableScroll.style.maxHeight = '';
