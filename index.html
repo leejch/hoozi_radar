@@ -1167,7 +1167,7 @@
             nameCell.className = 'px-2.5 py-1.5 text-sm text-slate-100 whitespace-nowrap';
             const displayName = typeof player.name === 'string' ? (player.name === '<hoozi>' ? 'hoozi' : player.name) : '—';
             const nameSpan = doc.createElement('span');
-            nameSpan.className = 'block max-w-[12rem] truncate';
+            nameSpan.className = 'block whitespace-nowrap';
             nameSpan.textContent = displayName;
             nameCell.appendChild(nameSpan);
             row.appendChild(nameCell);
