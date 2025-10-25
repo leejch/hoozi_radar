@@ -122,6 +122,10 @@
             gap: 0.75rem;
         }
 
+        #mapControls button {
+            touch-action: manipulation;
+        }
+
         @media (min-width: 1024px) {
             .three-column-layout {
                 display: grid;
@@ -468,6 +472,8 @@
     const DESKTOP_LEFT_COLUMN_WIDTH = 300;
     const DESKTOP_RIGHT_MIN_WIDTH = 320;
     const DESKTOP_MIN_MAP_SIZE = 320;
+    const MIN_SCALE = 0.4;
+    const MAX_SCALE = 5;
     const refs = {
         layout: doc.querySelector('[data-role="layout"]'),
         header: doc.querySelector('header'),
@@ -851,11 +857,9 @@
     }
 
     function zoomAt(point, factor) {
-        const minScale = 0.4;
-        const maxScale = 5;
         const previous = state.viewport.scale;
         let next = previous * factor;
-        next = Math.min(maxScale, Math.max(minScale, next));
+        next = Math.min(MAX_SCALE, Math.max(MIN_SCALE, next));
         const scaleRatio = next / previous;
         state.viewport.translateX = point.x - (point.x - state.viewport.translateX) * scaleRatio;
         state.viewport.translateY = point.y - (point.y - state.viewport.translateY) * scaleRatio;
@@ -1354,39 +1358,115 @@
         return refs.mapOverlay && refs.mapOverlay.dataset.state !== 'hidden';
     };
 
-    let activePointerId = null;
-    let pointerStart = null;
-    let pointerTranslate = null;
+    const activePointers = new Map();
+    let panState = null;
+    let pinchState = null;
+
+    function updatePointer(event) {
+        activePointers.set(event.pointerId, { clientX: event.clientX, clientY: event.clientY });
+    }
+
+    function createPinchState() {
+        if (activePointers.size < 2) {
+            return null;
+        }
+        const [first, second] = Array.from(activePointers.values());
+        const rect = refs.mapStage.getBoundingClientRect();
+        const p1 = { x: first.clientX - rect.left, y: first.clientY - rect.top };
+        const p2 = { x: second.clientX - rect.left, y: second.clientY - rect.top };
+        const distance = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+        if (!distance) {
+            return null;
+        }
+        const midpoint = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+        const mapPoint = {
+            x: (midpoint.x - state.viewport.translateX) / state.viewport.scale,
+            y: (midpoint.y - state.viewport.translateY) / state.viewport.scale
+        };
+        return {
+            initialDistance: distance,
+            initialScale: state.viewport.scale,
+            mapPoint
+        };
+    }
 
     refs.mapStage.addEventListener('pointerdown', (event) => {
         if (isOverlayBlocking()) return;
-        activePointerId = event.pointerId;
-        pointerStart = { x: event.clientX, y: event.clientY };
-        pointerTranslate = { x: state.viewport.translateX, y: state.viewport.translateY };
-        refs.mapStage.classList.add('dragging');
-        refs.mapStage.setPointerCapture(activePointerId);
+        refs.mapStage.setPointerCapture(event.pointerId);
+        updatePointer(event);
+        if (activePointers.size === 1) {
+            panState = {
+                pointerId: event.pointerId,
+                start: { x: event.clientX, y: event.clientY },
+                translate: { x: state.viewport.translateX, y: state.viewport.translateY }
+            };
+            refs.mapStage.classList.add('dragging');
+        } else if (activePointers.size === 2) {
+            panState = null;
+            refs.mapStage.classList.remove('dragging');
+            pinchState = createPinchState();
+        }
     });
 
     refs.mapStage.addEventListener('pointermove', (event) => {
-        if (event.pointerId !== activePointerId || !pointerStart) return;
-        const dx = event.clientX - pointerStart.x;
-        const dy = event.clientY - pointerStart.y;
-        state.viewport.translateX = pointerTranslate.x + dx;
-        state.viewport.translateY = pointerTranslate.y + dy;
-        applyTransform();
+        if (!activePointers.has(event.pointerId)) return;
+        updatePointer(event);
+        if (pinchState && activePointers.size >= 2) {
+            const values = Array.from(activePointers.values());
+            const rect = refs.mapStage.getBoundingClientRect();
+            const p1 = { x: values[0].clientX - rect.left, y: values[0].clientY - rect.top };
+            const p2 = { x: values[1].clientX - rect.left, y: values[1].clientY - rect.top };
+            const distance = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+            if (!distance || !pinchState.initialDistance) {
+                return;
+            }
+            let nextScale = pinchState.initialScale * (distance / pinchState.initialDistance);
+            nextScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, nextScale));
+            const midpoint = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+            state.viewport.scale = nextScale;
+            state.viewport.translateX = midpoint.x - pinchState.mapPoint.x * nextScale;
+            state.viewport.translateY = midpoint.y - pinchState.mapPoint.y * nextScale;
+            applyTransform();
+            return;
+        }
+
+        if (panState && panState.pointerId === event.pointerId) {
+            const dx = event.clientX - panState.start.x;
+            const dy = event.clientY - panState.start.y;
+            state.viewport.translateX = panState.translate.x + dx;
+            state.viewport.translateY = panState.translate.y + dy;
+            applyTransform();
+        }
     });
 
     function releasePointer(event) {
-        if (event.pointerId !== activePointerId) return;
-        refs.mapStage.classList.remove('dragging');
-        refs.mapStage.releasePointerCapture(activePointerId);
-        activePointerId = null;
-        pointerStart = null;
-        pointerTranslate = null;
+        if (!activePointers.has(event.pointerId)) {
+            return;
+        }
+        activePointers.delete(event.pointerId);
+        refs.mapStage.releasePointerCapture(event.pointerId);
+        if (pinchState && activePointers.size < 2) {
+            pinchState = null;
+        }
+        if (panState && panState.pointerId === event.pointerId) {
+            panState = null;
+        }
+        if (activePointers.size === 1 && !pinchState) {
+            const [id, pointer] = activePointers.entries().next().value;
+            panState = {
+                pointerId: id,
+                start: { x: pointer.clientX, y: pointer.clientY },
+                translate: { x: state.viewport.translateX, y: state.viewport.translateY }
+            };
+            refs.mapStage.classList.add('dragging');
+        } else if (!activePointers.size) {
+            refs.mapStage.classList.remove('dragging');
+        }
     }
 
     refs.mapStage.addEventListener('pointerup', releasePointer);
     refs.mapStage.addEventListener('pointercancel', releasePointer);
+    refs.mapStage.addEventListener('lostpointercapture', releasePointer);
 
     refs.mapStage.addEventListener('wheel', (event) => {
         if (isOverlayBlocking()) return;
