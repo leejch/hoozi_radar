@@ -416,14 +416,6 @@
                               class="rounded-full border border-slate-700/70 bg-slate-900/70 px-2 py-0.5 text-[0.65rem] font-medium text-slate-200">
                                 Lv — · K —
                             </span>
-                        <div class="flex items-center gap-1 text-[0.7rem]">
-                            <span class="text-slate-500">X</span>
-                            <span id="playerPosX" class="font-mono text-sm text-white">—</span>
-                        </div>
-                        <div class="flex items-center gap-1 text-[0.7rem]">
-                            <span class="text-slate-500">Y</span>
-                            <span id="playerPosY" class="font-mono text-sm text-white">—</span>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -492,8 +484,6 @@
         overlayTitle: doc.getElementById('overlayTitle'),
         overlaySubtitle: doc.getElementById('overlaySubtitle'),
         playerCount: doc.getElementById('playerCount'),
-        playerPosX: doc.getElementById('playerPosX'),
-        playerPosY: doc.getElementById('playerPosY'),
         focusName: doc.getElementById('focusPlayerName'),
         focusTeamBadge: doc.getElementById('focusTeamBadge'),
         focusMeta: doc.getElementById('focusMeta'),
@@ -901,13 +891,6 @@
         }
     }
 
-    function formatCoordinate(value) {
-        if (typeof value !== 'number' || !Number.isFinite(value)) {
-            return '—';
-        }
-        return value.toFixed(1);
-    }
-
     function updatePlayerInfo() {
         const players = state.players;
         if (!players.length) {
@@ -918,8 +901,6 @@
             refs.focusMeta.textContent = 'Lv — · K —';
             refs.focusMeta.style.backgroundColor = 'rgba(15, 23, 42, 0.7)';
             refs.focusMeta.style.borderColor = 'rgba(148, 163, 184, 0.3)';
-            refs.playerPosX.textContent = '—';
-            refs.playerPosY.textContent = '—';
             return;
         }
 
@@ -952,8 +933,6 @@
             refs.focusMeta.style.backgroundColor = 'rgba(15, 23, 42, 0.7)';
             refs.focusMeta.style.borderColor = 'rgba(148, 163, 184, 0.35)';
         }
-        refs.playerPosX.textContent = formatCoordinate(focus.pos?.x);
-        refs.playerPosY.textContent = formatCoordinate(focus.pos?.y);
     }
 
     function renderPlayers() {
