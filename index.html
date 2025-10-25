@@ -435,12 +435,12 @@
                         <table class="player-table w-full text-sm text-slate-200">
                             <thead>
                             <tr>
-                                <th class="px-2.5 py-1.5 text-left">队伍</th>
-                                <th class="px-2.5 py-1.5 text-left">昵称</th>
-                                <th class="px-2.5 py-1.5 text-left">等级</th>
-                                <th class="px-2.5 py-1.5 text-left">段位</th>
-                                <th class="px-2.5 py-1.5 text-left">击杀</th>
-                                <th class="px-2.5 py-1.5 text-left">标记</th>
+                                <th class="px-2.5 py-1.5 text-left whitespace-nowrap">队伍</th>
+                                <th class="px-2.5 py-1.5 text-left whitespace-nowrap">昵称</th>
+                                <th class="px-2.5 py-1.5 text-left whitespace-nowrap">等级</th>
+                                <th class="px-2.5 py-1.5 text-left whitespace-nowrap">段位</th>
+                                <th class="px-2.5 py-1.5 text-left whitespace-nowrap">击杀</th>
+                                <th class="px-2.5 py-1.5 text-left whitespace-nowrap">标记</th>
                             </tr>
                             </thead>
                             <tbody data-role="player-table-body">
@@ -581,8 +581,8 @@
         showkprefix: readSetting('conf_showkprefix', false),
         showlprefix: readSetting('conf_showlprefix', false),
         showrankprefix: readSetting('conf_showrankprefix', false),
-        showmprefix: readSetting('conf_showmprefix', false),
-        showsprefix: readSetting('conf_showsprefix', false),
+        showmprefix: readSetting('conf_showmprefix', true),
+        showsprefix: readSetting('conf_showsprefix', true),
         selectedPlayer: readSetting('sel_player', '<hoozi>')
     };
 
@@ -1000,8 +1000,8 @@
             }
 
             const isRoster = Boolean(player.pro || player.white || player.black);
-            const levelLow = typeof player.level === 'number' && player.level < settings.glevel;
-            const killHigh = typeof player.kills === 'number' && player.kills > settings.gkill;
+            const levelLow = typeof player.level === 'number' && player.level <= settings.glevel;
+            const killHigh = typeof player.kills === 'number' && player.kills >= settings.gkill;
 
             if (!showAll) {
                 let visible = player.team === selectedTeam;
@@ -1017,10 +1017,11 @@
                 }
                 if (settings.showsprefix && (levelLow || killHigh)) {
                     if (levelLow && killHigh) {
-                        labelParts.push('[嫌]');
-                    } else {
-                        if (levelLow) labelParts.push('[低级]');
-                        if (killHigh) labelParts.push('[高杀]');
+                        labelParts.push('[危险]');
+                    } else if (killHigh) {
+                        labelParts.push('[高杀]');
+                    } else if (levelLow) {
+                        labelParts.push('[低级]');
                     }
                 }
                 if (settings.showkprefix && typeof player.kills === 'number') {
@@ -1163,16 +1164,16 @@
             row.appendChild(teamCell);
 
             const nameCell = doc.createElement('td');
-            nameCell.className = 'max-w-[12rem] px-2.5 py-1.5 text-sm text-slate-100';
+            nameCell.className = 'px-2.5 py-1.5 text-sm text-slate-100 whitespace-nowrap';
             const displayName = typeof player.name === 'string' ? (player.name === '<hoozi>' ? 'hoozi' : player.name) : '—';
             const nameSpan = doc.createElement('span');
-            nameSpan.className = 'block truncate';
+            nameSpan.className = 'block whitespace-nowrap';
             nameSpan.textContent = displayName;
             nameCell.appendChild(nameSpan);
             row.appendChild(nameCell);
 
             const levelCell = doc.createElement('td');
-            levelCell.className = 'px-2.5 py-1.5 text-sm text-slate-200';
+            levelCell.className = 'whitespace-nowrap px-2.5 py-1.5 text-sm text-slate-200';
             if (typeof player.level === 'number' && Number.isFinite(player.level)) {
                 levelCell.textContent = String(player.level);
             } else {
@@ -1181,12 +1182,12 @@
             row.appendChild(levelCell);
 
             const rankCell = doc.createElement('td');
-            rankCell.className = 'px-2.5 py-1.5 text-sm text-slate-200';
+            rankCell.className = 'whitespace-nowrap px-2.5 py-1.5 text-sm text-slate-200';
             rankCell.textContent = player.rank ? String(player.rank) : '—';
             row.appendChild(rankCell);
 
             const killsCell = doc.createElement('td');
-            killsCell.className = 'px-2.5 py-1.5 text-sm text-slate-200';
+            killsCell.className = 'whitespace-nowrap px-2.5 py-1.5 text-sm text-slate-200';
             if (typeof player.kills === 'number' && Number.isFinite(player.kills)) {
                 killsCell.textContent = String(player.kills);
             } else {
@@ -1195,13 +1196,18 @@
             row.appendChild(killsCell);
 
             const marksCell = doc.createElement('td');
-            marksCell.className = 'px-2.5 py-1.5 text-sm text-slate-200';
+            marksCell.className = 'whitespace-nowrap px-2.5 py-1.5 text-sm text-slate-200';
             const marks = [];
             if (player.pro) marks.push('[权]');
             if (player.black) marks.push('[黑]');
             if (player.white) marks.push('[白]');
-            if (typeof player.level === 'number' && Number.isFinite(player.level) && player.level < settings.glevel) {
-                marks.push('[低级]');
+            const levelLow = typeof player.level === 'number' && Number.isFinite(player.level) && player.level <= settings.glevel;
+            const killHigh = typeof player.kills === 'number' && Number.isFinite(player.kills) && player.kills >= settings.gkill;
+            if (levelLow && killHigh) {
+                marks.push('[危险]');
+            } else {
+                if (killHigh) marks.push('[高杀]');
+                if (levelLow) marks.push('[低级]');
             }
             marksCell.textContent = marks.length ? marks.join('') : '—';
             row.appendChild(marksCell);
