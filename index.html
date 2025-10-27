@@ -674,12 +674,12 @@
         const target = buildTarget();
         if (!target) {
             updateStatus('error', '未连接');
-            setOverlayState('info', '未连接', '请检查是否已启动HOOZI和FRP', { showReconnect: true });
+            setOverlayState('info', '未连接', '①启动游戏 ②开启HOOZi ③开启FRP', { showReconnect: true });
             return;
         }
 
         updateStatus('connecting', '正在连接');
-        setOverlayState('loading', '等待连接', `正在连接到 ${target}`, { showReconnect: false });
+        setOverlayState('loading', '正在连接', `正在尝试连接 ${target}`, { showReconnect: false });
 
         let socket;
         try {
@@ -687,7 +687,7 @@
         } catch (error) {
             console.error('无法创建 WebSocket', error);
             updateStatus('error', '未连接');
-            setOverlayState('info', '未连接', '请检查是否已启动HOOZI和FRP', { showReconnect: true });
+            setOverlayState('info', '未连接', '①启动游戏 ②开启HOOZi ③开启FRP', { showReconnect: true });
             return;
         }
 
@@ -696,7 +696,7 @@
         socket.onopen = () => {
             state.isConnected = true;
             updateStatus('connected', '已连接');
-            setOverlayState('loading', '已连接 等待数据传输', '游戏对局开始后才可查看');
+            setOverlayState('loading', '暂无数据传输', '游戏对局开始后才可查看');
         };
 
         socket.onmessage = (event) => {
@@ -713,7 +713,7 @@
             }
             state.isConnected = false;
             updateStatus('error', '未连接');
-            setOverlayState('info', '未连接', '请检查是否已启动HOOZI和FRP', { showReconnect: true });
+            setOverlayState('info', '未连接', '①启动游戏 ②开启HOOZi ③开启FRP', { showReconnect: true });
             state.mapLoaded = false;
             state.players = [];
             state.mapId = null;
