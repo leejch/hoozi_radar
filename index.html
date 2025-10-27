@@ -531,7 +531,8 @@
         pixelRatio: window.devicePixelRatio || 1,
         isSelectingPlayer: false,
         viewport: { scale: 1, translateX: 0, translateY: 0 },
-        isConnected: false
+        isConnected: false,
+        playerTableSignature: null
     };
 
     const desktopQuery = window.matchMedia('(min-width: 1024px)');
@@ -1102,19 +1103,9 @@
         );
     }
 
-    function renderPlayerTable() {
-        const body = refs.playerTableBody;
-        if (!body) return;
-        const players = state.players;
-        const emptyRow = refs.playerTableEmpty;
-
-        if (!players.length) {
-            body.innerHTML = '';
-            if (emptyRow) {
-                emptyRow.classList.remove('hidden');
-                body.appendChild(emptyRow);
-            }
-            return;
+    function createPlayerTableSnapshot(players) {
+        if (!Array.isArray(players) || players.length === 0) {
+            return { sorted: [], signature: 'size:0' };
         }
 
         const sorted = [...players].sort((a, b) => {
@@ -1128,7 +1119,41 @@
             return nameCollator.compare(nameA, nameB);
         });
 
+        const signatureParts = sorted.map((player) => {
+            const teamValue = Number.isFinite(Number(player.team)) ? Number(player.team) : 'null';
+            const nameValue = typeof player.name === 'string' ? player.name : '';
+            const levelValue = Number.isFinite(Number(player.level)) ? Number(player.level) : 'null';
+            const rankValue = player.rank ? String(player.rank) : '';
+            const killsValue = Number.isFinite(Number(player.kills)) ? Number(player.kills) : 'null';
+            const proValue = player.pro ? '1' : '0';
+            const blackValue = player.black ? '1' : '0';
+            const whiteValue = player.white ? '1' : '0';
+            return [teamValue, nameValue, levelValue, rankValue, killsValue, proValue, blackValue, whiteValue].join('|');
+        });
+
+        return {
+            sorted,
+            signature: `${players.length}|${signatureParts.join('||')}`
+        };
+    }
+
+    function renderPlayerTable(snapshot) {
+        const body = refs.playerTableBody;
+        if (!body) return;
+        const emptyRow = refs.playerTableEmpty;
+        const { sorted, signature } = snapshot || createPlayerTableSnapshot(state.players);
+
         body.innerHTML = '';
+        state.playerTableSignature = signature;
+
+        if (!sorted.length) {
+            if (emptyRow) {
+                emptyRow.classList.remove('hidden');
+                body.appendChild(emptyRow);
+            }
+            return;
+        }
+
         if (emptyRow) {
             emptyRow.classList.add('hidden');
         }
@@ -1253,10 +1278,13 @@
     }
 
     function updatePlayers(players) {
-        state.players = players;
-        refs.playerCount.textContent = players.length.toString();
-        if (players.length) {
-            populatePlayerSelect(players);
+        const normalizedPlayers = Array.isArray(players) ? players : [];
+        const snapshot = createPlayerTableSnapshot(normalizedPlayers);
+
+        state.players = normalizedPlayers;
+        refs.playerCount.textContent = normalizedPlayers.length.toString();
+        if (normalizedPlayers.length) {
+            populatePlayerSelect(normalizedPlayers);
             if (state.mapLoaded) {
                 setOverlayState('hidden');
             }
@@ -1265,7 +1293,9 @@
         }
         updatePlayerInfo();
         renderPlayers();
-        renderPlayerTable();
+        if (snapshot.signature !== state.playerTableSignature) {
+            renderPlayerTable(snapshot);
+        }
     }
 
     function onMapReady() {
