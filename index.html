@@ -53,6 +53,8 @@
             position: absolute;
             inset: 0;
             transform-origin: top left;
+            pointer-events: none;
+            z-index: 0;
         }
 
         #mapViewport img,
@@ -76,8 +78,17 @@
             z-index: 1;
         }
 
+        #mapInteractionLayer {
+            position: absolute;
+            inset: 0;
+            touch-action: none;
+            cursor: inherit;
+            z-index: 2;
+        }
+
         #mapOverlay {
             transition: opacity 220ms ease, visibility 220ms ease;
+            z-index: 4;
         }
 
         #mapOverlay[data-state="hidden"] {
@@ -376,6 +387,7 @@
                         <img id="mapImage" src="" alt="" draggable="false">
                         <canvas id="mapCanvas"></canvas>
                     </div>
+                    <div id="mapInteractionLayer" class="absolute inset-0"></div>
                     <div id="mapOverlay" data-state="loading" data-reconnect="false"
                          class="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-950/70 text-slate-200"
                          role="status" aria-live="polite">
@@ -486,6 +498,7 @@
         mapViewport: doc.getElementById('mapViewport'),
         mapImage: doc.getElementById('mapImage'),
         mapCanvas: doc.getElementById('mapCanvas'),
+        mapInteractionLayer: doc.getElementById('mapInteractionLayer'),
         mapOverlay: doc.getElementById('mapOverlay'),
         overlayTitle: doc.getElementById('overlayTitle'),
         overlaySubtitle: doc.getElementById('overlaySubtitle'),
@@ -827,22 +840,42 @@
         }
     }
 
-    function resizeCanvas() {
-        syncMapStageSize();
-        const rect = refs.mapStage.getBoundingClientRect();
+    function syncCanvasResolution(force = false) {
+        const stage = refs.mapStage;
+        if (!stage) {
+            return false;
+        }
+        const rect = stage.getBoundingClientRect();
         if (!rect.width || !rect.height) {
-            return;
+            return false;
         }
         const ratio = window.devicePixelRatio || 1;
-        const deviceWidth = Math.max(1, Math.round(rect.width * ratio));
-        const deviceHeight = Math.max(1, Math.round(rect.height * ratio));
-        state.pixelRatio = ratio;
-        state.canvasCssWidth = rect.width;
-        state.canvasCssHeight = rect.height;
-        refs.mapCanvas.width = deviceWidth;
-        refs.mapCanvas.height = deviceHeight;
-        refs.mapCanvas.style.width = `${rect.width}px`;
-        refs.mapCanvas.style.height = `${rect.height}px`;
+        const scaleFactor = Math.max(1, state.viewport.scale || 1);
+        const deviceWidth = Math.max(1, Math.round(rect.width * ratio * scaleFactor));
+        const deviceHeight = Math.max(1, Math.round(rect.height * ratio * scaleFactor));
+        const widthChanged = refs.mapCanvas.width !== deviceWidth;
+        const heightChanged = refs.mapCanvas.height !== deviceHeight;
+        const ratioChanged = state.pixelRatio !== ratio;
+        const cssWidthChanged = state.canvasCssWidth !== rect.width;
+        const cssHeightChanged = state.canvasCssHeight !== rect.height;
+
+        if (force || widthChanged || heightChanged || ratioChanged || cssWidthChanged || cssHeightChanged) {
+            refs.mapCanvas.width = deviceWidth;
+            refs.mapCanvas.height = deviceHeight;
+            refs.mapCanvas.style.width = `${rect.width}px`;
+            refs.mapCanvas.style.height = `${rect.height}px`;
+            state.pixelRatio = ratio;
+            state.canvasCssWidth = rect.width;
+            state.canvasCssHeight = rect.height;
+            return true;
+        }
+
+        return false;
+    }
+
+    function resizeCanvas(force = false) {
+        syncMapStageSize();
+        syncCanvasResolution(force);
     }
 
     function applyTransform() {
@@ -855,6 +888,9 @@
         state.viewport.translateX = 0;
         state.viewport.translateY = 0;
         applyTransform();
+        if (syncCanvasResolution(true)) {
+            renderPlayers();
+        }
     }
 
     function zoomAt(point, factor) {
@@ -866,6 +902,11 @@
         state.viewport.translateY = point.y - (point.y - state.viewport.translateY) * scaleRatio;
         state.viewport.scale = next;
         applyTransform();
+        if (Math.abs(next - previous) > 1e-4) {
+            if (syncCanvasResolution()) {
+                renderPlayers();
+            }
+        }
     }
 
     function populatePlayerSelect(players) {
@@ -955,16 +996,20 @@
         }
         if (!localPlayer) return;
 
-        const buffer = doc.createElement('canvas');
-        buffer.width = RAW_CANVAS_WIDTH;
-        buffer.height = RAW_CANVAS_HEIGHT;
-        const bctx = buffer.getContext('2d');
-        bctx.imageSmoothingEnabled = false;
+        const scaleX = refs.mapCanvas.width / RAW_VISIBLE_WIDTH;
+        const scaleY = refs.mapCanvas.height / RAW_VISIBLE_HEIGHT;
+        if (!Number.isFinite(scaleX) || !Number.isFinite(scaleY) || scaleX <= 0 || scaleY <= 0) {
+            return;
+        }
+
+        mapCtx.save();
+        mapCtx.setTransform(scaleX, 0, 0, scaleY, -RAW_OFFSET_LEFT * scaleX, -RAW_OFFSET_TOP * scaleY);
+        mapCtx.imageSmoothingEnabled = false;
 
         const fontSize = Number(settings.fontsize) || 10;
-        bctx.font = `${fontSize}px "Microsoft YaHei", "Noto Sans SC", "Inter", sans-serif`;
-        bctx.textAlign = 'center';
-        bctx.textBaseline = 'bottom';
+        mapCtx.font = `${fontSize}px "Microsoft YaHei", "Noto Sans SC", "Inter", sans-serif`;
+        mapCtx.textAlign = 'center';
+        mapCtx.textBaseline = 'bottom';
 
         const textCache = [];
         const showAll = !settings.showmp && !settings.showsp;
@@ -977,23 +1022,23 @@
             const py = Number(player.pos?.y) || 0;
             const color = player.team === selectedTeam ? '#FFFFFF' : teamColorFor(player.team);
 
-            bctx.beginPath();
-            bctx.arc(px, py, 4.8, 0, Math.PI * 2);
-            bctx.fillStyle = color;
-            bctx.fill();
-            bctx.lineWidth = 1.2;
-            bctx.strokeStyle = 'rgba(2, 6, 23, 0.9)';
-            bctx.stroke();
-            bctx.closePath();
+            mapCtx.beginPath();
+            mapCtx.arc(px, py, 4.8, 0, Math.PI * 2);
+            mapCtx.fillStyle = color;
+            mapCtx.fill();
+            mapCtx.lineWidth = 1.2;
+            mapCtx.strokeStyle = 'rgba(2, 6, 23, 0.9)';
+            mapCtx.stroke();
+            mapCtx.closePath();
 
             if (player.team === selectedTeam && player.name !== localPlayer.name) {
-                bctx.beginPath();
-                bctx.moveTo(localX, localY);
-                bctx.lineTo(px, py);
-                bctx.strokeStyle = `${color}80`;
-                bctx.lineWidth = 1.2;
-                bctx.stroke();
-                bctx.closePath();
+                mapCtx.beginPath();
+                mapCtx.moveTo(localX, localY);
+                mapCtx.lineTo(px, py);
+                mapCtx.strokeStyle = `${color}80`;
+                mapCtx.lineWidth = 1.2;
+                mapCtx.stroke();
+                mapCtx.closePath();
             }
 
             if (player.name === localPlayer.name) {
@@ -1057,50 +1102,34 @@
                 }
             });
 
-            bctx.lineWidth = 3;
-            bctx.strokeStyle = 'rgba(2, 6, 23, 0.85)';
-            bctx.strokeText(label, px, adjustedY);
-            bctx.fillStyle = color;
-            bctx.fillText(label, px, adjustedY);
+            mapCtx.lineWidth = 1.5;
+            mapCtx.strokeStyle = 'rgba(2, 6, 23, 0.85)';
+            mapCtx.strokeText(label, px, adjustedY);
+            mapCtx.fillStyle = color;
+            mapCtx.fillText(label, px, adjustedY);
 
-            const textWidth = bctx.measureText(label).width;
+            const textWidth = mapCtx.measureText(label).width;
             textCache.push({ cx: px, cy: adjustedY, width: textWidth, height: textHeight, team: player.team });
         });
 
-        bctx.beginPath();
-        bctx.lineWidth = 1.5;
-        bctx.strokeStyle = 'rgba(255, 255, 255, 0.55)';
-        bctx.moveTo(0, localY);
-        bctx.lineTo(RAW_CANVAS_WIDTH, localY);
-        bctx.moveTo(localX, 0);
-        bctx.lineTo(localX, RAW_CANVAS_HEIGHT);
-        bctx.stroke();
-        bctx.closePath();
+        mapCtx.beginPath();
+        mapCtx.lineWidth = 1.5;
+        mapCtx.strokeStyle = 'rgba(255, 255, 255, 0.55)';
+        mapCtx.moveTo(0, localY);
+        mapCtx.lineTo(RAW_CANVAS_WIDTH, localY);
+        mapCtx.moveTo(localX, 0);
+        mapCtx.lineTo(localX, RAW_CANVAS_HEIGHT);
+        mapCtx.stroke();
+        mapCtx.closePath();
 
-        bctx.beginPath();
-        bctx.arc(localX, localY, 6, 0, Math.PI * 2);
-        bctx.lineWidth = 2.2;
-        bctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-        bctx.stroke();
-        bctx.closePath();
+        mapCtx.beginPath();
+        mapCtx.arc(localX, localY, 6, 0, Math.PI * 2);
+        mapCtx.lineWidth = 2.2;
+        mapCtx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+        mapCtx.stroke();
+        mapCtx.closePath();
 
-        const sourceX = RAW_OFFSET_LEFT;
-        const sourceY = RAW_OFFSET_TOP;
-        const sourceWidth = RAW_VISIBLE_WIDTH;
-        const sourceHeight = RAW_VISIBLE_HEIGHT;
-
-        mapCtx.imageSmoothingEnabled = true;
-        mapCtx.drawImage(
-                buffer,
-                sourceX,
-                sourceY,
-                sourceWidth,
-                sourceHeight,
-                0,
-                0,
-                refs.mapCanvas.width,
-                refs.mapCanvas.height
-        );
+        mapCtx.restore();
     }
 
     function createPlayerTableSnapshot(players) {
@@ -1302,7 +1331,7 @@
         if (!refs.mapImage.naturalWidth || !refs.mapImage.naturalHeight) {
             return;
         }
-        resizeCanvas();
+        resizeCanvas(true);
         resetViewport();
         state.mapLoaded = true;
         if (state.players.length) {
@@ -1310,7 +1339,6 @@
         } else {
             setOverlayState('info', '等待玩家数据', '当前地图暂无玩家或数据尚未同步');
         }
-        renderPlayers();
     }
 
     refs.mapImage.addEventListener('load', onMapReady);
@@ -1426,105 +1454,120 @@
         };
     }
 
-    refs.mapStage.addEventListener('pointerdown', (event) => {
-        if (isOverlayBlocking()) return;
-        refs.mapStage.setPointerCapture(event.pointerId);
-        updatePointer(event);
-        if (activePointers.size === 1) {
-            panState = {
-                pointerId: event.pointerId,
-                start: { x: event.clientX, y: event.clientY },
-                translate: { x: state.viewport.translateX, y: state.viewport.translateY }
-            };
-            refs.mapStage.classList.add('dragging');
-        } else if (activePointers.size === 2) {
-            panState = null;
-            refs.mapStage.classList.remove('dragging');
-            pinchState = createPinchState();
-        }
-    });
+    const pointerSurface = refs.mapInteractionLayer || refs.mapStage;
 
-    refs.mapStage.addEventListener('pointermove', (event) => {
-        if (!activePointers.has(event.pointerId)) return;
-        updatePointer(event);
-        if (pinchState && activePointers.size >= 2) {
-            const values = Array.from(activePointers.values());
-            const rect = refs.mapStage.getBoundingClientRect();
-            const p1 = { x: values[0].clientX - rect.left, y: values[0].clientY - rect.top };
-            const p2 = { x: values[1].clientX - rect.left, y: values[1].clientY - rect.top };
-            const distance = Math.hypot(p2.x - p1.x, p2.y - p1.y);
-            if (!distance || !pinchState.initialDistance) {
+    if (pointerSurface) {
+        pointerSurface.addEventListener('pointerdown', (event) => {
+            if (isOverlayBlocking()) return;
+            if (typeof pointerSurface.setPointerCapture === 'function') {
+                pointerSurface.setPointerCapture(event.pointerId);
+            }
+            updatePointer(event);
+            if (activePointers.size === 1) {
+                panState = {
+                    pointerId: event.pointerId,
+                    start: { x: event.clientX, y: event.clientY },
+                    translate: { x: state.viewport.translateX, y: state.viewport.translateY }
+                };
+                refs.mapStage.classList.add('dragging');
+            } else if (activePointers.size === 2) {
+                panState = null;
+                refs.mapStage.classList.remove('dragging');
+                pinchState = createPinchState();
+            }
+        });
+
+        pointerSurface.addEventListener('pointermove', (event) => {
+            if (!activePointers.has(event.pointerId)) return;
+            updatePointer(event);
+            if (pinchState && activePointers.size >= 2) {
+                const values = Array.from(activePointers.values());
+                const rect = refs.mapStage.getBoundingClientRect();
+                const p1 = { x: values[0].clientX - rect.left, y: values[0].clientY - rect.top };
+                const p2 = { x: values[1].clientX - rect.left, y: values[1].clientY - rect.top };
+                const distance = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+                if (!distance || !pinchState.initialDistance) {
+                    return;
+                }
+                const previousScale = state.viewport.scale;
+                let nextScale = pinchState.initialScale * (distance / pinchState.initialDistance);
+                nextScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, nextScale));
+                const midpoint = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+                state.viewport.scale = nextScale;
+                state.viewport.translateX = midpoint.x - pinchState.mapPoint.x * nextScale;
+                state.viewport.translateY = midpoint.y - pinchState.mapPoint.y * nextScale;
+                applyTransform();
+                if (Math.abs(nextScale - previousScale) > 1e-4) {
+                    if (syncCanvasResolution()) {
+                        renderPlayers();
+                    }
+                }
                 return;
             }
-            let nextScale = pinchState.initialScale * (distance / pinchState.initialDistance);
-            nextScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, nextScale));
-            const midpoint = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
-            state.viewport.scale = nextScale;
-            state.viewport.translateX = midpoint.x - pinchState.mapPoint.x * nextScale;
-            state.viewport.translateY = midpoint.y - pinchState.mapPoint.y * nextScale;
-            applyTransform();
-            return;
+
+            if (panState && panState.pointerId === event.pointerId) {
+                const dx = event.clientX - panState.start.x;
+                const dy = event.clientY - panState.start.y;
+                state.viewport.translateX = panState.translate.x + dx;
+                state.viewport.translateY = panState.translate.y + dy;
+                applyTransform();
+            }
+        });
+
+        function releasePointer(event) {
+            if (!activePointers.has(event.pointerId)) {
+                return;
+            }
+            activePointers.delete(event.pointerId);
+            if (typeof pointerSurface.releasePointerCapture === 'function' &&
+                    (!pointerSurface.hasPointerCapture || pointerSurface.hasPointerCapture(event.pointerId))) {
+                pointerSurface.releasePointerCapture(event.pointerId);
+            }
+            if (pinchState && activePointers.size < 2) {
+                pinchState = null;
+            }
+            if (panState && panState.pointerId === event.pointerId) {
+                panState = null;
+            }
+            if (activePointers.size === 1 && !pinchState) {
+                const [id, pointer] = activePointers.entries().next().value;
+                panState = {
+                    pointerId: id,
+                    start: { x: pointer.clientX, y: pointer.clientY },
+                    translate: { x: state.viewport.translateX, y: state.viewport.translateY }
+                };
+                refs.mapStage.classList.add('dragging');
+            } else if (!activePointers.size) {
+                refs.mapStage.classList.remove('dragging');
+            }
         }
 
-        if (panState && panState.pointerId === event.pointerId) {
-            const dx = event.clientX - panState.start.x;
-            const dy = event.clientY - panState.start.y;
-            state.viewport.translateX = panState.translate.x + dx;
-            state.viewport.translateY = panState.translate.y + dy;
-            applyTransform();
-        }
-    });
+        pointerSurface.addEventListener('pointerup', releasePointer);
+        pointerSurface.addEventListener('pointercancel', releasePointer);
+        pointerSurface.addEventListener('lostpointercapture', releasePointer);
 
-    function releasePointer(event) {
-        if (!activePointers.has(event.pointerId)) {
-            return;
-        }
-        activePointers.delete(event.pointerId);
-        refs.mapStage.releasePointerCapture(event.pointerId);
-        if (pinchState && activePointers.size < 2) {
-            pinchState = null;
-        }
-        if (panState && panState.pointerId === event.pointerId) {
-            panState = null;
-        }
-        if (activePointers.size === 1 && !pinchState) {
-            const [id, pointer] = activePointers.entries().next().value;
-            panState = {
-                pointerId: id,
-                start: { x: pointer.clientX, y: pointer.clientY },
-                translate: { x: state.viewport.translateX, y: state.viewport.translateY }
+        pointerSurface.addEventListener('wheel', (event) => {
+            if (isOverlayBlocking()) return;
+            event.preventDefault();
+            const rect = refs.mapStage.getBoundingClientRect();
+            const point = {
+                x: event.clientX - rect.left,
+                y: event.clientY - rect.top
             };
-            refs.mapStage.classList.add('dragging');
-        } else if (!activePointers.size) {
-            refs.mapStage.classList.remove('dragging');
-        }
+            const factor = event.deltaY < 0 ? 1.12 : 0.88;
+            zoomAt(point, factor);
+        }, { passive: false });
+
+        pointerSurface.addEventListener('dblclick', (event) => {
+            if (isOverlayBlocking()) return;
+            const rect = refs.mapStage.getBoundingClientRect();
+            const point = {
+                x: event.clientX - rect.left,
+                y: event.clientY - rect.top
+            };
+            zoomAt(point, 1.35);
+        });
     }
-
-    refs.mapStage.addEventListener('pointerup', releasePointer);
-    refs.mapStage.addEventListener('pointercancel', releasePointer);
-    refs.mapStage.addEventListener('lostpointercapture', releasePointer);
-
-    refs.mapStage.addEventListener('wheel', (event) => {
-        if (isOverlayBlocking()) return;
-        event.preventDefault();
-        const rect = refs.mapStage.getBoundingClientRect();
-        const point = {
-            x: event.clientX - rect.left,
-            y: event.clientY - rect.top
-        };
-        const factor = event.deltaY < 0 ? 1.12 : 0.88;
-        zoomAt(point, factor);
-    }, { passive: false });
-
-    refs.mapStage.addEventListener('dblclick', (event) => {
-        if (isOverlayBlocking()) return;
-        const rect = refs.mapStage.getBoundingClientRect();
-        const point = {
-            x: event.clientX - rect.left,
-            y: event.clientY - rect.top
-        };
-        zoomAt(point, 1.35);
-    });
 
     refs.zoomIn.addEventListener('click', () => {
         const rect = refs.mapStage.getBoundingClientRect();
@@ -1541,7 +1584,7 @@
     });
 
     const handleLayoutChange = () => {
-        resizeCanvas();
+        resizeCanvas(true);
         renderPlayers();
     };
 
@@ -1555,7 +1598,7 @@
     window.addEventListener('resize', () => {
         clearTimeout(resizeTimer);
         resizeTimer = setTimeout(() => {
-            resizeCanvas();
+            resizeCanvas(true);
             renderPlayers();
         }, 150);
     });
@@ -1564,7 +1607,7 @@
         clearSocket();
     });
 
-    resizeCanvas();
+    resizeCanvas(true);
     updateStatus('connecting', '等待连接');
     setOverlayState('loading', '等待连接', '正在尝试与服务器建立通信');
     connect();
