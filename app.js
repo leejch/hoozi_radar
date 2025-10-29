@@ -974,7 +974,7 @@ function renderPlayers() {
             }
         });
 
-        ctx.lineWidth = 3;
+        ctx.lineWidth = 1.5;
         ctx.strokeStyle = 'rgba(2, 6, 23, 0.85)';
         ctx.strokeText(label, px, adjustedY);
         ctx.fillStyle = color;
