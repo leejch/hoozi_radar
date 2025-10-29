@@ -391,6 +391,8 @@ const state = {
     mapLoaded: false,
     canvasCssWidth: 0,
     canvasCssHeight: 0,
+    canvasDeviceWidth: 0,
+    canvasDeviceHeight: 0,
     pixelRatio: window.devicePixelRatio || 1,
     isSelectingPlayer: false,
     viewport: { scale: 1, translateX: 0, translateY: 0 },
@@ -465,6 +467,8 @@ refs.inputs.showmprefix.checked = settings.showmprefix;
 refs.inputs.showsprefix.checked = settings.showsprefix;
 
 const mapCtx = refs.mapCanvas.getContext('2d');
+const textMeasureCanvas = doc.createElement('canvas');
+const textMeasureCtx = textMeasureCanvas.getContext('2d');
 
 function setOverlayState(stateName, title, subtitle, options = {}) {
     if (!refs.mapOverlay) return;
@@ -690,6 +694,25 @@ function syncMapStageSize() {
     }
 }
 
+function updateCanvasResolution() {
+    if (!state.canvasDeviceWidth || !state.canvasDeviceHeight) {
+        return false;
+    }
+    const scale = Number.isFinite(state.viewport.scale) ? state.viewport.scale : 1;
+    const width = Math.max(1, Math.round(state.canvasDeviceWidth * scale));
+    const height = Math.max(1, Math.round(state.canvasDeviceHeight * scale));
+    let resized = false;
+    if (refs.mapCanvas.width !== width) {
+        refs.mapCanvas.width = width;
+        resized = true;
+    }
+    if (refs.mapCanvas.height !== height) {
+        refs.mapCanvas.height = height;
+        resized = true;
+    }
+    return resized;
+}
+
 function resizeCanvas() {
     syncMapStageSize();
     const rect = refs.mapStage.getBoundingClientRect();
@@ -702,10 +725,12 @@ function resizeCanvas() {
     state.pixelRatio = ratio;
     state.canvasCssWidth = rect.width;
     state.canvasCssHeight = rect.height;
-    refs.mapCanvas.width = deviceWidth;
-    refs.mapCanvas.height = deviceHeight;
+    state.canvasDeviceWidth = deviceWidth;
+    state.canvasDeviceHeight = deviceHeight;
     refs.mapCanvas.style.width = `${rect.width}px`;
     refs.mapCanvas.style.height = `${rect.height}px`;
+    updateCanvasResolution();
+    renderPlayers();
 }
 
 function applyTransform() {
@@ -718,6 +743,8 @@ function resetViewport() {
     state.viewport.translateX = 0;
     state.viewport.translateY = 0;
     applyTransform();
+    updateCanvasResolution();
+    renderPlayers();
 }
 
 function zoomAt(point, factor) {
@@ -729,6 +756,8 @@ function zoomAt(point, factor) {
     state.viewport.translateY = point.y - (point.y - state.viewport.translateY) * scaleRatio;
     state.viewport.scale = next;
     applyTransform();
+    updateCanvasResolution();
+    renderPlayers();
 }
 
 function populatePlayerSelect(players) {
@@ -818,16 +847,24 @@ function renderPlayers() {
     }
     if (!localPlayer) return;
 
-    const buffer = doc.createElement('canvas');
-    buffer.width = RAW_CANVAS_WIDTH;
-    buffer.height = RAW_CANVAS_HEIGHT;
-    const bctx = buffer.getContext('2d');
-    bctx.imageSmoothingEnabled = false;
-
+    const ctx = mapCtx;
     const fontSize = Number(settings.fontsize) || 10;
-    bctx.font = `${fontSize}px "Microsoft YaHei", "Noto Sans SC", "Inter", sans-serif`;
-    bctx.textAlign = 'center';
-    bctx.textBaseline = 'bottom';
+    const fontDeclaration = `${fontSize}px "Microsoft YaHei", "Noto Sans SC", "Inter", sans-serif`;
+    const scaleX = refs.mapCanvas.width / RAW_VISIBLE_WIDTH;
+    const scaleY = refs.mapCanvas.height / RAW_VISIBLE_HEIGHT;
+
+    ctx.save();
+    ctx.setTransform(scaleX, 0, 0, scaleY, -RAW_OFFSET_LEFT * scaleX, -RAW_OFFSET_TOP * scaleY);
+    ctx.imageSmoothingEnabled = false;
+    ctx.beginPath();
+    ctx.rect(RAW_OFFSET_LEFT, RAW_OFFSET_TOP, RAW_VISIBLE_WIDTH, RAW_VISIBLE_HEIGHT);
+    ctx.clip();
+    ctx.font = fontDeclaration;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    textMeasureCtx.font = fontDeclaration;
+    textMeasureCtx.textAlign = 'center';
+    textMeasureCtx.textBaseline = 'bottom';
 
     const textCache = [];
     const showAll = !settings.showmp && !settings.showsp;
@@ -840,23 +877,23 @@ function renderPlayers() {
         const py = Number(player.pos?.y) || 0;
         const color = player.team === selectedTeam ? '#FFFFFF' : teamColorFor(player.team);
 
-        bctx.beginPath();
-        bctx.arc(px, py, 4.8, 0, Math.PI * 2);
-        bctx.fillStyle = color;
-        bctx.fill();
-        bctx.lineWidth = 1.2;
-        bctx.strokeStyle = 'rgba(2, 6, 23, 0.9)';
-        bctx.stroke();
-        bctx.closePath();
+        ctx.beginPath();
+        ctx.arc(px, py, 4.8, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.lineWidth = 1.2;
+        ctx.strokeStyle = 'rgba(2, 6, 23, 0.9)';
+        ctx.stroke();
+        ctx.closePath();
 
         if (player.team === selectedTeam && player.name !== localPlayer.name) {
-            bctx.beginPath();
-            bctx.moveTo(localX, localY);
-            bctx.lineTo(px, py);
-            bctx.strokeStyle = `${color}80`;
-            bctx.lineWidth = 1.2;
-            bctx.stroke();
-            bctx.closePath();
+            ctx.beginPath();
+            ctx.moveTo(localX, localY);
+            ctx.lineTo(px, py);
+            ctx.strokeStyle = `${color}80`;
+            ctx.lineWidth = 1.2;
+            ctx.stroke();
+            ctx.closePath();
         }
 
         if (player.name === localPlayer.name) {
@@ -926,50 +963,34 @@ function renderPlayers() {
             }
         });
 
-        bctx.lineWidth = 3;
-        bctx.strokeStyle = 'rgba(2, 6, 23, 0.85)';
-        bctx.strokeText(label, px, adjustedY);
-        bctx.fillStyle = color;
-        bctx.fillText(label, px, adjustedY);
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = 'rgba(2, 6, 23, 0.85)';
+        ctx.strokeText(label, px, adjustedY);
+        ctx.fillStyle = color;
+        ctx.fillText(label, px, adjustedY);
 
-        const textWidth = bctx.measureText(label).width;
+        const textWidth = textMeasureCtx.measureText(label).width;
         textCache.push({ cx: px, cy: adjustedY, width: textWidth, height: textHeight, team: player.team });
     });
 
-    bctx.beginPath();
-    bctx.lineWidth = 1.5;
-    bctx.strokeStyle = 'rgba(255, 255, 255, 0.55)';
-    bctx.moveTo(0, localY);
-    bctx.lineTo(RAW_CANVAS_WIDTH, localY);
-    bctx.moveTo(localX, 0);
-    bctx.lineTo(localX, RAW_CANVAS_HEIGHT);
-    bctx.stroke();
-    bctx.closePath();
+    ctx.beginPath();
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.55)';
+    ctx.moveTo(0, localY);
+    ctx.lineTo(RAW_CANVAS_WIDTH, localY);
+    ctx.moveTo(localX, 0);
+    ctx.lineTo(localX, RAW_CANVAS_HEIGHT);
+    ctx.stroke();
+    ctx.closePath();
 
-    bctx.beginPath();
-    bctx.arc(localX, localY, 6, 0, Math.PI * 2);
-    bctx.lineWidth = 2.2;
-    bctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-    bctx.stroke();
-    bctx.closePath();
+    ctx.beginPath();
+    ctx.arc(localX, localY, 6, 0, Math.PI * 2);
+    ctx.lineWidth = 2.2;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+    ctx.stroke();
+    ctx.closePath();
 
-    const sourceX = RAW_OFFSET_LEFT;
-    const sourceY = RAW_OFFSET_TOP;
-    const sourceWidth = RAW_VISIBLE_WIDTH;
-    const sourceHeight = RAW_VISIBLE_HEIGHT;
-
-    mapCtx.imageSmoothingEnabled = true;
-    mapCtx.drawImage(
-            buffer,
-            sourceX,
-            sourceY,
-            sourceWidth,
-            sourceHeight,
-            0,
-            0,
-            refs.mapCanvas.width,
-            refs.mapCanvas.height
-    );
+    ctx.restore();
 }
 
 function createPlayerTableSnapshot(players) {
@@ -1333,6 +1354,8 @@ refs.mapStage.addEventListener('pointermove', (event) => {
         state.viewport.translateX = midpoint.x - pinchState.mapPoint.x * nextScale;
         state.viewport.translateY = midpoint.y - pinchState.mapPoint.y * nextScale;
         applyTransform();
+        updateCanvasResolution();
+        renderPlayers();
         return;
     }
 
