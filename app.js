@@ -301,6 +301,13 @@ const DESKTOP_RIGHT_MIN_WIDTH = 320;
 const DESKTOP_MIN_MAP_SIZE = 320;
 const MIN_SCALE = 0.4;
 const MAX_SCALE = 5;
+function getEffectivePixelRatio() {
+    const baseRatio = window.devicePixelRatio || 1;
+    const viewport = window.visualViewport;
+    const viewportScale = viewport && Number.isFinite(viewport.scale) && viewport.scale > 0 ? viewport.scale : 1;
+    return Math.max(1, baseRatio * viewportScale);
+}
+
 const refs = {
     layout: doc.querySelector('[data-role="layout"]'),
     header: doc.querySelector('header'),
@@ -699,8 +706,9 @@ function updateCanvasResolution() {
         return false;
     }
     const scale = Number.isFinite(state.viewport.scale) ? state.viewport.scale : 1;
-    const width = Math.max(1, Math.round(state.canvasDeviceWidth * scale));
-    const height = Math.max(1, Math.round(state.canvasDeviceHeight * scale));
+    const effectiveScale = Math.max(1, scale);
+    const width = Math.max(1, Math.round(state.canvasDeviceWidth * effectiveScale));
+    const height = Math.max(1, Math.round(state.canvasDeviceHeight * effectiveScale));
     let resized = false;
     if (refs.mapCanvas.width !== width) {
         refs.mapCanvas.width = width;
@@ -719,7 +727,7 @@ function resizeCanvas() {
     if (!rect.width || !rect.height) {
         return;
     }
-    const ratio = window.devicePixelRatio || 1;
+    const ratio = getEffectivePixelRatio();
     const deviceWidth = Math.max(1, Math.round(rect.width * ratio));
     const deviceHeight = Math.max(1, Math.round(rect.height * ratio));
     state.pixelRatio = ratio;
@@ -735,7 +743,10 @@ function resizeCanvas() {
 
 function applyTransform() {
     const { scale, translateX, translateY } = state.viewport;
-    refs.mapViewport.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+    const ratio = state.pixelRatio || getEffectivePixelRatio();
+    const alignedX = Math.round(translateX * ratio) / ratio;
+    const alignedY = Math.round(translateY * ratio) / ratio;
+    refs.mapViewport.style.transform = `translate3d(${alignedX}px, ${alignedY}px, 0) scale(${scale})`;
 }
 
 function resetViewport() {
@@ -1445,13 +1456,20 @@ if (typeof desktopQuery.addEventListener === 'function') {
 }
 
 let resizeTimer = null;
-window.addEventListener('resize', () => {
+const scheduleResize = () => {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(() => {
         resizeCanvas();
         renderPlayers();
-    }, 150);
-});
+    }, 120);
+};
+
+window.addEventListener('resize', scheduleResize);
+
+if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', scheduleResize);
+    window.visualViewport.addEventListener('scroll', scheduleResize);
+}
 
 window.addEventListener('beforeunload', () => {
     clearSocket();
