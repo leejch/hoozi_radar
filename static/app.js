@@ -22,8 +22,8 @@ const translations = {
             filterOnlyMarks: '仅显示 权 / 黑 / 白',
             filterOnlySuspicious: '仅显示 低等级 / 高击杀',
             fontSize: '字体大小',
-            killsAtLeast: '击杀达到',
-            levelBelow: '等级低于'
+            killsAtLeast: '击杀≥',
+            levelBelow: '等级≤'
         },
         map: {
             reconnect: '重连',
@@ -96,7 +96,7 @@ const translations = {
         config: {
             connection: '連線設定',
             ipPlaceholder: 'auto',
-            ipHelper: 'auto 自動，或手動填寫 ws/wss 位址',
+            ipHelper: 'auto自動, 或手動填寫ws/wss地址',
             toggles: '資訊開關',
             toggleName: '暱稱',
             toggleLevel: '等級',
@@ -108,8 +108,8 @@ const translations = {
             filterOnlyMarks: '僅顯示 權 / 黑 / 白',
             filterOnlySuspicious: '僅顯示 低等級 / 高擊殺',
             fontSize: '字體大小',
-            killsAtLeast: '擊殺達到',
-            levelBelow: '等級低於'
+            killsAtLeast: '擊殺≥',
+            levelBelow: '等級≤'
         },
         map: {
             reconnect: '重新連線',
@@ -191,7 +191,7 @@ const translations = {
             toggleRoster: 'Roster',
             toggleSuspect: 'Suspect',
             quickFilter: 'Quick Filters',
-            filterOnlyMarks: 'Show only Authority / Black / White',
+            filterOnlyMarks: 'Show only Pro / Black / White',
             filterOnlySuspicious: 'Show only Low Level / High Kills',
             fontSize: 'Font Size',
             killsAtLeast: 'Kills ≥',
@@ -248,7 +248,7 @@ const translations = {
             parse: 'Failed to parse server data'
         },
         marks: {
-            authority: '[Auth]',
+            authority: '[Pro]',
             black: '[Black]',
             white: '[White]',
             danger: '[Danger]',
