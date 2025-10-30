@@ -1,3 +1,6 @@
+const R2_STATIC_BASE_URL = 'https://img.hoozi.net/static/';
+const LOCAL_STATIC_BASE_URL = 'static/';
+
 const translations = {
     'zh-CN': {
         title: 'HOOZi 网页雷达',
@@ -1162,6 +1165,11 @@ function handleMessage(raw) {
     }
 }
 
+function getStaticAssetUrl(assetName, source) {
+    const base = source === 'local' ? LOCAL_STATIC_BASE_URL : R2_STATIC_BASE_URL;
+    return `${base}${assetName}`;
+}
+
 function updateMap(mapId) {
     if (!mapId) return;
     if (state.mapId === mapId && state.mapLoaded) {
@@ -1170,11 +1178,15 @@ function updateMap(mapId) {
     state.mapId = mapId;
     state.mapLoaded = false;
     setOverlayState('loading', t('overlay.mapLoadingTitle'), t('overlay.mapLoadingSubtitle'));
-    const src = `static/${mapId}.png`;
-    if (refs.mapImage.getAttribute('src') === src && refs.mapImage.complete) {
+    const assetName = `${mapId}.png`;
+    const currentAsset = refs.mapImage.dataset.assetName;
+    const currentSource = refs.mapImage.dataset.assetSource;
+    if (currentAsset === assetName && currentSource && refs.mapImage.complete) {
         onMapReady();
     } else {
-        refs.mapImage.src = src;
+        refs.mapImage.dataset.assetName = assetName;
+        refs.mapImage.dataset.assetSource = 'remote';
+        refs.mapImage.src = getStaticAssetUrl(assetName, 'remote');
     }
 }
 
@@ -1216,6 +1228,12 @@ function onMapReady() {
 
 refs.mapImage.addEventListener('load', onMapReady);
 refs.mapImage.addEventListener('error', () => {
+    const assetName = refs.mapImage.dataset.assetName;
+    if (assetName && refs.mapImage.dataset.assetSource === 'remote') {
+        refs.mapImage.dataset.assetSource = 'local';
+        refs.mapImage.src = getStaticAssetUrl(assetName, 'local');
+        return;
+    }
     const missingMapId = state.mapId ?? 'unknown';
     setOverlayState('info', t('overlay.mapMissingTitle'), t('overlay.mapMissingSubtitle', { mapId: missingMapId }));
 });
