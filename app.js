@@ -930,10 +930,12 @@ function renderPlayers() {
             if (settings.showmprefix && isRoster) {
                 if (player.pro) {
                     labelParts.push(markLabels.pro);
-                } else if (player.white) {
-                    labelParts.push(markLabels.white);
-                } else if (player.black) {
+                }
+                if (player.black) {
                     labelParts.push(markLabels.black);
+                }
+                if (player.white) {
+                    labelParts.push(markLabels.white);
                 }
             }
             if (settings.showsprefix && (levelLow || killHigh)) {
