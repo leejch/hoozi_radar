@@ -2,7 +2,7 @@ const R2_STATIC_BASE_URL = 'https://img.hoozi.net/static/';
 const LOCAL_STATIC_BASE_URL = 'static/';
 
 const translations = {
-    'zh-CN': {
+    'zh-Hans': {
         title: 'HOOZi 网页雷达',
         header: {
             title: 'HOOZi 网页雷达',
@@ -53,19 +53,19 @@ const translations = {
         },
         overlay: {
             waitingTitle: '等待连接',
-            waitingSubtitle: '正在尝试与服务器建立通信',
+            waitingSubtitle: '正在尝试连接数据服务',
             connectingTitle: '正在连接',
-            connectingSubtitle: '正在尝试连接 {target}',
+            connectingSubtitle: '正在连接 {target}',
             instructionsTitle: '未连接',
-            instructionsSubtitle: '①启动游戏 ②开启HOOZi ③开启FRP',
+            instructionsSubtitle: '①启动游戏 ②打开HOOZi ③启用FRP',
             noDataTitle: '等待玩家数据',
-            noDataSubtitle: '当前地图暂无玩家或数据尚未同步',
-            mapLoadingTitle: '加载地图',
-            mapLoadingSubtitle: '正在载入地图资源',
+            noDataSubtitle: '当前地图暂无玩家数据或尚未同步',
+            mapLoadingTitle: '加载高清地图资源',
+            mapLoadingSubtitle: '由全球加速节点提供支持, 首次加载可能较慢',
             mapMissingTitle: '地图资源缺失',
-            mapMissingSubtitle: '未找到 static/{mapId}.png',
+            mapMissingSubtitle: '未找到地图文件',
             noTransferTitle: '暂无数据传输',
-            noTransferSubtitle: '游戏对局开始后才可查看'
+            noTransferSubtitle: '游戏开始后将显示实时数据'
         },
         status: {
             waiting: '等待连接',
@@ -88,7 +88,7 @@ const translations = {
             none: '—'
         }
     },
-    'zh-TW': {
+    'zh-Hant': {
         title: 'HOOZi 網頁雷達',
         header: {
             title: 'HOOZi 網頁雷達',
@@ -141,17 +141,17 @@ const translations = {
             waitingTitle: '等待連線',
             waitingSubtitle: '正在嘗試與伺服器建立通訊',
             connectingTitle: '正在連線',
-            connectingSubtitle: '正在嘗試連線 {target}',
+            connectingSubtitle: '正在連線 {target}',
             instructionsTitle: '未連線',
-            instructionsSubtitle: '①啟動遊戲 ②開啟 HOOZi ③開啟 FRP',
+            instructionsSubtitle: '①啟動遊戲 ②開啟HOOZi ③啟用FRP',
             noDataTitle: '等待玩家資料',
-            noDataSubtitle: '目前地圖暫無玩家或資料尚未同步',
-            mapLoadingTitle: '載入地圖',
-            mapLoadingSubtitle: '正在載入地圖資源',
+            noDataSubtitle: '目前地圖暫無玩家資料或尚未同步',
+            mapLoadingTitle: '載入高畫質地圖資源',
+            mapLoadingSubtitle: '由全球加速網路提供支援, 首次載入可能稍慢',
             mapMissingTitle: '地圖資源缺失',
-            mapMissingSubtitle: '找不到 static/{mapId}.png',
+            mapMissingSubtitle: '找不到地圖檔案',
             noTransferTitle: '暫無資料傳輸',
-            noTransferSubtitle: '對戰開始後才可查看'
+            noTransferSubtitle: '遊戲開始後將顯示即時資料'
         },
         status: {
             waiting: '等待連線',
@@ -225,19 +225,19 @@ const translations = {
         },
         overlay: {
             waitingTitle: 'Waiting to Connect',
-            waitingSubtitle: 'Trying to reach the server',
+            waitingSubtitle: 'Attempting to connect to the data service',
             connectingTitle: 'Connecting',
             connectingSubtitle: 'Connecting to {target}',
-            instructionsTitle: 'Disconnected',
+            instructionsTitle: 'Not Connected',
             instructionsSubtitle: '① Start the game ② Launch HOOZi ③ Enable FRP',
             noDataTitle: 'Waiting for player data',
-            noDataSubtitle: 'No players on the current map or data not yet synced',
-            mapLoadingTitle: 'Loading map',
-            mapLoadingSubtitle: 'Fetching map assets',
-            mapMissingTitle: 'Missing map asset',
-            mapMissingSubtitle: 'static/{mapId}.png not found',
-            noTransferTitle: 'No data yet',
-            noTransferSubtitle: 'Visible after the match starts'
+            noDataSubtitle: 'No player data available or not yet synced for this map',
+            mapLoadingTitle: 'Loading High-Resolution Map',
+            mapLoadingSubtitle: 'Delivery is optimized through a global acceleration network',
+            mapMissingTitle: 'Map Asset Missing',
+            mapMissingSubtitle: 'No Map file found',
+            noTransferTitle: 'No Live Data Yet',
+            noTransferSubtitle: 'Live data will appear once the match begins'
         },
         status: {
             waiting: 'Waiting to connect',
@@ -265,9 +265,9 @@ const translations = {
 function getBrowserLanguage() {
     const lang = navigator.language || navigator.userLanguage;
     if (lang.startsWith('zh-TW') || lang.startsWith('zh-HK')) {
-        return 'zh-TW';
+        return 'zh-Hant';
     } else if (lang.startsWith('zh')) {
-        return 'zh-CN';
+        return 'zh-Hans';
     } else {
         return 'en';
     }
