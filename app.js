@@ -358,6 +358,10 @@ const refs = {
     }
 };
 
+if (refs.mapImage) {
+    refs.mapImage.referrerPolicy = 'origin';
+}
+
 function applyTranslations() {
     if (!locale) {
         return;
