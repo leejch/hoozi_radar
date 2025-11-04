@@ -106,7 +106,7 @@
         .three-column-layout {
             display: flex;
             flex-direction: column-reverse;
-            gap: 1rem;
+            gap: 4px;
             width: 100%;
             flex: 1;
             min-height: 0;
@@ -131,8 +131,8 @@
             .three-column-layout {
                 display: grid;
                 grid-template-columns: 300px auto minmax(320px, 1fr);
-                column-gap: 1rem;
-                row-gap: 1rem;
+                column-gap: 4px;
+                row-gap: 4px;
                 align-items: stretch;
             }
 
@@ -150,7 +150,6 @@
             .config-stack {
                 flex: 1;
                 overflow-y: auto;
-                padding-right: 0.25rem;
                 scrollbar-width: thin;
                 min-height: 0;
             }
@@ -281,10 +280,10 @@
     </div>
 </header>
 <main class="w-full flex-1">
-    <div class="three-column-layout mx-auto w-full px-3 pb-1 sm:px-4 lg:px-6" data-role="layout">
+    <div class="three-column-layout mx-auto w-full px-1 pb-1 sm:px-2" data-role="layout">
         <aside class="config-column w-full">
             <div class="config-stack flex flex-1 flex-col space-y-4">
-                <section class="glass-panel rounded-3xl p-4 shadow-xl shadow-emerald-500/10">
+                <section class="glass-panel rounded-3xl p-4">
                     <h2 class="text-sm font-semibold uppercase text-slate-300" data-i18n="config.connection">连接配置</h2>
                     <div class="mt-3 space-y-2.5">
                         <label class="block space-y-2 text-xs uppercase text-slate-500">
@@ -297,7 +296,7 @@
                         <p class="text-[0.7rem] text-slate-500" data-i18n="config.ipHelper">auto自动, 或手动填写ws/wss地址</p>
                     </div>
                 </section>
-                <section class="glass-panel rounded-3xl p-4 shadow-xl shadow-fuchsia-500/10">
+                <section class="glass-panel rounded-3xl p-4">
                     <h2 class="text-sm font-semibold uppercase text-slate-300" data-i18n="config.toggles">信息开关</h2>
                     <div class="mt-3 space-y-2">
                         <div class="grid grid-cols-3 gap-1.5 text-sm text-slate-200">
@@ -336,7 +335,7 @@
                         </div>
                     </div>
                 </section>
-                <section class="glass-panel rounded-3xl p-4 shadow-xl shadow-sky-500/10">
+                <section class="glass-panel rounded-3xl p-4">
                     <h2 class="text-sm font-semibold uppercase text-slate-300" data-i18n="config.quickFilter">快捷过滤</h2>
                     <div class="mt-3 space-y-2.5">
                         <label class="flex items-center gap-3 rounded-2xl border border-slate-800/70 bg-slate-950/40 px-3 py-1.5 text-sm transition hover:border-emerald-400/60">
@@ -373,7 +372,7 @@
         <section class="map-shell">
             <div class="map-stage-container relative flex flex-1 flex-col">
                 <div id="mapStage"
-                     class="glass-panel relative aspect-square w-full overflow-hidden rounded-[1.75rem] border border-slate-800/80 shadow-[0_32px_96px_-56px_rgba(34,197,94,0.35)]">
+                     class="glass-panel relative aspect-square w-full overflow-hidden rounded-[1.75rem] border border-slate-800/80">
                     <div id="mapViewport" class="absolute inset-0">
                         <img id="mapImage" src="" alt="" draggable="false" referrerpolicy="origin">
                         <canvas id="mapCanvas"></canvas>
@@ -428,10 +427,10 @@
             </div>
         </section>
         <section class="hidden lg:flex lg:h-full lg:flex-shrink-0">
-            <div class="player-table-shell glass-panel flex h-full w-full flex-col rounded-3xl p-4 shadow-xl shadow-sky-500/10" data-role="player-table-shell">
+            <div class="player-table-shell glass-panel flex h-full w-full flex-col rounded-3xl p-2" data-role="player-table-shell">
                 <div class="flex items-center justify-between">
-                    <h2 class="text-sm font-semibold uppercase text-slate-300" data-i18n="table.title">玩家信息</h2>
-                    <span class="rounded-full border border-slate-700/70 bg-slate-900/60 px-1.5 py-0.5 text-[0.65rem] text-slate-300" data-i18n="table.liveUpdate">实时更新</span>
+                    <h2 class="pl-2 text-sm font-semibold uppercase text-slate-300" data-i18n="table.title">玩家信息</h2>
+                    <span class="rounded-full border border-slate-700/70 bg-slate-900/60 px-2 py-0.5 text-[0.65rem] text-slate-300" data-i18n="table.liveUpdate">实时更新</span>
                 </div>
                 <div class="player-table-wrapper mt-3 flex-1 overflow-hidden rounded-2xl" data-role="player-table-wrapper">
                     <div class="h-full overflow-auto" data-role="player-table-scroll">
