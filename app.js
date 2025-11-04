@@ -26,7 +26,8 @@ const translations = {
             filterOnlySuspicious: '仅显示 低等级 / 高击杀',
             fontSize: '字体大小',
             killsAtLeast: '击杀≥',
-            levelBelow: '等级≤'
+            levelBelow: '等级≤',
+            downloadLatest: '下载最新数据'
         },
         map: {
             reconnect: '重连',
@@ -112,7 +113,8 @@ const translations = {
             filterOnlySuspicious: '僅顯示 低等級 / 高擊殺',
             fontSize: '字體大小',
             killsAtLeast: '擊殺≥',
-            levelBelow: '等級≤'
+            levelBelow: '等級≤',
+            downloadLatest: '下載最新資料'
         },
         map: {
             reconnect: '重新連線',
@@ -198,7 +200,8 @@ const translations = {
             filterOnlySuspicious: 'Show only Low Level / High Kills',
             fontSize: 'Font Size',
             killsAtLeast: 'Kills ≥',
-            levelBelow: 'Level ≤'
+            levelBelow: 'Level ≤',
+            downloadLatest: 'Download latest data'
         },
         map: {
             reconnect: 'Reconnect',
@@ -334,6 +337,7 @@ const refs = {
     zoomOut: doc.getElementById('zoomOut'),
     zoomReset: doc.getElementById('zoomReset'),
     reconnectButton: doc.getElementById('reconnectButton'),
+    downloadLatestButton: doc.getElementById('downloadLatestButton'),
     configColumn: doc.querySelector('.config-column'),
     configStack: doc.querySelector('.config-stack'),
     mapShell: doc.querySelector('.map-shell'),
@@ -411,7 +415,8 @@ const state = {
     isSelectingPlayer: false,
     viewport: { scale: 1, translateX: 0, translateY: 0 },
     isConnected: false,
-    playerTableSignature: null
+    playerTableSignature: null,
+    latestMessageText: ''
 };
 
 const desktopQuery = window.matchMedia('(min-width: 1024px)');
@@ -1158,10 +1163,13 @@ function handleMessage(raw) {
     let payload;
     try {
         payload = JSON.parse(raw);
-        } catch (error) {
-            console.error(t('errors.parse'), raw);
+    } catch (error) {
+        console.error(t('errors.parse'), raw);
         return;
     }
+
+    state.latestMessageText = JSON.stringify(payload, null, 2);
+    updateDownloadButtonState();
 
     if (payload.map) {
         updateMap(payload.map);
@@ -1169,6 +1177,32 @@ function handleMessage(raw) {
     if (Array.isArray(payload.players)) {
         updatePlayers(payload.players);
     }
+}
+
+function updateDownloadButtonState() {
+    if (!refs.downloadLatestButton) {
+        return;
+    }
+    const hasData = typeof state.latestMessageText === 'string' && state.latestMessageText.length > 0;
+    refs.downloadLatestButton.disabled = !hasData;
+    refs.downloadLatestButton.setAttribute('aria-disabled', hasData ? 'false' : 'true');
+}
+
+function downloadLatestMessage() {
+    if (!state.latestMessageText) {
+        return;
+    }
+    const blob = new Blob([state.latestMessageText], { type: 'application/json;charset=utf-8' });
+    const timestamp = new Date().toISOString().replace(/[:]/g, '-');
+    const filename = `hoozi-ws-latest-${timestamp}.json`;
+    const url = URL.createObjectURL(blob);
+    const link = doc.createElement('a');
+    link.href = url;
+    link.download = filename;
+    doc.body.appendChild(link);
+    link.click();
+    doc.body.removeChild(link);
+    URL.revokeObjectURL(url);
 }
 
 function getStaticAssetUrl(assetName, source) {
@@ -1315,6 +1349,10 @@ checkboxBindings.forEach(([key, settingKey]) => {
 refs.reconnectButton.addEventListener('click', () => {
     connect();
 });
+
+if (refs.downloadLatestButton) {
+    refs.downloadLatestButton.addEventListener('click', downloadLatestMessage);
+}
 
 const isOverlayBlocking = () => {
     return refs.mapOverlay && refs.mapOverlay.dataset.state !== 'hidden';
@@ -1498,6 +1536,8 @@ if (window.visualViewport) {
 window.addEventListener('beforeunload', () => {
     clearSocket();
 });
+
+updateDownloadButtonState();
 
 resizeCanvas();
 updateStatus('connecting', t('status.waiting'));
