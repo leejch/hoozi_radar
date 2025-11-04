@@ -41,6 +41,7 @@ const translations = {
             columns: {
                 team: '队伍',
                 name: '昵称',
+                uid: 'UID',
                 level: '等级',
                 rank: '段位',
                 kills: '击杀',
@@ -128,6 +129,7 @@ const translations = {
             columns: {
                 team: '隊伍',
                 name: '暱稱',
+                uid: 'UID',
                 level: '等級',
                 rank: '段位',
                 kills: '擊殺',
@@ -215,6 +217,7 @@ const translations = {
             columns: {
                 team: 'Team',
                 name: 'Name',
+                uid: 'UID',
                 level: 'Level',
                 rank: 'Rank',
                 kills: 'Kills',
@@ -1037,13 +1040,21 @@ function createPlayerTableSnapshot(players) {
     const signatureParts = sorted.map((player) => {
         const teamValue = Number.isFinite(Number(player.team)) ? Number(player.team) : 'null';
         const nameValue = typeof player.name === 'string' ? player.name : '';
+        let uidValue = '';
+        if (typeof player.uid === 'string') {
+            uidValue = player.uid.trim();
+        } else if (typeof player.uid === 'number' && Number.isFinite(player.uid)) {
+            uidValue = String(player.uid);
+        } else if (typeof player.uid === 'bigint') {
+            uidValue = player.uid.toString();
+        }
         const levelValue = Number.isFinite(Number(player.level)) ? Number(player.level) : 'null';
         const rankValue = player.rank ? String(player.rank) : '';
         const killsValue = Number.isFinite(Number(player.kills)) ? Number(player.kills) : 'null';
         const proValue = player.pro ? '1' : '0';
         const blackValue = player.black ? '1' : '0';
         const whiteValue = player.white ? '1' : '0';
-        return [teamValue, nameValue, levelValue, rankValue, killsValue, proValue, blackValue, whiteValue].join('|');
+        return [teamValue, nameValue, uidValue, levelValue, rankValue, killsValue, proValue, blackValue, whiteValue].join('|');
     });
 
     return {
@@ -1111,6 +1122,22 @@ function renderPlayerTable(snapshot) {
         nameSpan.textContent = displayName;
         nameCell.appendChild(nameSpan);
         row.appendChild(nameCell);
+
+        const uidCell = doc.createElement('td');
+        uidCell.className = 'px-2.5 py-1.5 text-sm text-slate-200 whitespace-nowrap font-mono';
+        let uidDisplay = '—';
+        if (typeof player.uid === 'string') {
+            const trimmedUid = player.uid.trim();
+            if (trimmedUid !== '') {
+                uidDisplay = trimmedUid;
+            }
+        } else if (typeof player.uid === 'number' && Number.isFinite(player.uid)) {
+            uidDisplay = String(player.uid);
+        } else if (typeof player.uid === 'bigint') {
+            uidDisplay = player.uid.toString();
+        }
+        uidCell.textContent = uidDisplay;
+        row.appendChild(uidCell);
 
         const levelCell = doc.createElement('td');
         levelCell.className = 'whitespace-nowrap px-2.5 py-1.5 text-sm text-slate-200';
