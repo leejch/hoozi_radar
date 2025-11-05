@@ -27,7 +27,7 @@ const translations = {
             fontSize: '字体大小',
             killsAtLeast: '击杀≥',
             levelBelow: '等级≤',
-            downloadLatest: '调试',
+            downloadLatest: '导出玩家列表',
             playerTable: '玩家信息列表'
         },
         map: {
@@ -116,7 +116,7 @@ const translations = {
             fontSize: '字體大小',
             killsAtLeast: '擊殺≥',
             levelBelow: '等級≤',
-            downloadLatest: '除錯',
+            downloadLatest: '匯出玩家列表',
             playerTable: '玩家資訊列表'
         },
         map: {
@@ -205,7 +205,7 @@ const translations = {
             fontSize: 'Font Size',
             killsAtLeast: 'Kills ≥',
             levelBelow: 'Level ≤',
-            downloadLatest: 'Debug',
+            downloadLatest: 'Export Players',
             playerTable: 'Player List Fields'
         },
         map: {
