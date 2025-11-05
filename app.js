@@ -14,7 +14,7 @@ const translations = {
             connection: '连接配置',
             ipPlaceholder: 'auto',
             ipHelper: 'auto自动, 或手动填写ws/wss地址',
-            toggles: '信息开关',
+            toggles: '地图绘制信息',
             toggleName: '昵称',
             toggleLevel: '等级',
             toggleRank: '段位',
@@ -27,7 +27,8 @@ const translations = {
             fontSize: '字体大小',
             killsAtLeast: '击杀≥',
             levelBelow: '等级≤',
-            downloadLatest: '下载最新数据'
+            downloadLatest: '调试',
+            playerTable: '玩家信息列表'
         },
         map: {
             reconnect: '重连',
@@ -102,7 +103,7 @@ const translations = {
             connection: '連線設定',
             ipPlaceholder: 'auto',
             ipHelper: 'auto自動, 或手動填寫ws/wss地址',
-            toggles: '資訊開關',
+            toggles: '地圖繪製資訊',
             toggleName: '暱稱',
             toggleLevel: '等級',
             toggleRank: '段位',
@@ -115,7 +116,8 @@ const translations = {
             fontSize: '字體大小',
             killsAtLeast: '擊殺≥',
             levelBelow: '等級≤',
-            downloadLatest: '下載最新資料'
+            downloadLatest: '除錯',
+            playerTable: '玩家資訊列表'
         },
         map: {
             reconnect: '重新連線',
@@ -190,7 +192,7 @@ const translations = {
             connection: 'Connection',
             ipPlaceholder: 'auto',
             ipHelper: 'Use auto or enter a ws/wss address manually',
-            toggles: 'Info Toggles',
+            toggles: 'Map Overlay Info',
             toggleName: 'Name',
             toggleLevel: 'Level',
             toggleRank: 'Rank',
@@ -203,7 +205,8 @@ const translations = {
             fontSize: 'Font Size',
             killsAtLeast: 'Kills ≥',
             levelBelow: 'Level ≤',
-            downloadLatest: 'Download latest data'
+            downloadLatest: 'Debug',
+            playerTable: 'Player List Fields'
         },
         map: {
             reconnect: 'Reconnect',
@@ -344,11 +347,14 @@ const refs = {
     configColumn: doc.querySelector('.config-column'),
     configStack: doc.querySelector('.config-stack'),
     mapShell: doc.querySelector('.map-shell'),
+    playerTableSection: doc.querySelector('[data-role="player-table-section"]'),
     playerTableShell: doc.querySelector('[data-role="player-table-shell"]'),
     playerTableWrapper: doc.querySelector('[data-role="player-table-wrapper"]'),
     playerTableScroll: doc.querySelector('[data-role="player-table-scroll"]'),
+    playerTableHeader: doc.querySelector('[data-role="player-table-header"]'),
     playerTableBody: doc.querySelector('[data-role="player-table-body"]'),
     playerTableEmpty: doc.querySelector('[data-role="player-table-empty"]'),
+    playerTableEmptyCell: doc.querySelector('[data-role="player-table-empty-cell"]'),
     inputs: {
         ip: doc.getElementById('conf_ipaddr'),
         font: doc.getElementById('conf_fontsize'),
@@ -361,7 +367,14 @@ const refs = {
         showlprefix: doc.getElementById('conf_showlprefix'),
         showrankprefix: doc.getElementById('conf_showrankprefix'),
         showmprefix: doc.getElementById('conf_showmprefix'),
-        showsprefix: doc.getElementById('conf_showsprefix')
+        showsprefix: doc.getElementById('conf_showsprefix'),
+        tableTeam: doc.getElementById('conf_table_team'),
+        tableName: doc.getElementById('conf_table_name'),
+        tableUid: doc.getElementById('conf_table_uid'),
+        tableLevel: doc.getElementById('conf_table_level'),
+        tableRank: doc.getElementById('conf_table_rank'),
+        tableKills: doc.getElementById('conf_table_kills'),
+        tableMarks: doc.getElementById('conf_table_marks')
     }
 };
 
@@ -471,6 +484,13 @@ const settings = {
     showrankprefix: readSetting('conf_showrankprefix', false),
     showmprefix: readSetting('conf_showmprefix', true),
     showsprefix: readSetting('conf_showsprefix', true),
+    tableTeam: readSetting('conf_table_team', true),
+    tableName: readSetting('conf_table_name', true),
+    tableUid: readSetting('conf_table_uid', true),
+    tableLevel: readSetting('conf_table_level', true),
+    tableRank: readSetting('conf_table_rank', true),
+    tableKills: readSetting('conf_table_kills', true),
+    tableMarks: readSetting('conf_table_marks', true),
     selectedPlayer: readSetting('sel_player', '<hoozi>')
 };
 
@@ -487,6 +507,145 @@ refs.inputs.showlprefix.checked = settings.showlprefix;
 refs.inputs.showrankprefix.checked = settings.showrankprefix;
 refs.inputs.showmprefix.checked = settings.showmprefix;
 refs.inputs.showsprefix.checked = settings.showsprefix;
+refs.inputs.tableTeam.checked = settings.tableTeam;
+refs.inputs.tableName.checked = settings.tableName;
+refs.inputs.tableUid.checked = settings.tableUid;
+refs.inputs.tableLevel.checked = settings.tableLevel;
+refs.inputs.tableRank.checked = settings.tableRank;
+refs.inputs.tableKills.checked = settings.tableKills;
+refs.inputs.tableMarks.checked = settings.tableMarks;
+
+const playerTableColumns = [
+    {
+        id: 'team',
+        settingKey: 'tableTeam',
+        labelKey: 'table.columns.team',
+        defaultLabel: 'Team',
+        createCell(player) {
+            const cell = doc.createElement('td');
+            cell.className = 'whitespace-nowrap px-2.5 py-1.5 text-sm font-semibold text-slate-100';
+            const wrapper = doc.createElement('div');
+            wrapper.className = 'flex items-center gap-2';
+            const badge = doc.createElement('span');
+            badge.className = 'inline-flex size-2.5 rounded-full';
+            badge.style.backgroundColor = teamColorFor(player.team);
+            const text = doc.createElement('span');
+            const team = Number.isFinite(Number(player.team)) ? Number(player.team) : null;
+            text.textContent = team !== null ? String(team) : '—';
+            wrapper.appendChild(badge);
+            wrapper.appendChild(text);
+            cell.appendChild(wrapper);
+            return cell;
+        }
+    },
+    {
+        id: 'name',
+        settingKey: 'tableName',
+        labelKey: 'table.columns.name',
+        defaultLabel: 'Name',
+        createCell(player) {
+            const cell = doc.createElement('td');
+            cell.className = 'whitespace-nowrap px-2.5 py-1.5 text-sm text-slate-100';
+            const span = doc.createElement('span');
+            span.className = 'block whitespace-nowrap';
+            const displayName = typeof player.name === 'string' ? (player.name === '<hoozi>' ? 'hoozi' : player.name) : '—';
+            span.textContent = displayName;
+            cell.appendChild(span);
+            return cell;
+        }
+    },
+    {
+        id: 'uid',
+        settingKey: 'tableUid',
+        labelKey: 'table.columns.uid',
+        defaultLabel: 'UID',
+        createCell(player) {
+            const cell = doc.createElement('td');
+            cell.className = 'whitespace-nowrap px-2.5 py-1.5 text-sm text-slate-200 font-mono';
+            let uidDisplay = '—';
+            if (typeof player.uid === 'string') {
+                const trimmedUid = player.uid.trim();
+                if (trimmedUid !== '') {
+                    uidDisplay = trimmedUid;
+                }
+            } else if (typeof player.uid === 'number' && Number.isFinite(player.uid)) {
+                uidDisplay = String(player.uid);
+            } else if (typeof player.uid === 'bigint') {
+                uidDisplay = player.uid.toString();
+            }
+            cell.textContent = uidDisplay;
+            return cell;
+        }
+    },
+    {
+        id: 'level',
+        settingKey: 'tableLevel',
+        labelKey: 'table.columns.level',
+        defaultLabel: 'Level',
+        createCell(player) {
+            const cell = doc.createElement('td');
+            cell.className = 'whitespace-nowrap px-2.5 py-1.5 text-sm text-slate-200';
+            if (typeof player.level === 'number' && Number.isFinite(player.level)) {
+                cell.textContent = String(player.level);
+            } else {
+                cell.textContent = '—';
+            }
+            return cell;
+        }
+    },
+    {
+        id: 'rank',
+        settingKey: 'tableRank',
+        labelKey: 'table.columns.rank',
+        defaultLabel: 'Rank',
+        createCell(player) {
+            const cell = doc.createElement('td');
+            cell.className = 'whitespace-nowrap px-2.5 py-1.5 text-sm text-slate-200';
+            cell.textContent = player.rank ? String(player.rank) : '—';
+            return cell;
+        }
+    },
+    {
+        id: 'kills',
+        settingKey: 'tableKills',
+        labelKey: 'table.columns.kills',
+        defaultLabel: 'Kills',
+        createCell(player) {
+            const cell = doc.createElement('td');
+            cell.className = 'whitespace-nowrap px-2.5 py-1.5 text-sm text-slate-200';
+            if (typeof player.kills === 'number' && Number.isFinite(player.kills)) {
+                cell.textContent = String(player.kills);
+            } else {
+                cell.textContent = '—';
+            }
+            return cell;
+        }
+    },
+    {
+        id: 'marks',
+        settingKey: 'tableMarks',
+        labelKey: 'table.columns.marks',
+        defaultLabel: 'Tags',
+        createCell(player) {
+            const cell = doc.createElement('td');
+            cell.className = 'whitespace-nowrap px-2.5 py-1.5 text-sm text-slate-200';
+            const marks = [];
+            if (player.pro) marks.push(markLabels.pro);
+            if (player.black) marks.push(markLabels.black);
+            if (player.white) marks.push(markLabels.white);
+            const levelLow = typeof player.level === 'number' && Number.isFinite(player.level) && player.level <= settings.glevel;
+            const killHigh = typeof player.kills === 'number' && Number.isFinite(player.kills) && player.kills >= settings.gkill;
+            if (levelLow && killHigh) {
+                marks.push(markLabels.danger);
+            } else {
+                if (killHigh) marks.push(markLabels.highKills);
+                if (levelLow) marks.push(markLabels.lowLevel);
+            }
+            cell.textContent = marks.length ? marks.join('') : markLabels.none;
+            return cell;
+        }
+    }
+];
 
 const mapCtx = refs.mapCanvas.getContext('2d');
 const textMeasureCanvas = doc.createElement('canvas');
@@ -1063,14 +1222,53 @@ function createPlayerTableSnapshot(players) {
     };
 }
 
+function updatePlayerTableSectionVisibility(visible) {
+    if (!refs.playerTableSection) {
+        return;
+    }
+    if (visible) {
+        refs.playerTableSection.classList.remove('player-table-hidden');
+    } else {
+        refs.playerTableSection.classList.add('player-table-hidden');
+    }
+}
+
 function renderPlayerTable(snapshot) {
     const body = refs.playerTableBody;
     if (!body) return;
+    const headerRow = refs.playerTableHeader;
     const emptyRow = refs.playerTableEmpty;
+    const emptyCell = refs.playerTableEmptyCell;
     const { sorted, signature } = snapshot || createPlayerTableSnapshot(state.players);
 
-    body.innerHTML = '';
     state.playerTableSignature = signature;
+
+    const activeColumns = playerTableColumns.filter((column) => settings[column.settingKey]);
+
+    if (headerRow) {
+        headerRow.innerHTML = '';
+        activeColumns.forEach((column) => {
+            const th = doc.createElement('th');
+            th.className = 'px-2.5 py-1.5 text-left whitespace-nowrap';
+            th.textContent = t(column.labelKey) || column.defaultLabel;
+            headerRow.appendChild(th);
+        });
+    }
+
+    updatePlayerTableSectionVisibility(activeColumns.length > 0);
+
+    body.innerHTML = '';
+
+    if (emptyCell) {
+        emptyCell.colSpan = Math.max(1, activeColumns.length);
+    }
+
+    if (!activeColumns.length) {
+        if (emptyRow) {
+            emptyRow.classList.add('hidden');
+        }
+        return;
+    }
 
     if (!sorted.length) {
         if (emptyRow) {
@@ -1100,84 +1298,9 @@ function renderPlayerTable(snapshot) {
         const row = doc.createElement('tr');
         row.className = `player-table-row player-table-row-band-${bandIndex}`;
 
-        const teamCell = doc.createElement('td');
-        teamCell.className = 'whitespace-nowrap px-2.5 py-1.5 text-sm font-semibold text-slate-100';
-        const teamWrapper = doc.createElement('div');
-        teamWrapper.className = 'flex items-center gap-2';
-        const teamBadge = doc.createElement('span');
-        teamBadge.className = 'inline-flex size-2.5 rounded-full';
-        teamBadge.style.backgroundColor = teamColorFor(player.team);
-        const teamText = doc.createElement('span');
-        teamText.textContent = team !== null ? String(team) : '—';
-        teamWrapper.appendChild(teamBadge);
-        teamWrapper.appendChild(teamText);
-        teamCell.appendChild(teamWrapper);
-        row.appendChild(teamCell);
-
-        const nameCell = doc.createElement('td');
-        nameCell.className = 'px-2.5 py-1.5 text-sm text-slate-100 whitespace-nowrap';
-        const displayName = typeof player.name === 'string' ? (player.name === '<hoozi>' ? 'hoozi' : player.name) : '—';
-        const nameSpan = doc.createElement('span');
-        nameSpan.className = 'block whitespace-nowrap';
-        nameSpan.textContent = displayName;
-        nameCell.appendChild(nameSpan);
-        row.appendChild(nameCell);
-
-        const uidCell = doc.createElement('td');
-        uidCell.className = 'px-2.5 py-1.5 text-sm text-slate-200 whitespace-nowrap font-mono';
-        let uidDisplay = '—';
-        if (typeof player.uid === 'string') {
-            const trimmedUid = player.uid.trim();
-            if (trimmedUid !== '') {
-                uidDisplay = trimmedUid;
-            }
-        } else if (typeof player.uid === 'number' && Number.isFinite(player.uid)) {
-            uidDisplay = String(player.uid);
-        } else if (typeof player.uid === 'bigint') {
-            uidDisplay = player.uid.toString();
-        }
-        uidCell.textContent = uidDisplay;
-        row.appendChild(uidCell);
-
-        const levelCell = doc.createElement('td');
-        levelCell.className = 'whitespace-nowrap px-2.5 py-1.5 text-sm text-slate-200';
-        if (typeof player.level === 'number' && Number.isFinite(player.level)) {
-            levelCell.textContent = String(player.level);
-        } else {
-            levelCell.textContent = '—';
-        }
-        row.appendChild(levelCell);
-
-        const rankCell = doc.createElement('td');
-        rankCell.className = 'whitespace-nowrap px-2.5 py-1.5 text-sm text-slate-200';
-        rankCell.textContent = player.rank ? String(player.rank) : '—';
-        row.appendChild(rankCell);
-
-        const killsCell = doc.createElement('td');
-        killsCell.className = 'whitespace-nowrap px-2.5 py-1.5 text-sm text-slate-200';
-        if (typeof player.kills === 'number' && Number.isFinite(player.kills)) {
-            killsCell.textContent = String(player.kills);
-        } else {
-            killsCell.textContent = '—';
-        }
-        row.appendChild(killsCell);
-
-        const marksCell = doc.createElement('td');
-        marksCell.className = 'whitespace-nowrap px-2.5 py-1.5 text-sm text-slate-200';
-        const marks = [];
-        if (player.pro) marks.push(markLabels.pro);
-        if (player.black) marks.push(markLabels.black);
-        if (player.white) marks.push(markLabels.white);
-        const levelLow = typeof player.level === 'number' && Number.isFinite(player.level) && player.level <= settings.glevel;
-        const killHigh = typeof player.kills === 'number' && Number.isFinite(player.kills) && player.kills >= settings.gkill;
-        if (levelLow && killHigh) {
-            marks.push(markLabels.danger);
-        } else {
-            if (killHigh) marks.push(markLabels.highKills);
-            if (levelLow) marks.push(markLabels.lowLevel);
-        }
-        marksCell.textContent = marks.length ? marks.join('') : markLabels.none;
-        row.appendChild(marksCell);
+        activeColumns.forEach((column) => {
+            row.appendChild(column.createCell(player));
+        });
 
         fragment.appendChild(row);
     });
@@ -1340,6 +1463,7 @@ refs.inputs.gkill.addEventListener('input', (event) => {
     settings.gkill = value;
     localStorage.setItem('conf_gkill', value);
     renderPlayers();
+    renderPlayerTable();
 });
 
 refs.inputs.glevel.addEventListener('input', (event) => {
@@ -1351,7 +1475,7 @@ refs.inputs.glevel.addEventListener('input', (event) => {
     renderPlayerTable();
 });
 
-const checkboxBindings = [
+const overlayCheckboxBindings = [
     ['conf_showmp', 'showmp'],
     ['conf_showsp', 'showsp'],
     ['conf_showname', 'showname'],
@@ -1362,7 +1486,7 @@ const checkboxBindings = [
     ['conf_showsprefix', 'showsprefix']
 ];
 
-checkboxBindings.forEach(([key, settingKey]) => {
+overlayCheckboxBindings.forEach(([key, settingKey]) => {
     const input = refs.inputs[settingKey];
     if (!input) return;
     input.addEventListener('change', (event) => {
@@ -1370,6 +1494,27 @@ checkboxBindings.forEach(([key, settingKey]) => {
         settings[settingKey] = checked;
         localStorage.setItem(key, checked);
         renderPlayers();
+    });
+});
+
+const tableCheckboxBindings = [
+    ['conf_table_team', 'tableTeam'],
+    ['conf_table_name', 'tableName'],
+    ['conf_table_uid', 'tableUid'],
+    ['conf_table_level', 'tableLevel'],
+    ['conf_table_rank', 'tableRank'],
+    ['conf_table_kills', 'tableKills'],
+    ['conf_table_marks', 'tableMarks']
+];
+
+tableCheckboxBindings.forEach(([key, settingKey]) => {
+    const input = refs.inputs[settingKey];
+    if (!input) return;
+    input.addEventListener('change', (event) => {
+        const checked = event.target.checked;
+        settings[settingKey] = checked;
+        localStorage.setItem(key, checked);
+        renderPlayerTable();
     });
 });
 
@@ -1564,6 +1709,7 @@ window.addEventListener('beforeunload', () => {
     clearSocket();
 });
 
+renderPlayerTable();
 updateDownloadButtonState();
 
 resizeCanvas();
