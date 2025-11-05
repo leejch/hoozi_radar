@@ -43,6 +43,8 @@ const translations = {
                 team: '队伍',
                 name: '昵称',
                 uid: 'UID',
+                uidShort: '短UID',
+                uidLong: '长UID',
                 level: '等级',
                 rank: '段位',
                 kills: '击杀',
@@ -132,6 +134,8 @@ const translations = {
                 team: '隊伍',
                 name: '暱稱',
                 uid: 'UID',
+                uidShort: '短 UID',
+                uidLong: '長 UID',
                 level: '等級',
                 rank: '段位',
                 kills: '擊殺',
@@ -221,6 +225,8 @@ const translations = {
                 team: 'Team',
                 name: 'Name',
                 uid: 'UID',
+                uidShort: 'Short UID',
+                uidLong: 'Long UID',
                 level: 'Level',
                 rank: 'Rank',
                 kills: 'Kills',
@@ -370,7 +376,8 @@ const refs = {
         showsprefix: doc.getElementById('conf_showsprefix'),
         tableTeam: doc.getElementById('conf_table_team'),
         tableName: doc.getElementById('conf_table_name'),
-        tableUid: doc.getElementById('conf_table_uid'),
+        tableUidShort: doc.getElementById('conf_table_uid_short'),
+        tableUidLong: doc.getElementById('conf_table_uid_long'),
         tableLevel: doc.getElementById('conf_table_level'),
         tableRank: doc.getElementById('conf_table_rank'),
         tableKills: doc.getElementById('conf_table_kills'),
@@ -407,6 +414,64 @@ function applyTranslations() {
 }
 
 applyTranslations();
+
+const UID_MASK = BigInt('0xDEADBEEF1B4DF00D');
+
+function extractUidString(raw) {
+    if (raw === null || raw === undefined) {
+        return '';
+    }
+    if (typeof raw === 'string') {
+        const trimmed = raw.trim();
+        return trimmed === '' ? '' : trimmed;
+    }
+    if (typeof raw === 'number') {
+        if (!Number.isFinite(raw)) {
+            return '';
+        }
+        return Math.trunc(raw).toString();
+    }
+    if (typeof raw === 'bigint') {
+        return raw.toString();
+    }
+    return '';
+}
+
+function computeLongUidFromShort(shortUid) {
+    if (!shortUid) {
+        return '';
+    }
+    try {
+        const value = BigInt(shortUid);
+        const converted = BigInt.asUintN(64, value ^ UID_MASK);
+        return converted.toString();
+    } catch (error) {
+        return '';
+    }
+}
+
+function normalizePlayer(player) {
+    if (!player || typeof player !== 'object') {
+        return {
+            uidShort: '',
+            uidLong: '',
+            uid: ''
+        };
+    }
+    const normalized = { ...player };
+    const uidShort = extractUidString(player.uid);
+    normalized.uidShort = uidShort;
+    normalized.uidLong = computeLongUidFromShort(uidShort);
+    normalized.uid = uidShort;
+    return normalized;
+}
+
+function normalizePlayers(players) {
+    if (!Array.isArray(players)) {
+        return [];
+    }
+    return players.map((player) => normalizePlayer(player));
+}
 
 const markLabels = {
     pro: t('marks.authority') || '[Auth]',
@@ -486,13 +551,19 @@ const settings = {
     showsprefix: readSetting('conf_showsprefix', true),
     tableTeam: readSetting('conf_table_team', true),
     tableName: readSetting('conf_table_name', true),
-    tableUid: readSetting('conf_table_uid', true),
+    tableUidShort: readSetting('conf_table_uid_short', true),
+    tableUidLong: readSetting('conf_table_uid_long', false),
     tableLevel: readSetting('conf_table_level', true),
     tableRank: readSetting('conf_table_rank', true),
     tableKills: readSetting('conf_table_kills', true),
     tableMarks: readSetting('conf_table_marks', true),
     selectedPlayer: readSetting('sel_player', '<hoozi>')
 };
+
+if (settings.tableUidShort && settings.tableUidLong) {
+    settings.tableUidLong = false;
+    localStorage.setItem('conf_table_uid_long', false);
+}
 
 // Initialize input values
 refs.inputs.ip.value = settings.ipaddr;
@@ -509,7 +580,8 @@ refs.inputs.showmprefix.checked = settings.showmprefix;
 refs.inputs.showsprefix.checked = settings.showsprefix;
 refs.inputs.tableTeam.checked = settings.tableTeam;
 refs.inputs.tableName.checked = settings.tableName;
-refs.inputs.tableUid.checked = settings.tableUid;
+refs.inputs.tableUidShort.checked = settings.tableUidShort;
+refs.inputs.tableUidLong.checked = settings.tableUidLong;
 refs.inputs.tableLevel.checked = settings.tableLevel;
 refs.inputs.tableRank.checked = settings.tableRank;
 refs.inputs.tableKills.checked = settings.tableKills;
@@ -555,25 +627,28 @@ const playerTableColumns = [
         }
     },
     {
-        id: 'uid',
-        settingKey: 'tableUid',
-        labelKey: 'table.columns.uid',
-        defaultLabel: 'UID',
+        id: 'uidShort',
+        settingKey: 'tableUidShort',
+        labelKey: 'table.columns.uidShort',
+        defaultLabel: 'Short UID',
         createCell(player) {
             const cell = doc.createElement('td');
             cell.className = 'whitespace-nowrap px-2.5 py-1.5 text-sm text-slate-200 font-mono';
-            let uidDisplay = '—';
-            if (typeof player.uid === 'string') {
-                const trimmedUid = player.uid.trim();
-                if (trimmedUid !== '') {
-                    uidDisplay = trimmedUid;
-                }
-            } else if (typeof player.uid === 'number' && Number.isFinite(player.uid)) {
-                uidDisplay = String(player.uid);
-            } else if (typeof player.uid === 'bigint') {
-                uidDisplay = player.uid.toString();
-            }
-            cell.textContent = uidDisplay;
+            const value = typeof player.uidShort === 'string' && player.uidShort !== '' ? player.uidShort : '—';
+            cell.textContent = value;
+            return cell;
+        }
+    },
+    {
+        id: 'uidLong',
+        settingKey: 'tableUidLong',
+        labelKey: 'table.columns.uidLong',
+        defaultLabel: 'Long UID',
+        createCell(player) {
+            const cell = doc.createElement('td');
+            cell.className = 'whitespace-nowrap px-2.5 py-1.5 text-sm text-slate-200 font-mono';
+            const value = typeof player.uidLong === 'string' && player.uidLong !== '' ? player.uidLong : '—';
+            cell.textContent = value;
             return cell;
         }
     },
@@ -1199,21 +1274,15 @@ function createPlayerTableSnapshot(players) {
     const signatureParts = sorted.map((player) => {
         const teamValue = Number.isFinite(Number(player.team)) ? Number(player.team) : 'null';
         const nameValue = typeof player.name === 'string' ? player.name : '';
-        let uidValue = '';
-        if (typeof player.uid === 'string') {
-            uidValue = player.uid.trim();
-        } else if (typeof player.uid === 'number' && Number.isFinite(player.uid)) {
-            uidValue = String(player.uid);
-        } else if (typeof player.uid === 'bigint') {
-            uidValue = player.uid.toString();
-        }
+        const uidShortValue = typeof player.uidShort === 'string' ? player.uidShort : '';
+        const uidLongValue = typeof player.uidLong === 'string' ? player.uidLong : '';
         const levelValue = Number.isFinite(Number(player.level)) ? Number(player.level) : 'null';
         const rankValue = player.rank ? String(player.rank) : '';
         const killsValue = Number.isFinite(Number(player.kills)) ? Number(player.kills) : 'null';
         const proValue = player.pro ? '1' : '0';
         const blackValue = player.black ? '1' : '0';
         const whiteValue = player.white ? '1' : '0';
-        return [teamValue, nameValue, uidValue, levelValue, rankValue, killsValue, proValue, blackValue, whiteValue].join('|');
+        return [teamValue, nameValue, uidShortValue, uidLongValue, levelValue, rankValue, killsValue, proValue, blackValue, whiteValue].join('|');
     });
 
     return {
@@ -1381,7 +1450,7 @@ function updateMap(mapId) {
 }
 
 function updatePlayers(players) {
-    const normalizedPlayers = Array.isArray(players) ? players : [];
+    const normalizedPlayers = normalizePlayers(players);
     const snapshot = createPlayerTableSnapshot(normalizedPlayers);
 
     state.players = normalizedPlayers;
@@ -1500,7 +1569,6 @@ overlayCheckboxBindings.forEach(([key, settingKey]) => {
 const tableCheckboxBindings = [
     ['conf_table_team', 'tableTeam'],
     ['conf_table_name', 'tableName'],
-    ['conf_table_uid', 'tableUid'],
     ['conf_table_level', 'tableLevel'],
     ['conf_table_rank', 'tableRank'],
     ['conf_table_kills', 'tableKills'],
@@ -1517,6 +1585,39 @@ tableCheckboxBindings.forEach(([key, settingKey]) => {
         renderPlayerTable();
     });
 });
+
+const tableUidShortInput = refs.inputs.tableUidShort;
+const tableUidLongInput = refs.inputs.tableUidLong;
+
+if (tableUidShortInput && tableUidLongInput) {
+    tableUidShortInput.addEventListener('change', (event) => {
+        const checked = event.target.checked;
+        settings.tableUidShort = checked;
+        localStorage.setItem('conf_table_uid_short', checked);
+        if (checked) {
+            if (tableUidLongInput.checked) {
+                tableUidLongInput.checked = false;
+            }
+            settings.tableUidLong = false;
+            localStorage.setItem('conf_table_uid_long', false);
+        }
+        renderPlayerTable();
+    });
+
+    tableUidLongInput.addEventListener('change', (event) => {
+        const checked = event.target.checked;
+        settings.tableUidLong = checked;
+        localStorage.setItem('conf_table_uid_long', checked);
+        if (checked) {
+            if (tableUidShortInput.checked) {
+                tableUidShortInput.checked = false;
+            }
+            settings.tableUidShort = false;
+            localStorage.setItem('conf_table_uid_short', false);
+        }
+        renderPlayerTable();
+    });
+}
 
 refs.reconnectButton.addEventListener('click', () => {
     connect();
