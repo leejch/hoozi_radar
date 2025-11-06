@@ -335,6 +335,8 @@ const refs = {
     playerSelect: doc.getElementById('sel_player'),
     mapStage: doc.getElementById('mapStage'),
     mapStageContainer: doc.querySelector('.map-stage-container'),
+    mapControls: doc.getElementById('mapControls'),
+    mapControlsOutlet: doc.querySelector('[data-role="map-controls-outlet"]'),
     mapViewport: doc.getElementById('mapViewport'),
     mapImage: doc.getElementById('mapImage'),
     mapCanvas: doc.getElementById('mapCanvas'),
@@ -950,6 +952,28 @@ function syncMapStageSize() {
     }
 }
 
+function syncMapControlsHost() {
+    const controls = refs.mapControls;
+    const outlet = refs.mapControlsOutlet;
+    const stage = refs.mapStage;
+
+    if (!controls || !outlet || !stage) {
+        return;
+    }
+
+    if (desktopQuery.matches) {
+        if (controls.parentElement !== stage) {
+            stage.appendChild(controls);
+        }
+        outlet.hidden = true;
+    } else {
+        if (controls.parentElement !== outlet) {
+            outlet.appendChild(controls);
+        }
+        outlet.hidden = false;
+    }
+}
+
 function updateCanvasResolution() {
     if (!state.canvasDeviceWidth || !state.canvasDeviceHeight) {
         return false;
@@ -1292,13 +1316,19 @@ function createPlayerTableSnapshot(players) {
 }
 
 function updatePlayerTableSectionVisibility(visible) {
-    if (!refs.playerTableSection) {
-        return;
+    const section = refs.playerTableSection;
+    const layout = refs.layout;
+
+    if (section) {
+        if (visible) {
+            section.classList.remove('player-table-hidden');
+        } else {
+            section.classList.add('player-table-hidden');
+        }
     }
-    if (visible) {
-        refs.playerTableSection.classList.remove('player-table-hidden');
-    } else {
-        refs.playerTableSection.classList.add('player-table-hidden');
+
+    if (layout) {
+        layout.classList.toggle('player-table-hidden', !visible);
     }
 }
 
@@ -1780,6 +1810,7 @@ refs.zoomReset.addEventListener('click', () => {
 });
 
 const handleLayoutChange = () => {
+    syncMapControlsHost();
     resizeCanvas();
     renderPlayers();
 };
@@ -1813,6 +1844,7 @@ window.addEventListener('beforeunload', () => {
 renderPlayerTable();
 updateDownloadButtonState();
 
+syncMapControlsHost();
 resizeCanvas();
 updateStatus('connecting', t('status.waiting'));
 setOverlayState('loading', t('overlay.waitingTitle'), t('overlay.waitingSubtitle'));

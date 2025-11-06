@@ -123,6 +123,11 @@
             gap: 0.75rem;
         }
 
+        .map-controls-outlet {
+            margin-top: 0.5rem;
+            width: 100%;
+        }
+
         #mapControls button {
             touch-action: manipulation;
         }
@@ -138,6 +143,10 @@
                 column-gap: 4px;
                 row-gap: 4px;
                 align-items: stretch;
+            }
+
+            .three-column-layout.player-table-hidden {
+                grid-template-columns: 300px minmax(0, 1fr);
             }
 
             .three-column-layout > * {
@@ -167,15 +176,10 @@
 
             .map-stage-container {
                 position: relative;
-                display: grid;
-                grid-template-areas: 'stage';
-                align-items: stretch;
-                justify-items: center;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
                 gap: 0;
-            }
-
-            #mapStage {
-                grid-area: stage;
             }
 
             .player-table-shell {
@@ -196,12 +200,18 @@
                 min-height: 0;
             }
 
-            #mapControls {
+            .map-controls-outlet {
+                margin-top: 0;
+            }
+
+            #mapStage #mapControls {
                 position: absolute;
                 left: 1rem;
                 bottom: 1rem;
                 margin: 0;
+                max-width: calc(100% - 2rem);
                 transform: none;
+                z-index: 2;
             }
         }
 
@@ -451,30 +461,32 @@
                         <span id="playerCount" class="text-sm font-semibold text-white">0</span>
                     </div>
                 </div>
-                <div id="mapControls"
-                     class="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-slate-700/70 bg-slate-950/80 px-2.5 py-1.5 text-xs text-slate-200 lg:mt-0 lg:border-slate-700/60 lg:bg-slate-950/60">
-                    <div class="map-zoom-panel flex shrink-0 items-center gap-1.5">
-                        <button id="zoomOut" type="button"
-                                class="rounded-full border border-slate-700 bg-slate-950/70 px-2 py-0.5 text-xs text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60">
-                            -
-                        </button>
-                        <button id="zoomReset" type="button"
-                                class="rounded-full border border-slate-700 bg-slate-950/70 px-2.5 py-0.5 text-xs text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60">
-                            <span data-i18n="map.zoomReset">重置</span>
-                        </button>
-                        <button id="zoomIn" type="button"
-                                class="rounded-full border border-slate-700 bg-slate-950/70 px-2 py-0.5 text-xs text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60">
-                            +
-                        </button>
-                    </div>
-                    <div id="focusPanel" class="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
-                        <span class="text-[0.6rem] uppercase text-slate-500" data-i18n="map.focusLabel">焦点</span>
-                        <span id="focusTeamBadge" class="size-2 rounded-full bg-slate-500"></span>
-                        <span id="focusPlayerName" class="max-w-[140px] truncate text-sm font-semibold text-white sm:max-w-[240px]">—</span>
-                        <span id="focusMeta"
-                              class="rounded-full border border-slate-700/70 bg-slate-900/70 px-2 py-0.5 text-[0.65rem] font-medium text-slate-200">
-                                Lv — · K —
-                            </span>
+                <div class="map-controls-outlet" data-role="map-controls-outlet">
+                    <div id="mapControls"
+                         class="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-slate-700/70 bg-slate-950/80 px-2.5 py-1.5 text-xs text-slate-200 lg:border-slate-700/60 lg:bg-slate-950/60">
+                        <div class="map-zoom-panel flex shrink-0 items-center gap-1.5">
+                            <button id="zoomOut" type="button"
+                                    class="rounded-full border border-slate-700 bg-slate-950/70 px-2 py-0.5 text-xs text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60">
+                                -
+                            </button>
+                            <button id="zoomReset" type="button"
+                                    class="rounded-full border border-slate-700 bg-slate-950/70 px-2.5 py-0.5 text-xs text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60">
+                                <span data-i18n="map.zoomReset">重置</span>
+                            </button>
+                            <button id="zoomIn" type="button"
+                                    class="rounded-full border border-slate-700 bg-slate-950/70 px-2 py-0.5 text-xs text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60">
+                                +
+                            </button>
+                        </div>
+                        <div id="focusPanel" class="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+                            <span class="text-[0.6rem] uppercase text-slate-500" data-i18n="map.focusLabel">焦点</span>
+                            <span id="focusTeamBadge" class="size-2 rounded-full bg-slate-500"></span>
+                            <span id="focusPlayerName" class="max-w-[140px] truncate text-sm font-semibold text-white sm:max-w-[240px]">—</span>
+                            <span id="focusMeta"
+                                  class="rounded-full border border-slate-700/70 bg-slate-900/70 px-2 py-0.5 text-[0.65rem] font-medium text-slate-200">
+                                    Lv — · K —
+                                </span>
+                        </div>
                     </div>
                 </div>
             </div>
