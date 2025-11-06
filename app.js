@@ -872,12 +872,16 @@ function syncMapStageSize() {
         const availableVerticalSpace = Math.max(0, viewportHeight - headerHeight - footerHeight);
         const interiorHeight = Math.max(0, availableVerticalSpace - paddingTop - paddingBottom);
 
+        const layoutHasTable = !layout.classList.contains('player-table-hidden');
+        const columnGapCount = layoutHasTable ? 2 : 1;
+        const reservedRightWidth = layoutHasTable ? DESKTOP_RIGHT_MIN_WIDTH : 0;
+
         const availableWidth = Math.max(
                 0,
-                viewportWidth - DESKTOP_LEFT_COLUMN_WIDTH - horizontalPadding - gapX * 2
+                viewportWidth - DESKTOP_LEFT_COLUMN_WIDTH - horizontalPadding - gapX * columnGapCount
         );
-        const widthCandidate = Math.max(0, availableWidth - DESKTOP_RIGHT_MIN_WIDTH);
-        const boundedWidth = widthCandidate > 0 ? widthCandidate : availableWidth;
+        const widthCandidate = Math.max(0, availableWidth - reservedRightWidth);
+        const boundedWidth = layoutHasTable && widthCandidate > 0 ? widthCandidate : availableWidth;
         let size = Math.min(boundedWidth, interiorHeight, availableVerticalSpace);
         if (!Number.isFinite(size) || size < 0) {
             size = 0;
