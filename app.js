@@ -335,6 +335,8 @@ const refs = {
     playerSelect: doc.getElementById('sel_player'),
     mapStage: doc.getElementById('mapStage'),
     mapStageContainer: doc.querySelector('.map-stage-container'),
+    mapControls: doc.getElementById('mapControls'),
+    mapControlsOutlet: doc.querySelector('[data-role="map-controls-outlet"]'),
     mapViewport: doc.getElementById('mapViewport'),
     mapImage: doc.getElementById('mapImage'),
     mapCanvas: doc.getElementById('mapCanvas'),
@@ -501,6 +503,8 @@ const state = {
 };
 
 const desktopQuery = window.matchMedia('(min-width: 1024px)');
+
+let layoutRefreshScheduled = false;
 
 const teamPalette = [
     '#F87171', '#34D399', '#60A5FA', '#FBBF24', '#2DD4BF', '#A855F7', '#F97316', '#38BDF8', '#22C55E', '#F472B6',
@@ -870,12 +874,16 @@ function syncMapStageSize() {
         const availableVerticalSpace = Math.max(0, viewportHeight - headerHeight - footerHeight);
         const interiorHeight = Math.max(0, availableVerticalSpace - paddingTop - paddingBottom);
 
+        const layoutHasTable = !layout.classList.contains('player-table-hidden');
+        const columnGapCount = layoutHasTable ? 2 : 1;
+        const reservedRightWidth = layoutHasTable ? DESKTOP_RIGHT_MIN_WIDTH : 0;
+
         const availableWidth = Math.max(
                 0,
-                viewportWidth - DESKTOP_LEFT_COLUMN_WIDTH - horizontalPadding - gapX * 2
+                viewportWidth - DESKTOP_LEFT_COLUMN_WIDTH - horizontalPadding - gapX * columnGapCount
         );
-        const widthCandidate = Math.max(0, availableWidth - DESKTOP_RIGHT_MIN_WIDTH);
-        const boundedWidth = widthCandidate > 0 ? widthCandidate : availableWidth;
+        const widthCandidate = Math.max(0, availableWidth - reservedRightWidth);
+        const boundedWidth = layoutHasTable && widthCandidate > 0 ? widthCandidate : availableWidth;
         let size = Math.min(boundedWidth, interiorHeight, availableVerticalSpace);
         if (!Number.isFinite(size) || size < 0) {
             size = 0;
@@ -947,6 +955,28 @@ function syncMapStageSize() {
         }
         layout.style.removeProperty('height');
         layout.style.removeProperty('max-height');
+    }
+}
+
+function syncMapControlsHost() {
+    const controls = refs.mapControls;
+    const outlet = refs.mapControlsOutlet;
+    const stage = refs.mapStage;
+
+    if (!controls || !outlet || !stage) {
+        return;
+    }
+
+    if (desktopQuery.matches) {
+        if (controls.parentElement !== stage) {
+            stage.appendChild(controls);
+        }
+        outlet.hidden = true;
+    } else {
+        if (controls.parentElement !== outlet) {
+            outlet.appendChild(controls);
+        }
+        outlet.hidden = false;
     }
 }
 
@@ -1291,14 +1321,43 @@ function createPlayerTableSnapshot(players) {
     };
 }
 
-function updatePlayerTableSectionVisibility(visible) {
-    if (!refs.playerTableSection) {
+function scheduleLayoutRefresh() {
+    if (layoutRefreshScheduled) {
         return;
     }
-    if (visible) {
-        refs.playerTableSection.classList.remove('player-table-hidden');
-    } else {
-        refs.playerTableSection.classList.add('player-table-hidden');
+
+    layoutRefreshScheduled = true;
+    const requestFrame = window.requestAnimationFrame || ((callback) => setTimeout(callback, 16));
+    requestFrame(() => {
+        layoutRefreshScheduled = false;
+        syncMapControlsHost();
+        resizeCanvas();
+    });
+}
+
+function updatePlayerTableSectionVisibility(visible) {
+    const section = refs.playerTableSection;
+    const layout = refs.layout;
+    const shouldHide = !visible;
+    let layoutClassChanged = false;
+
+    if (section) {
+        const sectionHidden = section.classList.contains('player-table-hidden');
+        if (sectionHidden !== shouldHide) {
+            section.classList.toggle('player-table-hidden', shouldHide);
+        }
+    }
+
+    if (layout) {
+        const layoutHidden = layout.classList.contains('player-table-hidden');
+        if (layoutHidden !== shouldHide) {
+            layout.classList.toggle('player-table-hidden', shouldHide);
+            layoutClassChanged = true;
+        }
+    }
+
+    if (layoutClassChanged) {
+        scheduleLayoutRefresh();
     }
 }
 
@@ -1780,6 +1839,7 @@ refs.zoomReset.addEventListener('click', () => {
 });
 
 const handleLayoutChange = () => {
+    syncMapControlsHost();
     resizeCanvas();
     renderPlayers();
 };
@@ -1813,6 +1873,7 @@ window.addEventListener('beforeunload', () => {
 renderPlayerTable();
 updateDownloadButtonState();
 
+syncMapControlsHost();
 resizeCanvas();
 updateStatus('connecting', t('status.waiting'));
 setOverlayState('loading', t('overlay.waitingTitle'), t('overlay.waitingSubtitle'));
