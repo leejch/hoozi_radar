@@ -140,6 +140,10 @@
                 align-items: stretch;
             }
 
+            .three-column-layout.player-table-hidden {
+                grid-template-columns: 300px minmax(0, 1fr);
+            }
+
             .three-column-layout > * {
                 min-height: 0;
             }
@@ -197,11 +201,12 @@
             }
 
             #mapControls {
-                position: absolute;
-                left: 1rem;
-                bottom: 1rem;
-                margin: 0;
+                grid-area: stage;
+                align-self: end;
+                justify-self: start;
+                margin: 0 0 1rem 1rem;
                 transform: none;
+                z-index: 2;
             }
         }
 

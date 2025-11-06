@@ -1292,13 +1292,19 @@ function createPlayerTableSnapshot(players) {
 }
 
 function updatePlayerTableSectionVisibility(visible) {
-    if (!refs.playerTableSection) {
-        return;
+    const section = refs.playerTableSection;
+    const layout = refs.layout;
+
+    if (section) {
+        if (visible) {
+            section.classList.remove('player-table-hidden');
+        } else {
+            section.classList.add('player-table-hidden');
+        }
     }
-    if (visible) {
-        refs.playerTableSection.classList.remove('player-table-hidden');
-    } else {
-        refs.playerTableSection.classList.add('player-table-hidden');
+
+    if (layout) {
+        layout.classList.toggle('player-table-hidden', !visible);
     }
 }
 
