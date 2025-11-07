@@ -1,5 +1,9 @@
 const R2_STATIC_BASE_URL = 'https://img.hoozi.net/static/';
 const LOCAL_STATIC_BASE_URL = 'static/';
+const pageProtocol = typeof location !== 'undefined' ? location.protocol : 'https:';
+const isHttpsAccess = pageProtocol === 'https:';
+const STATIC_SOURCE_PRIORITY = isHttpsAccess ? ['remote', 'local'] : ['local', 'remote'];
+const DEFAULT_LOCAL_WS_TARGET = 'ws://127.0.0.1:2334/ws';
 
 const translations = {
     'zh-Hans': {
@@ -770,17 +774,20 @@ function updateStatus(stateName, label) {
 
 function buildTarget() {
     const raw = (settings.ipaddr || '').trim();
-    if (!raw || raw.toLowerCase() === 'auto') {
-        if (!location.host) {
-            return null;
+    const isAuto = !raw || raw.toLowerCase() === 'auto';
+    if (isAuto) {
+        if (isHttpsAccess) {
+            if (!location.host) {
+                return null;
+            }
+            return `wss://${location.host}/ws`;
         }
-        const scheme = location.protocol === 'https:' ? 'wss://' : 'ws://';
-        return `${scheme}${location.host}/ws`;
+        return DEFAULT_LOCAL_WS_TARGET;
     }
     if (/^wss?:\/\//i.test(raw)) {
         return raw;
     }
-    const scheme = location.protocol === 'https:' ? 'wss://' : 'ws://';
+    const scheme = isHttpsAccess ? 'wss://' : 'ws://';
     const sanitized = raw.replace(/^\/+/, '');
     return `${scheme}${sanitized}`;
 }
@@ -1537,8 +1544,10 @@ function updateMap(mapId) {
         onMapReady();
     } else {
         refs.mapImage.dataset.assetName = assetName;
-        refs.mapImage.dataset.assetSource = 'remote';
-        refs.mapImage.src = getStaticAssetUrl(assetName, 'remote');
+        const initialSource = STATIC_SOURCE_PRIORITY[0];
+        refs.mapImage.dataset.assetIndex = '0';
+        refs.mapImage.dataset.assetSource = initialSource;
+        refs.mapImage.src = getStaticAssetUrl(assetName, initialSource);
     }
 }
 
@@ -1581,9 +1590,13 @@ function onMapReady() {
 refs.mapImage.addEventListener('load', onMapReady);
 refs.mapImage.addEventListener('error', () => {
     const assetName = refs.mapImage.dataset.assetName;
-    if (assetName && refs.mapImage.dataset.assetSource === 'remote') {
-        refs.mapImage.dataset.assetSource = 'local';
-        refs.mapImage.src = getStaticAssetUrl(assetName, 'local');
+    const currentIndex = Number.parseInt(refs.mapImage.dataset.assetIndex ?? '0', 10);
+    const nextIndex = Number.isNaN(currentIndex) ? 1 : currentIndex + 1;
+    if (assetName && nextIndex < STATIC_SOURCE_PRIORITY.length) {
+        const nextSource = STATIC_SOURCE_PRIORITY[nextIndex];
+        refs.mapImage.dataset.assetIndex = nextIndex.toString();
+        refs.mapImage.dataset.assetSource = nextSource;
+        refs.mapImage.src = getStaticAssetUrl(assetName, nextSource);
         return;
     }
     const missingMapId = state.mapId ?? 'unknown';
