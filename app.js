@@ -572,11 +572,6 @@ const settings = {
     selectedPlayer: readSetting('sel_player', '<hoozi>')
 };
 
-if (settings.tableUidShort && settings.tableUidLong) {
-    settings.tableUidLong = false;
-    localStorage.setItem('conf_table_uid_long', false);
-}
-
 // Initialize input values
 refs.inputs.ip.value = settings.ipaddr;
 refs.inputs.font.value = settings.fontsize;
@@ -1670,7 +1665,9 @@ const tableCheckboxBindings = [
     ['conf_table_level', 'tableLevel'],
     ['conf_table_rank', 'tableRank'],
     ['conf_table_kills', 'tableKills'],
-    ['conf_table_marks', 'tableMarks']
+    ['conf_table_marks', 'tableMarks'],
+    ['conf_table_uid_short', 'tableUidShort'],
+    ['conf_table_uid_long', 'tableUidLong']
 ];
 
 tableCheckboxBindings.forEach(([key, settingKey]) => {
@@ -1683,39 +1680,6 @@ tableCheckboxBindings.forEach(([key, settingKey]) => {
         renderPlayerTable();
     });
 });
-
-const tableUidShortInput = refs.inputs.tableUidShort;
-const tableUidLongInput = refs.inputs.tableUidLong;
-
-if (tableUidShortInput && tableUidLongInput) {
-    tableUidShortInput.addEventListener('change', (event) => {
-        const checked = event.target.checked;
-        settings.tableUidShort = checked;
-        localStorage.setItem('conf_table_uid_short', checked);
-        if (checked) {
-            if (tableUidLongInput.checked) {
-                tableUidLongInput.checked = false;
-            }
-            settings.tableUidLong = false;
-            localStorage.setItem('conf_table_uid_long', false);
-        }
-        renderPlayerTable();
-    });
-
-    tableUidLongInput.addEventListener('change', (event) => {
-        const checked = event.target.checked;
-        settings.tableUidLong = checked;
-        localStorage.setItem('conf_table_uid_long', checked);
-        if (checked) {
-            if (tableUidShortInput.checked) {
-                tableUidShortInput.checked = false;
-            }
-            settings.tableUidShort = false;
-            localStorage.setItem('conf_table_uid_short', false);
-        }
-        renderPlayerTable();
-    });
-}
 
 if (refs.playerTableToggle) {
     refs.playerTableToggle.addEventListener('change', (event) => {
