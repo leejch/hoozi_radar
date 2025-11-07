@@ -122,7 +122,7 @@ const translations = {
             levelBelow: '等級≤',
             downloadLatest: '匯出玩家列表',
             playerTable: '玩家資訊列表',
-            playerTableShow: '顯示',
+            playerTableShow: '显示',
             playerTableHide: '隱藏'
         },
         map: {
@@ -215,7 +215,7 @@ const translations = {
             levelBelow: 'Level ≤',
             downloadLatest: 'Export Players',
             playerTable: 'Player List Fields',
-            playerTableShow: 'Show',
+            playerTableShow: '显示',
             playerTableHide: 'Hide'
         },
         map: {
@@ -1357,15 +1357,13 @@ function updatePlayerTableToggleState(hasColumns, isVisible) {
     toggle.disabled = !hasColumns;
     toggle.checked = checked;
 
-    const labelKey = checked ? 'config.playerTableHide' : 'config.playerTableShow';
-    const fallbackLabel = checked ? 'Hide' : 'Show';
-    const translation = t(labelKey);
-    const resolvedLabel = typeof translation === 'string' ? translation : fallbackLabel;
+    const translation = t('config.playerTableShow');
+    const resolvedLabel = typeof translation === 'string' ? translation : '显示';
 
     const label = refs.playerTableToggleLabel;
     if (label) {
         label.textContent = resolvedLabel;
-        label.setAttribute('data-i18n', labelKey);
+        label.setAttribute('data-i18n', 'config.playerTableShow');
     }
 
     toggle.setAttribute('aria-label', resolvedLabel);
