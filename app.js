@@ -29,8 +29,7 @@ const translations = {
             levelBelow: '等级≤',
             downloadLatest: '导出玩家列表',
             playerTable: '玩家信息列表',
-            playerTableShow: '显示',
-            playerTableHide: '隐藏'
+            playerTableShow: '显示'
         },
         map: {
             reconnect: '重连',
@@ -122,8 +121,7 @@ const translations = {
             levelBelow: '等級≤',
             downloadLatest: '匯出玩家列表',
             playerTable: '玩家資訊列表',
-            playerTableShow: '显示',
-            playerTableHide: '隱藏'
+            playerTableShow: '顯示'
         },
         map: {
             reconnect: '重新連線',
@@ -215,8 +213,7 @@ const translations = {
             levelBelow: 'Level ≤',
             downloadLatest: 'Export Players',
             playerTable: 'Player List Fields',
-            playerTableShow: '显示',
-            playerTableHide: 'Hide'
+            playerTableShow: 'Show'
         },
         map: {
             reconnect: 'Reconnect',
