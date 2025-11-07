@@ -6,6 +6,7 @@ const STATIC_SOURCE_URLS = {
 };
 const isHttpsAccess = typeof window !== 'undefined' && window.location && window.location.protocol === 'https:';
 const STATIC_SOURCE_ORDER = isHttpsAccess ? ['remote', 'local'] : ['local', 'remote'];
+const DEFAULT_LOCAL_WS_TARGET = 'ws://127.0.0.1:2334/ws';
 
 const translations = {
     'zh-Hans': {
@@ -781,7 +782,7 @@ function buildTarget() {
         if (isHttpsAccess) {
             return location.host ? `wss://${location.host}/ws` : null;
         }
-        return 'ws://127.0.0.1:2334/ws';
+        return DEFAULT_LOCAL_WS_TARGET;
     }
     if (/^wss?:\/\//i.test(raw)) {
         return raw;
