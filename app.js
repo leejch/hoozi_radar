@@ -369,7 +369,8 @@ const refs = {
     playerTableBody: doc.querySelector('[data-role="player-table-body"]'),
     playerTableEmpty: doc.querySelector('[data-role="player-table-empty"]'),
     playerTableEmptyCell: doc.querySelector('[data-role="player-table-empty-cell"]'),
-    playerTableToggle: doc.getElementById('togglePlayerTableButton'),
+    playerTableToggle: doc.getElementById('conf_table_visible'),
+    playerTableToggleLabel: doc.querySelector('[data-role="player-table-toggle-label"]'),
     inputs: {
         ip: doc.getElementById('conf_ipaddr'),
         font: doc.getElementById('conf_fontsize'),
@@ -390,7 +391,8 @@ const refs = {
         tableLevel: doc.getElementById('conf_table_level'),
         tableRank: doc.getElementById('conf_table_rank'),
         tableKills: doc.getElementById('conf_table_kills'),
-        tableMarks: doc.getElementById('conf_table_marks')
+        tableMarks: doc.getElementById('conf_table_marks'),
+        tableVisible: doc.getElementById('conf_table_visible')
     }
 };
 
@@ -599,6 +601,7 @@ refs.inputs.tableLevel.checked = settings.tableLevel;
 refs.inputs.tableRank.checked = settings.tableRank;
 refs.inputs.tableKills.checked = settings.tableKills;
 refs.inputs.tableMarks.checked = settings.tableMarks;
+refs.inputs.tableVisible.checked = settings.tableVisible;
 
 const playerTableColumns = [
     {
@@ -1350,14 +1353,22 @@ function updatePlayerTableToggleState(hasColumns, isVisible) {
         return;
     }
 
-    const pressed = Boolean(hasColumns && isVisible);
+    const checked = Boolean(hasColumns && isVisible);
     toggle.disabled = !hasColumns;
-    toggle.setAttribute('aria-pressed', pressed ? 'true' : 'false');
+    toggle.checked = checked;
 
-    const labelKey = pressed ? 'config.playerTableHide' : 'config.playerTableShow';
-    const fallbackLabel = pressed ? 'Hide' : 'Show';
+    const labelKey = checked ? 'config.playerTableHide' : 'config.playerTableShow';
+    const fallbackLabel = checked ? 'Hide' : 'Show';
     const translation = t(labelKey);
-    toggle.textContent = typeof translation === 'string' ? translation : fallbackLabel;
+    const resolvedLabel = typeof translation === 'string' ? translation : fallbackLabel;
+
+    const label = refs.playerTableToggleLabel;
+    if (label) {
+        label.textContent = resolvedLabel;
+        label.setAttribute('data-i18n', labelKey);
+    }
+
+    toggle.setAttribute('aria-label', resolvedLabel);
 }
 
 function updatePlayerTableSectionVisibility(visible) {
@@ -1712,11 +1723,16 @@ if (tableUidShortInput && tableUidLongInput) {
 }
 
 if (refs.playerTableToggle) {
-    refs.playerTableToggle.addEventListener('click', () => {
+    refs.playerTableToggle.addEventListener('change', (event) => {
+        const target = event.target;
+        const checked = Boolean(target.checked);
+
         if (!state.playerTableHasColumns) {
+            target.checked = false;
             return;
         }
-        settings.tableVisible = !settings.tableVisible;
+
+        settings.tableVisible = checked;
         localStorage.setItem('conf_table_visible', settings.tableVisible);
         renderPlayerTable();
     });
