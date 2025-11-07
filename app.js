@@ -1,5 +1,12 @@
 const R2_STATIC_BASE_URL = 'https://img.hoozi.net/static/';
 const LOCAL_STATIC_BASE_URL = 'static/';
+const STATIC_SOURCE_URLS = {
+    remote: R2_STATIC_BASE_URL,
+    local: LOCAL_STATIC_BASE_URL
+};
+const isHttpsAccess = typeof window !== 'undefined' && window.location && window.location.protocol === 'https:';
+const STATIC_SOURCE_ORDER = isHttpsAccess ? ['remote', 'local'] : ['local', 'remote'];
+const DEFAULT_LOCAL_WS_TARGET = 'ws://127.0.0.1:2334/ws';
 
 const translations = {
     'zh-Hans': {
@@ -331,6 +338,7 @@ function getEffectivePixelRatio() {
 
 const refs = {
     layout: doc.querySelector('[data-role="layout"]'),
+    brandLogo: doc.querySelector('[data-role="brand-logo"]'),
     header: doc.querySelector('header'),
     footer: doc.querySelector('footer'),
     statusIndicator: doc.querySelector('[data-role="status-indicator"]'),
@@ -771,16 +779,15 @@ function updateStatus(stateName, label) {
 function buildTarget() {
     const raw = (settings.ipaddr || '').trim();
     if (!raw || raw.toLowerCase() === 'auto') {
-        if (!location.host) {
-            return null;
+        if (isHttpsAccess) {
+            return location.host ? `wss://${location.host}/ws` : null;
         }
-        const scheme = location.protocol === 'https:' ? 'wss://' : 'ws://';
-        return `${scheme}${location.host}/ws`;
+        return DEFAULT_LOCAL_WS_TARGET;
     }
     if (/^wss?:\/\//i.test(raw)) {
         return raw;
     }
-    const scheme = location.protocol === 'https:' ? 'wss://' : 'ws://';
+    const scheme = isHttpsAccess ? 'wss://' : 'ws://';
     const sanitized = raw.replace(/^\/+/, '');
     return `${scheme}${sanitized}`;
 }
@@ -1517,9 +1524,25 @@ function downloadLatestMessage() {
     URL.revokeObjectURL(url);
 }
 
+function getStaticSourceKey(index) {
+    return STATIC_SOURCE_ORDER[index] ?? null;
+}
+
 function getStaticAssetUrl(assetName, source) {
-    const base = source === 'local' ? LOCAL_STATIC_BASE_URL : R2_STATIC_BASE_URL;
+    const base = STATIC_SOURCE_URLS[source] || STATIC_SOURCE_URLS.remote;
     return `${base}${assetName}`;
+}
+
+function applyStaticImageSource(target, assetName, sourceIndex) {
+    const sourceKey = getStaticSourceKey(sourceIndex);
+    if (!sourceKey) {
+        return false;
+    }
+    target.dataset.assetName = assetName;
+    target.dataset.assetSource = sourceKey;
+    target.dataset.assetSourceIndex = String(sourceIndex);
+    target.src = getStaticAssetUrl(assetName, sourceKey);
+    return true;
 }
 
 function updateMap(mapId) {
@@ -1535,10 +1558,9 @@ function updateMap(mapId) {
     const currentSource = refs.mapImage.dataset.assetSource;
     if (currentAsset === assetName && currentSource && refs.mapImage.complete) {
         onMapReady();
-    } else {
-        refs.mapImage.dataset.assetName = assetName;
-        refs.mapImage.dataset.assetSource = 'remote';
-        refs.mapImage.src = getStaticAssetUrl(assetName, 'remote');
+    } else if (!applyStaticImageSource(refs.mapImage, assetName, 0)) {
+        const missingMapId = state.mapId ?? 'unknown';
+        setOverlayState('info', t('overlay.mapMissingTitle'), t('overlay.mapMissingSubtitle', { mapId: missingMapId }));
     }
 }
 
@@ -1581,14 +1603,28 @@ function onMapReady() {
 refs.mapImage.addEventListener('load', onMapReady);
 refs.mapImage.addEventListener('error', () => {
     const assetName = refs.mapImage.dataset.assetName;
-    if (assetName && refs.mapImage.dataset.assetSource === 'remote') {
-        refs.mapImage.dataset.assetSource = 'local';
-        refs.mapImage.src = getStaticAssetUrl(assetName, 'local');
+    const currentIndex = Number(refs.mapImage.dataset.assetSourceIndex || '0');
+    if (assetName && applyStaticImageSource(refs.mapImage, assetName, currentIndex + 1)) {
         return;
     }
     const missingMapId = state.mapId ?? 'unknown';
     setOverlayState('info', t('overlay.mapMissingTitle'), t('overlay.mapMissingSubtitle', { mapId: missingMapId }));
 });
+
+if (refs.brandLogo) {
+    const brandAssetName = refs.brandLogo.dataset.assetName || 'default.png';
+    if (!applyStaticImageSource(refs.brandLogo, brandAssetName, 0)) {
+        refs.brandLogo.removeAttribute('src');
+    }
+    refs.brandLogo.addEventListener('error', () => {
+        const assetName = refs.brandLogo.dataset.assetName;
+        const currentIndex = Number(refs.brandLogo.dataset.assetSourceIndex || '0');
+        if (assetName && applyStaticImageSource(refs.brandLogo, assetName, currentIndex + 1)) {
+            return;
+        }
+        refs.brandLogo.removeAttribute('src');
+    });
+}
 
 refs.playerSelect.addEventListener('focus', () => {
     state.isSelectingPlayer = true;
