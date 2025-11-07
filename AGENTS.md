@@ -12,6 +12,12 @@ Frontend resources required for map rendering (e.g., background images) are stor
 However, `/app.js` prioritizes fetching these static image files from the **Cloudflare R2 CDN** at:  
 `https://img.hoozi.net/static/`
 
+At the top of `/app.js`, configuration includes:
+- Cloudflare R2 CDN endpoint and local static file paths.
+- Multi-language translation definitions for **Simplified Chinese**, **Traditional Chinese**, and **English**.
+
+Whenever textual content on the page changes, all three language versions must be updated accordingly, ensuring phrasing and tone are **properly localized** for each language rather than directly translated.
+
 ## Coding Conventions
 - JavaScript is written using **native ES modules**. Keep logic in `/app.js` organized and use small helper functions when adding new features.  
 - Always use `const` for bindings that are not reassigned, and maintain clear, descriptive naming consistent with existing code style.  
