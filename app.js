@@ -28,7 +28,9 @@ const translations = {
             killsAtLeast: '击杀≥',
             levelBelow: '等级≤',
             downloadLatest: '导出玩家列表',
-            playerTable: '玩家信息列表'
+            playerTable: '玩家信息列表',
+            playerTableShow: '显示',
+            playerTableHide: '隐藏'
         },
         map: {
             reconnect: '重连',
@@ -119,7 +121,9 @@ const translations = {
             killsAtLeast: '擊殺≥',
             levelBelow: '等級≤',
             downloadLatest: '匯出玩家列表',
-            playerTable: '玩家資訊列表'
+            playerTable: '玩家資訊列表',
+            playerTableShow: '顯示',
+            playerTableHide: '隱藏'
         },
         map: {
             reconnect: '重新連線',
@@ -210,7 +214,9 @@ const translations = {
             killsAtLeast: 'Kills ≥',
             levelBelow: 'Level ≤',
             downloadLatest: 'Export Players',
-            playerTable: 'Player List Fields'
+            playerTable: 'Player List Fields',
+            playerTableShow: 'Show',
+            playerTableHide: 'Hide'
         },
         map: {
             reconnect: 'Reconnect',
@@ -363,6 +369,7 @@ const refs = {
     playerTableBody: doc.querySelector('[data-role="player-table-body"]'),
     playerTableEmpty: doc.querySelector('[data-role="player-table-empty"]'),
     playerTableEmptyCell: doc.querySelector('[data-role="player-table-empty-cell"]'),
+    playerTableToggle: doc.getElementById('togglePlayerTableButton'),
     inputs: {
         ip: doc.getElementById('conf_ipaddr'),
         font: doc.getElementById('conf_fontsize'),
@@ -499,7 +506,8 @@ const state = {
     viewport: { scale: 1, translateX: 0, translateY: 0 },
     isConnected: false,
     playerTableSignature: null,
-    latestMessageText: ''
+    latestMessageText: '',
+    playerTableHasColumns: false
 };
 
 const desktopQuery = window.matchMedia('(min-width: 1024px)');
@@ -561,6 +569,7 @@ const settings = {
     tableRank: readSetting('conf_table_rank', true),
     tableKills: readSetting('conf_table_kills', true),
     tableMarks: readSetting('conf_table_marks', true),
+    tableVisible: readSetting('conf_table_visible', true),
     selectedPlayer: readSetting('sel_player', '<hoozi>')
 };
 
@@ -1335,6 +1344,22 @@ function scheduleLayoutRefresh() {
     });
 }
 
+function updatePlayerTableToggleState(hasColumns, isVisible) {
+    const toggle = refs.playerTableToggle;
+    if (!toggle) {
+        return;
+    }
+
+    const pressed = Boolean(hasColumns && isVisible);
+    toggle.disabled = !hasColumns;
+    toggle.setAttribute('aria-pressed', pressed ? 'true' : 'false');
+
+    const labelKey = pressed ? 'config.playerTableHide' : 'config.playerTableShow';
+    const fallbackLabel = pressed ? 'Hide' : 'Show';
+    const translation = t(labelKey);
+    toggle.textContent = typeof translation === 'string' ? translation : fallbackLabel;
+}
+
 function updatePlayerTableSectionVisibility(visible) {
     const section = refs.playerTableSection;
     const layout = refs.layout;
@@ -1363,7 +1388,6 @@ function updatePlayerTableSectionVisibility(visible) {
 
 function renderPlayerTable(snapshot) {
     const body = refs.playerTableBody;
-    if (!body) return;
     const headerRow = refs.playerTableHeader;
     const emptyRow = refs.playerTableEmpty;
     const emptyCell = refs.playerTableEmptyCell;
@@ -1372,6 +1396,13 @@ function renderPlayerTable(snapshot) {
     state.playerTableSignature = signature;
 
     const activeColumns = playerTableColumns.filter((column) => settings[column.settingKey]);
+
+    const hasColumns = activeColumns.length > 0;
+    state.playerTableHasColumns = hasColumns;
+    const shouldShow = hasColumns && settings.tableVisible;
+
+    updatePlayerTableToggleState(hasColumns, shouldShow);
+    updatePlayerTableSectionVisibility(shouldShow);
 
     if (headerRow) {
         headerRow.innerHTML = '';
@@ -1383,15 +1414,17 @@ function renderPlayerTable(snapshot) {
         });
     }
 
-    updatePlayerTableSectionVisibility(activeColumns.length > 0);
-
-    body.innerHTML = '';
-
     if (emptyCell) {
         emptyCell.colSpan = Math.max(1, activeColumns.length);
     }
 
-    if (!activeColumns.length) {
+    if (!body) {
+        return;
+    }
+
+    body.innerHTML = '';
+
+    if (!hasColumns) {
         if (emptyRow) {
             emptyRow.classList.add('hidden');
         }
@@ -1674,6 +1707,17 @@ if (tableUidShortInput && tableUidLongInput) {
             settings.tableUidShort = false;
             localStorage.setItem('conf_table_uid_short', false);
         }
+        renderPlayerTable();
+    });
+}
+
+if (refs.playerTableToggle) {
+    refs.playerTableToggle.addEventListener('click', () => {
+        if (!state.playerTableHasColumns) {
+            return;
+        }
+        settings.tableVisible = !settings.tableVisible;
+        localStorage.setItem('conf_table_visible', settings.tableVisible);
         renderPlayerTable();
     });
 }
