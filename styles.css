@@ -674,6 +674,10 @@
     --tw-font-weight: var(--font-weight-semibold);
     font-weight: var(--font-weight-semibold);
   }
+  .tracking-\[0\.08em\] {
+    --tw-tracking: 0.08em;
+    letter-spacing: 0.08em;
+  }
   .whitespace-nowrap {
     white-space: nowrap;
   }
@@ -1034,6 +1038,10 @@
   syntax: "*";
   inherits: false;
 }
+@property --tw-tracking {
+  syntax: "*";
+  inherits: false;
+}
 @property --tw-ordinal {
   syntax: "*";
   inherits: false;
@@ -1234,6 +1242,7 @@
       --tw-space-y-reverse: 0;
       --tw-border-style: solid;
       --tw-font-weight: initial;
+      --tw-tracking: initial;
       --tw-ordinal: initial;
       --tw-slashed-zero: initial;
       --tw-numeric-figure: initial;
