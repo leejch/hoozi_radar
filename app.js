@@ -1588,7 +1588,10 @@ function handleMessage(raw) {
     updateDownloadButtonState();
 
     if (Object.prototype.hasOwnProperty.call(payload, 'map')) {
-        state.latestWsMapId = normalizeMapId(payload.map);
+        const incomingMapId = normalizeMapId(payload.map);
+        if (!state.manualMapId) {
+            state.latestWsMapId = incomingMapId;
+        }
         syncMapFromState();
     }
     if (Array.isArray(payload.players)) {
