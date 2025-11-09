@@ -22,6 +22,7 @@ const translations = {
             ipPlaceholder: 'auto',
             ipHelper: 'auto自动, 或手动填写ws/wss地址',
             mapSelect: '选择地图',
+            mapAuto: '自动',
             toggles: '地图绘制信息',
             toggleName: '昵称',
             toggleLevel: '等级',
@@ -123,6 +124,7 @@ const translations = {
             ipPlaceholder: 'auto',
             ipHelper: 'auto自動, 或手動填寫ws/wss地址',
             mapSelect: '選擇地圖',
+            mapAuto: '自動',
             toggles: '地圖繪製資訊',
             toggleName: '暱稱',
             toggleLevel: '等級',
@@ -224,6 +226,7 @@ const translations = {
             ipPlaceholder: 'auto',
             ipHelper: 'Use auto or enter a ws/wss address manually',
             mapSelect: 'Select Map',
+            mapAuto: 'Auto',
             toggles: 'Map Overlay Info',
             toggleName: 'Name',
             toggleLevel: 'Level',
@@ -389,6 +392,7 @@ const refs = {
     mapCanvas: doc.getElementById('mapCanvas'),
     mapOverlay: doc.getElementById('mapOverlay'),
     mapSelectorOptions: doc.querySelector('[data-role="map-selector-options"]'),
+    mapAutoToggle: doc.getElementById('conf_map_auto'),
     mapOptionButtons: Array.from(doc.querySelectorAll('[data-map-option]')),
     overlayTitle: doc.getElementById('overlayTitle'),
     overlaySubtitle: doc.getElementById('overlaySubtitle'),
@@ -427,6 +431,7 @@ const refs = {
         showrankprefix: doc.getElementById('conf_showrankprefix'),
         showmprefix: doc.getElementById('conf_showmprefix'),
         showsprefix: doc.getElementById('conf_showsprefix'),
+        mapAuto: doc.getElementById('conf_map_auto'),
         tableTeam: doc.getElementById('conf_table_team'),
         tableName: doc.getElementById('conf_table_name'),
         tableUidShort: doc.getElementById('conf_table_uid_short'),
@@ -544,6 +549,7 @@ const state = {
     mapLoaded: false,
     manualMapId: null,
     latestWsMapId: null,
+    mapAuto: true,
     canvasCssWidth: 0,
     canvasCssHeight: 0,
     canvasDeviceWidth: 0,
@@ -598,6 +604,7 @@ function readSetting(key, fallback) {
 const settings = {
     ipaddr: readSetting('conf_ipaddr', 'auto'),
     manualMapId: readSetting('conf_manual_map', ''),
+    mapAuto: readSetting('conf_map_auto', true),
     fontsize: readSetting('conf_fontsize', 10),
     gkill: readSetting('conf_gkill', 3),
     glevel: readSetting('conf_glevel', 250),
@@ -621,13 +628,20 @@ const settings = {
     selectedPlayer: readSetting('sel_player', '<hoozi>')
 };
 
-const storedManualMapId = normalizeMapId(settings.manualMapId);
-if (storedManualMapId && AVAILABLE_MAP_IDS.includes(storedManualMapId)) {
-    state.manualMapId = storedManualMapId;
-    settings.manualMapId = storedManualMapId;
-} else {
+state.mapAuto = Boolean(settings.mapAuto);
+if (state.mapAuto) {
     state.manualMapId = null;
     settings.manualMapId = '';
+    localStorage.removeItem('conf_manual_map');
+} else {
+    const storedManualMapId = normalizeMapId(settings.manualMapId);
+    if (storedManualMapId && AVAILABLE_MAP_IDS.includes(storedManualMapId)) {
+        state.manualMapId = storedManualMapId;
+        settings.manualMapId = storedManualMapId;
+    } else {
+        state.manualMapId = null;
+        settings.manualMapId = '';
+    }
 }
 
 // Initialize input values
@@ -643,6 +657,12 @@ refs.inputs.showlprefix.checked = settings.showlprefix;
 refs.inputs.showrankprefix.checked = settings.showrankprefix;
 refs.inputs.showmprefix.checked = settings.showmprefix;
 refs.inputs.showsprefix.checked = settings.showsprefix;
+if (refs.inputs.mapAuto) {
+    refs.inputs.mapAuto.checked = state.mapAuto;
+    refs.inputs.mapAuto.addEventListener('change', (event) => {
+        setMapAuto(event.target.checked);
+    });
+}
 refs.inputs.tableTeam.checked = settings.tableTeam;
 refs.inputs.tableName.checked = settings.tableName;
 refs.inputs.tableUidShort.checked = settings.tableUidShort;
@@ -660,6 +680,9 @@ if (mapOptionButtons.length) {
             const mapId = normalizeMapId(button.dataset.mapOption);
             if (!mapId || !AVAILABLE_MAP_IDS.includes(mapId)) {
                 return;
+            }
+            if (state.mapAuto) {
+                setMapAuto(false);
             }
             if (state.manualMapId === mapId) {
                 state.manualMapId = null;
@@ -1554,6 +1577,24 @@ function renderPlayerTable(snapshot) {
     body.appendChild(fragment);
 }
 
+function setMapAuto(enabled) {
+    const nextValue = Boolean(enabled);
+    state.mapAuto = nextValue;
+    settings.mapAuto = nextValue;
+    const toggle = refs.mapAutoToggle || refs.inputs.mapAuto;
+    if (toggle) {
+        toggle.checked = nextValue;
+    }
+    localStorage.setItem('conf_map_auto', nextValue ? 'true' : 'false');
+    if (nextValue) {
+        state.manualMapId = null;
+        settings.manualMapId = '';
+        localStorage.removeItem('conf_manual_map');
+    }
+    updateManualMapSelectionUI();
+    syncMapFromState();
+}
+
 function updateManualMapSelectionUI() {
     const buttons = Array.isArray(refs.mapOptionButtons) ? refs.mapOptionButtons : [];
     buttons.forEach((button) => {
@@ -1564,6 +1605,7 @@ function updateManualMapSelectionUI() {
         button.classList.toggle('ring-2', isActive);
         button.classList.toggle('ring-emerald-400/70', isActive);
         button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+        button.setAttribute('aria-disabled', state.mapAuto ? 'true' : 'false');
     });
 }
 
