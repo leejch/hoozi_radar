@@ -21,6 +21,7 @@ const translations = {
             connection: '连接配置',
             ipPlaceholder: 'auto',
             ipHelper: 'auto自动, 或手动填写ws/wss地址',
+            mapSelect: '选择地图',
             toggles: '地图绘制信息',
             toggleName: '昵称',
             toggleLevel: '等级',
@@ -99,6 +100,14 @@ const translations = {
             highKills: '[高杀]',
             lowLevel: '[低级]',
             none: '—'
+        },
+        mapNames: {
+            '1': '诸王峡谷',
+            '2': '世界尽头',
+            '3': '奥林匹斯',
+            '4': '残月',
+            '5': '风暴点',
+            '6': '电气区'
         }
     },
     'zh-Hant': {
@@ -113,6 +122,7 @@ const translations = {
             connection: '連線設定',
             ipPlaceholder: 'auto',
             ipHelper: 'auto自動, 或手動填寫ws/wss地址',
+            mapSelect: '選擇地圖',
             toggles: '地圖繪製資訊',
             toggleName: '暱稱',
             toggleLevel: '等級',
@@ -191,6 +201,14 @@ const translations = {
             highKills: '[高殺]',
             lowLevel: '[低級]',
             none: '—'
+        },
+        mapNames: {
+            '1': '王者峽谷',
+            '2': '世界邊緣',
+            '3': '奧林匹斯',
+            '4': '殘月',
+            '5': '暴風點',
+            '6': '電流區'
         }
     },
     en: {
@@ -205,6 +223,7 @@ const translations = {
             connection: 'Connection',
             ipPlaceholder: 'auto',
             ipHelper: 'Use auto or enter a ws/wss address manually',
+            mapSelect: 'Select Map',
             toggles: 'Map Overlay Info',
             toggleName: 'Name',
             toggleLevel: 'Level',
@@ -283,6 +302,14 @@ const translations = {
             highKills: '[High Kills]',
             lowLevel: '[Low Level]',
             none: '—'
+        },
+        mapNames: {
+            '1': 'Kings Canyon',
+            '2': "World's Edge",
+            '3': 'Olympus',
+            '4': 'Broken Moon',
+            '5': 'Storm Point',
+            '6': 'E-District'
         }
     }
 };
@@ -329,11 +356,20 @@ const DESKTOP_RIGHT_MIN_WIDTH = 320;
 const DESKTOP_MIN_MAP_SIZE = 320;
 const MIN_SCALE = 1;
 const MAX_SCALE = 5;
+const AVAILABLE_MAP_IDS = ['1', '2', '3', '4', '5', '6'];
 function getEffectivePixelRatio() {
     const baseRatio = window.devicePixelRatio || 1;
     const viewport = window.visualViewport;
     const viewportScale = viewport && Number.isFinite(viewport.scale) && viewport.scale > 0 ? viewport.scale : 1;
     return Math.max(1, baseRatio * viewportScale);
+}
+
+function normalizeMapId(value) {
+    if (value === null || value === undefined) {
+        return null;
+    }
+    const str = String(value).trim();
+    return str === '' ? null : str;
 }
 
 const refs = {
@@ -352,6 +388,8 @@ const refs = {
     mapImage: doc.getElementById('mapImage'),
     mapCanvas: doc.getElementById('mapCanvas'),
     mapOverlay: doc.getElementById('mapOverlay'),
+    mapSelectorOptions: doc.querySelector('[data-role="map-selector-options"]'),
+    mapOptionButtons: Array.from(doc.querySelectorAll('[data-map-option]')),
     overlayTitle: doc.getElementById('overlayTitle'),
     overlaySubtitle: doc.getElementById('overlaySubtitle'),
     playerCount: doc.getElementById('playerCount'),
@@ -504,6 +542,8 @@ const state = {
     players: [],
     mapId: null,
     mapLoaded: false,
+    manualMapId: null,
+    latestWsMapId: null,
     canvasCssWidth: 0,
     canvasCssHeight: 0,
     canvasDeviceWidth: 0,
@@ -557,6 +597,7 @@ function readSetting(key, fallback) {
 
 const settings = {
     ipaddr: readSetting('conf_ipaddr', 'auto'),
+    manualMapId: readSetting('conf_manual_map', ''),
     fontsize: readSetting('conf_fontsize', 10),
     gkill: readSetting('conf_gkill', 3),
     glevel: readSetting('conf_glevel', 250),
@@ -580,6 +621,15 @@ const settings = {
     selectedPlayer: readSetting('sel_player', '<hoozi>')
 };
 
+const storedManualMapId = normalizeMapId(settings.manualMapId);
+if (storedManualMapId && AVAILABLE_MAP_IDS.includes(storedManualMapId)) {
+    state.manualMapId = storedManualMapId;
+    settings.manualMapId = storedManualMapId;
+} else {
+    state.manualMapId = null;
+    settings.manualMapId = '';
+}
+
 // Initialize input values
 refs.inputs.ip.value = settings.ipaddr;
 refs.inputs.font.value = settings.fontsize;
@@ -602,6 +652,32 @@ refs.inputs.tableRank.checked = settings.tableRank;
 refs.inputs.tableKills.checked = settings.tableKills;
 refs.inputs.tableMarks.checked = settings.tableMarks;
 refs.inputs.tableVisible.checked = settings.tableVisible;
+
+const mapOptionButtons = Array.isArray(refs.mapOptionButtons) ? refs.mapOptionButtons : [];
+if (mapOptionButtons.length) {
+    mapOptionButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+            const mapId = normalizeMapId(button.dataset.mapOption);
+            if (!mapId || !AVAILABLE_MAP_IDS.includes(mapId)) {
+                return;
+            }
+            if (state.manualMapId === mapId) {
+                state.manualMapId = null;
+                settings.manualMapId = '';
+                localStorage.removeItem('conf_manual_map');
+            } else {
+                state.manualMapId = mapId;
+                settings.manualMapId = mapId;
+                localStorage.setItem('conf_manual_map', mapId);
+            }
+            updateManualMapSelectionUI();
+            syncMapFromState();
+        });
+    });
+}
+
+updateManualMapSelectionUI();
+syncMapFromState();
 
 const playerTableColumns = [
     {
@@ -855,6 +931,7 @@ function connect() {
         state.mapLoaded = false;
         state.players = [];
         state.mapId = null;
+        state.latestWsMapId = null;
         refs.mapImage.removeAttribute('src');
         refs.playerCount.textContent = '0';
         updatePlayerInfo();
@@ -1477,6 +1554,26 @@ function renderPlayerTable(snapshot) {
     body.appendChild(fragment);
 }
 
+function updateManualMapSelectionUI() {
+    const buttons = Array.isArray(refs.mapOptionButtons) ? refs.mapOptionButtons : [];
+    buttons.forEach((button) => {
+        const mapId = normalizeMapId(button.dataset.mapOption);
+        const isActive = Boolean(mapId) && state.manualMapId === mapId;
+        button.classList.toggle('border-emerald-400/60', isActive);
+        button.classList.toggle('bg-emerald-500/10', isActive);
+        button.classList.toggle('ring-2', isActive);
+        button.classList.toggle('ring-emerald-400/70', isActive);
+        button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+    });
+}
+
+function syncMapFromState() {
+    const activeMapId = state.manualMapId || state.latestWsMapId;
+    if (activeMapId) {
+        updateMap(activeMapId);
+    }
+}
+
 function handleMessage(raw) {
     if (!raw) return;
     let payload;
@@ -1490,8 +1587,12 @@ function handleMessage(raw) {
     state.latestMessageText = JSON.stringify(payload, null, 2);
     updateDownloadButtonState();
 
-    if (payload.map) {
-        updateMap(payload.map);
+    if (Object.prototype.hasOwnProperty.call(payload, 'map')) {
+        const incomingMapId = normalizeMapId(payload.map);
+        if (!state.manualMapId) {
+            state.latestWsMapId = incomingMapId;
+        }
+        syncMapFromState();
     }
     if (Array.isArray(payload.players)) {
         updatePlayers(payload.players);

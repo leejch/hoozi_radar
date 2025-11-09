@@ -205,6 +205,17 @@
   .visible {
     visibility: visible;
   }
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border-width: 0;
+  }
   .absolute {
     position: absolute;
   }
@@ -450,6 +461,14 @@
     border-bottom-style: var(--tw-border-style);
     border-bottom-width: 1px;
   }
+  .border-emerald-400\/60 {
+    border-color: color-mix(in srgb, oklch(76.5% 0.177 163.223) 60%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      & {
+        border-color: color-mix(in oklab, var(--color-emerald-400) 60%, transparent);
+      }
+    }
+  }
   .border-emerald-500\/60 {
     border-color: color-mix(in srgb, oklch(69.6% 0.17 162.48) 60%, transparent);
     @supports (color: color-mix(in lab, red, red)) {
@@ -614,6 +633,9 @@
   .py-2 {
     padding-block: calc(var(--spacing) * 2);
   }
+  .py-3 {
+    padding-block: calc(var(--spacing) * 3);
+  }
   .py-4 {
     padding-block: calc(var(--spacing) * 4);
   }
@@ -723,11 +745,23 @@
     --tw-ring-shadow: var(--tw-ring-inset,) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor);
     box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
   }
+  .ring-2 {
+    --tw-ring-shadow: var(--tw-ring-inset,) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor);
+    box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
+  }
   .shadow-black\/50 {
     --tw-shadow-color: color-mix(in srgb, #000 50%, transparent);
     @supports (color: color-mix(in lab, red, red)) {
       & {
         --tw-shadow-color: color-mix(in oklab, color-mix(in oklab, var(--color-black) 50%, transparent) var(--tw-shadow-alpha), transparent);
+      }
+    }
+  }
+  .ring-emerald-400\/70 {
+    --tw-ring-color: color-mix(in srgb, oklch(76.5% 0.177 163.223) 70%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      & {
+        --tw-ring-color: color-mix(in oklab, var(--color-emerald-400) 70%, transparent);
       }
     }
   }
@@ -767,6 +801,18 @@
   .placeholder\:text-slate-600 {
     &::placeholder {
       color: var(--color-slate-600);
+    }
+  }
+  .hover\:border-emerald-400\/40 {
+    &:hover {
+      @media (hover: hover) {
+        border-color: color-mix(in srgb, oklch(76.5% 0.177 163.223) 40%, transparent);
+        @supports (color: color-mix(in lab, red, red)) {
+          & {
+            border-color: color-mix(in oklab, var(--color-emerald-400) 40%, transparent);
+          }
+        }
+      }
     }
   }
   .hover\:border-emerald-400\/60 {
@@ -883,6 +929,22 @@
       outline-style: none;
     }
   }
+  .focus-visible\:ring-2 {
+    &:focus-visible {
+      --tw-ring-shadow: var(--tw-ring-inset,) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor);
+      box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
+    }
+  }
+  .focus-visible\:ring-emerald-500\/50 {
+    &:focus-visible {
+      --tw-ring-color: color-mix(in srgb, oklch(69.6% 0.17 162.48) 50%, transparent);
+      @supports (color: color-mix(in lab, red, red)) {
+        & {
+          --tw-ring-color: color-mix(in oklab, var(--color-emerald-500) 50%, transparent);
+        }
+      }
+    }
+  }
   .disabled\:cursor-not-allowed {
     &:disabled {
       cursor: not-allowed;
@@ -943,6 +1005,11 @@
       line-height: var(--tw-leading, var(--text-3xl--line-height));
     }
   }
+  .lg\:ml-auto {
+    @media (width >= 64rem) {
+      margin-left: auto;
+    }
+  }
   .lg\:block {
     @media (width >= 64rem) {
       display: block;
@@ -978,9 +1045,9 @@
       align-items: flex-end;
     }
   }
-  .lg\:justify-between {
+  .lg\:gap-6 {
     @media (width >= 64rem) {
-      justify-content: space-between;
+      gap: calc(var(--spacing) * 6);
     }
   }
   .lg\:border-slate-700\/60 {
