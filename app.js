@@ -1922,6 +1922,9 @@ function createPinchState() {
 
 refs.mapStage.addEventListener('pointerdown', (event) => {
     if (isOverlayBlocking()) return;
+    if (refs.mapControls && refs.mapControls.contains(event.target)) {
+        return;
+    }
     refs.mapStage.setPointerCapture(event.pointerId);
     updatePointer(event);
     if (activePointers.size === 1) {
