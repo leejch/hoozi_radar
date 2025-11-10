@@ -357,8 +357,8 @@ const RAW_VISIBLE_HEIGHT = 1015;
 const DESKTOP_LEFT_COLUMN_WIDTH = 300;
 const DESKTOP_RIGHT_MIN_WIDTH = 320;
 const DESKTOP_MIN_MAP_SIZE = 320;
-const MIN_SCALE = 1;
-const MAX_SCALE = 5;
+const MIN_SCALE = 1.0;
+const MAX_SCALE = 3.0;
 
 function clampScale(value) {
     if (!Number.isFinite(value)) {
