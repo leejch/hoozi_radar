@@ -359,6 +359,13 @@ const DESKTOP_RIGHT_MIN_WIDTH = 320;
 const DESKTOP_MIN_MAP_SIZE = 320;
 const MIN_SCALE = 1;
 const MAX_SCALE = 5;
+
+function clampScale(value) {
+    if (!Number.isFinite(value)) {
+        return MIN_SCALE;
+    }
+    return Math.min(MAX_SCALE, Math.max(MIN_SCALE, value));
+}
 const AVAILABLE_MAP_IDS = ['1', '2', '3', '4', '5', '6'];
 function getEffectivePixelRatio() {
     const baseRatio = window.devicePixelRatio || 1;
@@ -1095,10 +1102,10 @@ function updateCanvasResolution() {
     if (!state.canvasDeviceWidth || !state.canvasDeviceHeight) {
         return false;
     }
-    const scale = Number.isFinite(state.viewport.scale) ? state.viewport.scale : 1;
-    const effectiveScale = Math.max(1, scale);
-    const width = Math.max(1, Math.round(state.canvasDeviceWidth * effectiveScale));
-    const height = Math.max(1, Math.round(state.canvasDeviceHeight * effectiveScale));
+    const scale = clampScale(state.viewport.scale);
+    state.viewport.scale = scale;
+    const width = Math.max(1, Math.round(state.canvasDeviceWidth * scale));
+    const height = Math.max(1, Math.round(state.canvasDeviceHeight * scale));
     let resized = false;
     if (refs.mapCanvas.width !== width) {
         refs.mapCanvas.width = width;
@@ -1132,7 +1139,9 @@ function resizeCanvas() {
 }
 
 function applyTransform() {
-    const { scale, translateX, translateY } = state.viewport;
+    const scale = clampScale(state.viewport.scale);
+    state.viewport.scale = scale;
+    const { translateX, translateY } = state.viewport;
     const ratio = state.pixelRatio || getEffectivePixelRatio();
     const alignedX = Math.round(translateX * ratio) / ratio;
     const alignedY = Math.round(translateY * ratio) / ratio;
@@ -1149,9 +1158,10 @@ function resetViewport() {
 }
 
 function zoomAt(point, factor) {
-    const previous = state.viewport.scale;
+    const previous = clampScale(state.viewport.scale);
+    state.viewport.scale = previous;
     let next = previous * factor;
-    next = Math.min(MAX_SCALE, Math.max(MIN_SCALE, next));
+    next = clampScale(next);
     const scaleRatio = next / previous;
     state.viewport.translateX = point.x - (point.x - state.viewport.translateX) * scaleRatio;
     state.viewport.translateY = point.y - (point.y - state.viewport.translateY) * scaleRatio;
@@ -1909,13 +1919,15 @@ function createPinchState() {
         return null;
     }
     const midpoint = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+    const initialScale = clampScale(state.viewport.scale);
+    state.viewport.scale = initialScale;
     const mapPoint = {
-        x: (midpoint.x - state.viewport.translateX) / state.viewport.scale,
-        y: (midpoint.y - state.viewport.translateY) / state.viewport.scale
+        x: (midpoint.x - state.viewport.translateX) / initialScale,
+        y: (midpoint.y - state.viewport.translateY) / initialScale
     };
     return {
         initialDistance: distance,
-        initialScale: state.viewport.scale,
+        initialScale,
         mapPoint
     };
 }
@@ -1954,7 +1966,7 @@ refs.mapStage.addEventListener('pointermove', (event) => {
             return;
         }
         let nextScale = pinchState.initialScale * (distance / pinchState.initialDistance);
-        nextScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, nextScale));
+        nextScale = clampScale(nextScale);
         const midpoint = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
         state.viewport.scale = nextScale;
         state.viewport.translateX = midpoint.x - pinchState.mapPoint.x * nextScale;
