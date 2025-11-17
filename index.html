@@ -8,7 +8,7 @@
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <meta name="theme-color" content="#020617">
     <link href="./styles.css" rel="stylesheet">
-    <link rel="modulepreload" href="./app.js" crossorigin="anonymous">
+    <link rel="preload" href="./app.js" as="script">
     <style>
         :root {
             color-scheme: dark;
@@ -559,7 +559,10 @@
     </div>
 </footer>
 
-<script type="module" src="./app.js" crossorigin="anonymous"></script>
+<script type="module">
+    const appModuleUrl = new URL('./app.js', window.location.href);
+    import(appModuleUrl.href);
+</script>
 
 </body>
 </html>
