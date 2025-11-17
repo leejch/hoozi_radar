@@ -72,15 +72,15 @@ const translations = {
             connectingTitle: '正在连接',
             connectingSubtitle: '正在连接 {target}',
             instructionsTitle: '未连接',
-            instructionsSubtitle: '①启动游戏 ②打开HOOZi ③启用FRP',
+            instructionsSubtitle: '①启动游戏 ②打开HOOZi ③在副机启用FRP',
             noDataTitle: '等待玩家数据',
             noDataSubtitle: '当前地图暂无玩家数据或尚未同步',
             mapLoadingTitle: '加载高清地图资源',
             mapLoadingSubtitle: '由全球加速节点提供支持, 首次加载可能较慢',
             mapMissingTitle: '地图资源缺失',
             mapMissingSubtitle: '未找到地图文件',
-            noTransferTitle: '暂无数据传输',
-            noTransferSubtitle: '游戏开始后将显示实时数据'
+            noTransferTitle: '未检测到对局数据',
+            noTransferSubtitle: '已成功连接数据服务, 当前尚未进入大逃杀模式对局'
         },
         status: {
             waiting: '等待连接',
@@ -174,15 +174,15 @@ const translations = {
             connectingTitle: '正在連線',
             connectingSubtitle: '正在連線 {target}',
             instructionsTitle: '未連線',
-            instructionsSubtitle: '①啟動遊戲 ②開啟HOOZi ③啟用FRP',
+            instructionsSubtitle: '①啟動遊戲 ②開啟HOOZi ③在副機啟用FRP',
             noDataTitle: '等待玩家資料',
             noDataSubtitle: '目前地圖暫無玩家資料或尚未同步',
             mapLoadingTitle: '載入高畫質地圖資源',
             mapLoadingSubtitle: '由全球加速網路提供支援, 首次載入可能稍慢',
             mapMissingTitle: '地圖資源缺失',
             mapMissingSubtitle: '找不到地圖檔案',
-            noTransferTitle: '暫無資料傳輸',
-            noTransferSubtitle: '遊戲開始後將顯示即時資料'
+            noTransferTitle: '未偵測到對局資料',
+            noTransferSubtitle: '已成功連線資料服務, 目前尚未進入大逃殺模式對局'
         },
         status: {
             waiting: '等待連線',
@@ -276,15 +276,15 @@ const translations = {
             connectingTitle: 'Connecting',
             connectingSubtitle: 'Connecting to {target}',
             instructionsTitle: 'Not Connected',
-            instructionsSubtitle: '① Start the game ② Launch HOOZi ③ Enable FRP',
+            instructionsSubtitle: '① Start the game ② Launch HOOZi ③ Enable FRP on the secondary PC',
             noDataTitle: 'Waiting for player data',
             noDataSubtitle: 'No player data available or not yet synced for this map',
             mapLoadingTitle: 'Loading High-Resolution Map',
             mapLoadingSubtitle: 'Delivery is optimized through a global acceleration network',
             mapMissingTitle: 'Map Asset Missing',
             mapMissingSubtitle: 'No Map file found',
-            noTransferTitle: 'No Live Data Yet',
-            noTransferSubtitle: 'Live data will appear once the match begins'
+            noTransferTitle: 'No Match Data Detected',
+            noTransferSubtitle: 'Connected successfully, but you are not in a Battle Royale match yet'
         },
         status: {
             waiting: 'Waiting to connect',
