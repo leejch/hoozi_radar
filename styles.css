@@ -301,6 +301,12 @@
   .w-12 {
     width: calc(var(--spacing) * 12);
   }
+  .w-400 {
+    width: calc(var(--spacing) * 400);
+  }
+  .w-\[400px\] {
+    width: 400px;
+  }
   .w-full {
     width: 100%;
   }
@@ -315,6 +321,12 @@
   }
   .min-w-0 {
     min-width: calc(var(--spacing) * 0);
+  }
+  .min-w-100 {
+    min-width: calc(var(--spacing) * 100);
+  }
+  .min-w-200 {
+    min-width: calc(var(--spacing) * 200);
   }
   .min-w-\[180px\] {
     min-width: 180px;
@@ -417,6 +429,24 @@
   }
   .overflow-hidden {
     overflow: hidden;
+  }
+  .overflow-scroll {
+    overflow: scroll;
+  }
+  .overflow-y-auto {
+    overflow-y: auto;
+  }
+  .overflow-y-scroll {
+    overflow-y: scroll;
+  }
+  .overscroll-none {
+    overscroll-behavior: none;
+  }
+  .overscroll-x-contain {
+    overscroll-behavior-x: contain;
+  }
+  .overscroll-y-auto {
+    overscroll-behavior-y: auto;
   }
   .rounded {
     border-radius: 0.25rem;
