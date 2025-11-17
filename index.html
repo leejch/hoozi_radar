@@ -8,6 +8,15 @@
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <meta name="theme-color" content="#020617">
     <link href="./styles.css" rel="stylesheet">
+    <script>
+        if (location.protocol !== 'file:') {
+            const preloadLink = document.createElement('link');
+            preloadLink.rel = 'modulepreload';
+            preloadLink.href = './app.js';
+            preloadLink.crossOrigin = 'anonymous';
+            document.head.appendChild(preloadLink);
+        }
+    </script>
     <style>
         :root {
             color-scheme: dark;
@@ -558,7 +567,15 @@
     </div>
 </footer>
 
-<script src="./app.js"></script>
+<script>
+    const appModule = document.createElement('script');
+    appModule.type = 'module';
+    appModule.src = './app.js';
+    if (location.protocol !== 'file:') {
+        appModule.crossOrigin = 'anonymous';
+    }
+    document.currentScript.after(appModule);
+</script>
 
 </body>
 </html>
