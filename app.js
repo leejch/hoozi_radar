@@ -1,3 +1,7 @@
+/*
+Copyright © hoozi.net. All Rights Reserved.
+Unauthorized copying, modification, distribution, or use of any part of this project is strictly prohibited.
+*/
 const R2_STATIC_BASE_URL = 'https://img.hoozi.net/static/';
 const LOCAL_STATIC_BASE_URL = 'static/';
 const STATIC_SOURCE_URLS = {
