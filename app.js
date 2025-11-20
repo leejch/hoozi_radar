@@ -630,7 +630,7 @@ const settings = {
     tableTeam: readSetting('conf_table_team', true),
     tableName: readSetting('conf_table_name', true),
     tableUidShort: readSetting('conf_table_uid_short', true),
-    tableUidLong: readSetting('conf_table_uid_long', false),
+    tableUidLong: readSetting('conf_table_uid_long', true),
     tableLevel: readSetting('conf_table_level', true),
     tableRank: readSetting('conf_table_rank', true),
     tableKills: readSetting('conf_table_kills', true),
