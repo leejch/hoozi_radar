@@ -25,8 +25,6 @@ const translations = {
             connection: '连接配置',
             ipPlaceholder: 'auto',
             ipHelper: 'auto自动, 或手动填写ws/wss地址',
-            mapSelect: '选择地图',
-            mapAuto: '自动',
             toggles: '地图绘制信息',
             toggleName: '昵称',
             toggleLevel: '等级',
@@ -127,8 +125,6 @@ const translations = {
             connection: '連線設定',
             ipPlaceholder: 'auto',
             ipHelper: 'auto自動, 或手動填寫ws/wss地址',
-            mapSelect: '選擇地圖',
-            mapAuto: '自動',
             toggles: '地圖繪製資訊',
             toggleName: '暱稱',
             toggleLevel: '等級',
@@ -229,8 +225,6 @@ const translations = {
             connection: 'Connection',
             ipPlaceholder: 'auto',
             ipHelper: 'Use auto or enter a ws/wss address manually',
-            mapSelect: 'Select Map',
-            mapAuto: 'Auto',
             toggles: 'Map Overlay Info',
             toggleName: 'Name',
             toggleLevel: 'Level',
@@ -370,7 +364,6 @@ function clampScale(value) {
     }
     return Math.min(MAX_SCALE, Math.max(MIN_SCALE, value));
 }
-const AVAILABLE_MAP_IDS = ['1', '2', '3', '4', '5', '6'];
 function getEffectivePixelRatio() {
     const baseRatio = window.devicePixelRatio || 1;
     const viewport = window.visualViewport;
@@ -402,9 +395,6 @@ const refs = {
     mapImage: doc.getElementById('mapImage'),
     mapCanvas: doc.getElementById('mapCanvas'),
     mapOverlay: doc.getElementById('mapOverlay'),
-    mapSelectorOptions: doc.querySelector('[data-role="map-selector-options"]'),
-    mapAutoToggle: doc.getElementById('conf_map_auto'),
-    mapOptionButtons: Array.from(doc.querySelectorAll('[data-map-option]')),
     overlayTitle: doc.getElementById('overlayTitle'),
     overlaySubtitle: doc.getElementById('overlaySubtitle'),
     playerCount: doc.getElementById('playerCount'),
@@ -442,7 +432,6 @@ const refs = {
         showrankprefix: doc.getElementById('conf_showrankprefix'),
         showmprefix: doc.getElementById('conf_showmprefix'),
         showsprefix: doc.getElementById('conf_showsprefix'),
-        mapAuto: doc.getElementById('conf_map_auto'),
         tableTeam: doc.getElementById('conf_table_team'),
         tableName: doc.getElementById('conf_table_name'),
         tableUidShort: doc.getElementById('conf_table_uid_short'),
@@ -558,9 +547,6 @@ const state = {
     players: [],
     mapId: null,
     mapLoaded: false,
-    manualMapId: null,
-    latestWsMapId: null,
-    mapAuto: true,
     canvasCssWidth: 0,
     canvasCssHeight: 0,
     canvasDeviceWidth: 0,
@@ -614,8 +600,6 @@ function readSetting(key, fallback) {
 
 const settings = {
     ipaddr: readSetting('conf_ipaddr', 'auto'),
-    manualMapId: readSetting('conf_manual_map', ''),
-    mapAuto: readSetting('conf_map_auto', true),
     fontsize: readSetting('conf_fontsize', 10),
     gkill: readSetting('conf_gkill', 3),
     glevel: readSetting('conf_glevel', 250),
@@ -639,22 +623,6 @@ const settings = {
     selectedPlayer: readSetting('sel_player', '<hoozi>')
 };
 
-state.mapAuto = Boolean(settings.mapAuto);
-if (state.mapAuto) {
-    state.manualMapId = null;
-    settings.manualMapId = '';
-    localStorage.removeItem('conf_manual_map');
-} else {
-    const storedManualMapId = normalizeMapId(settings.manualMapId);
-    if (storedManualMapId && AVAILABLE_MAP_IDS.includes(storedManualMapId)) {
-        state.manualMapId = storedManualMapId;
-        settings.manualMapId = storedManualMapId;
-    } else {
-        state.manualMapId = null;
-        settings.manualMapId = '';
-    }
-}
-
 // Initialize input values
 refs.inputs.ip.value = settings.ipaddr;
 refs.inputs.font.value = settings.fontsize;
@@ -668,12 +636,6 @@ refs.inputs.showlprefix.checked = settings.showlprefix;
 refs.inputs.showrankprefix.checked = settings.showrankprefix;
 refs.inputs.showmprefix.checked = settings.showmprefix;
 refs.inputs.showsprefix.checked = settings.showsprefix;
-if (refs.inputs.mapAuto) {
-    refs.inputs.mapAuto.checked = state.mapAuto;
-    refs.inputs.mapAuto.addEventListener('change', (event) => {
-        setMapAuto(event.target.checked);
-    });
-}
 refs.inputs.tableTeam.checked = settings.tableTeam;
 refs.inputs.tableName.checked = settings.tableName;
 refs.inputs.tableUidShort.checked = settings.tableUidShort;
@@ -683,35 +645,6 @@ refs.inputs.tableRank.checked = settings.tableRank;
 refs.inputs.tableKills.checked = settings.tableKills;
 refs.inputs.tableMarks.checked = settings.tableMarks;
 refs.inputs.tableVisible.checked = settings.tableVisible;
-
-const mapOptionButtons = Array.isArray(refs.mapOptionButtons) ? refs.mapOptionButtons : [];
-if (mapOptionButtons.length) {
-    mapOptionButtons.forEach((button) => {
-        button.addEventListener('click', () => {
-            const mapId = normalizeMapId(button.dataset.mapOption);
-            if (!mapId || !AVAILABLE_MAP_IDS.includes(mapId)) {
-                return;
-            }
-            if (state.mapAuto) {
-                setMapAuto(false);
-            }
-            if (state.manualMapId === mapId) {
-                state.manualMapId = null;
-                settings.manualMapId = '';
-                localStorage.removeItem('conf_manual_map');
-            } else {
-                state.manualMapId = mapId;
-                settings.manualMapId = mapId;
-                localStorage.setItem('conf_manual_map', mapId);
-            }
-            updateManualMapSelectionUI();
-            syncMapFromState();
-        });
-    });
-}
-
-updateManualMapSelectionUI();
-syncMapFromState();
 
 const playerTableColumns = [
     {
@@ -965,7 +898,6 @@ function connect() {
         state.mapLoaded = false;
         state.players = [];
         state.mapId = null;
-        state.latestWsMapId = null;
         refs.mapImage.removeAttribute('src');
         refs.playerCount.textContent = '0';
         updatePlayerInfo();
@@ -1591,45 +1523,6 @@ function renderPlayerTable(snapshot) {
     body.appendChild(fragment);
 }
 
-function setMapAuto(enabled) {
-    const nextValue = Boolean(enabled);
-    state.mapAuto = nextValue;
-    settings.mapAuto = nextValue;
-    const toggle = refs.mapAutoToggle || refs.inputs.mapAuto;
-    if (toggle) {
-        toggle.checked = nextValue;
-    }
-    localStorage.setItem('conf_map_auto', nextValue ? 'true' : 'false');
-    if (nextValue) {
-        state.manualMapId = null;
-        settings.manualMapId = '';
-        localStorage.removeItem('conf_manual_map');
-    }
-    updateManualMapSelectionUI();
-    syncMapFromState();
-}
-
-function updateManualMapSelectionUI() {
-    const buttons = Array.isArray(refs.mapOptionButtons) ? refs.mapOptionButtons : [];
-    buttons.forEach((button) => {
-        const mapId = normalizeMapId(button.dataset.mapOption);
-        const isActive = Boolean(mapId) && state.manualMapId === mapId;
-        button.classList.toggle('border-emerald-400/60', isActive);
-        button.classList.toggle('bg-emerald-500/10', isActive);
-        button.classList.toggle('ring-2', isActive);
-        button.classList.toggle('ring-emerald-400/70', isActive);
-        button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
-        button.setAttribute('aria-disabled', state.mapAuto ? 'true' : 'false');
-    });
-}
-
-function syncMapFromState() {
-    const activeMapId = state.manualMapId || state.latestWsMapId;
-    if (activeMapId) {
-        updateMap(activeMapId);
-    }
-}
-
 function handleMessage(raw) {
     if (!raw) return;
     let payload;
@@ -1645,10 +1538,7 @@ function handleMessage(raw) {
 
     if (Object.prototype.hasOwnProperty.call(payload, 'map')) {
         const incomingMapId = normalizeMapId(payload.map);
-        if (!state.manualMapId) {
-            state.latestWsMapId = incomingMapId;
-        }
-        syncMapFromState();
+        updateMap(incomingMapId);
     }
     if (Array.isArray(payload.players)) {
         updatePlayers(payload.players);
