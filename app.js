@@ -416,8 +416,6 @@ const refs = {
     focusName: doc.getElementById('focusPlayerName'),
     focusTeamBadge: doc.getElementById('focusTeamBadge'),
     focusMeta: doc.getElementById('focusMeta'),
-    zoomIn: doc.getElementById('zoomIn'),
-    zoomOut: doc.getElementById('zoomOut'),
     zoomReset: doc.getElementById('zoomReset'),
     reconnectButton: doc.getElementById('reconnectButton'),
     downloadLatestButton: doc.getElementById('downloadLatestButton'),
@@ -2044,16 +2042,6 @@ refs.mapStage.addEventListener('dblclick', (event) => {
         y: event.clientY - rect.top
     };
     zoomAt(point, 1.35);
-});
-
-refs.zoomIn.addEventListener('click', () => {
-    const rect = refs.mapStage.getBoundingClientRect();
-    zoomAt({ x: rect.width / 2, y: rect.height / 2 }, 1.18);
-});
-
-refs.zoomOut.addEventListener('click', () => {
-    const rect = refs.mapStage.getBoundingClientRect();
-    zoomAt({ x: rect.width / 2, y: rect.height / 2 }, 0.85);
 });
 
 refs.zoomReset.addEventListener('click', () => {
