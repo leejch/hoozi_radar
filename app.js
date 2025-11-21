@@ -1933,6 +1933,10 @@ function createPinchState() {
     };
 }
 
+function isPanningAllowed() {
+    return state.viewMode !== VIEW_MODE_FOLLOW;
+}
+
 refs.mapStage.addEventListener('pointerdown', (event) => {
     if (isOverlayBlocking()) return;
     if (refs.mapControls && refs.mapControls.contains(event.target)) {
@@ -1940,7 +1944,7 @@ refs.mapStage.addEventListener('pointerdown', (event) => {
     }
     refs.mapStage.setPointerCapture(event.pointerId);
     updatePointer(event);
-    if (activePointers.size === 1) {
+    if (activePointers.size === 1 && isPanningAllowed()) {
         panState = {
             pointerId: event.pointerId,
             start: { x: event.clientX, y: event.clientY },
@@ -1999,7 +2003,7 @@ function releasePointer(event) {
     if (panState && panState.pointerId === event.pointerId) {
         panState = null;
     }
-    if (activePointers.size === 1 && !pinchState) {
+    if (activePointers.size === 1 && !pinchState && isPanningAllowed()) {
         const [id, pointer] = activePointers.entries().next().value;
         panState = {
             pointerId: id,
