@@ -240,9 +240,6 @@
   .mx-auto {
     margin-inline: auto;
   }
-  .mt-1 {
-    margin-top: calc(var(--spacing) * 1);
-  }
   .mt-3 {
     margin-top: calc(var(--spacing) * 3);
   }
@@ -316,6 +313,9 @@
   .min-w-\[180px\] {
     min-width: 180px;
   }
+  .min-w-\[200px\] {
+    min-width: 200px;
+  }
   .flex-1 {
     flex: 1;
   }
@@ -343,11 +343,17 @@
   .flex-col {
     flex-direction: column;
   }
+  .flex-nowrap {
+    flex-wrap: nowrap;
+  }
   .flex-wrap {
     flex-wrap: wrap;
   }
   .items-center {
     align-items: center;
+  }
+  .items-end {
+    align-items: flex-end;
   }
   .items-start {
     align-items: flex-start;
@@ -357,6 +363,9 @@
   }
   .justify-center {
     justify-content: center;
+  }
+  .gap-1 {
+    gap: calc(var(--spacing) * 1);
   }
   .gap-1\.5 {
     gap: calc(var(--spacing) * 1.5);
@@ -412,6 +421,9 @@
   .overflow-hidden {
     overflow: hidden;
   }
+  .overflow-x-auto {
+    overflow-x: auto;
+  }
   .overflow-y-auto {
     overflow-y: auto;
   }
@@ -457,6 +469,14 @@
     @supports (color: color-mix(in lab, red, red)) {
       & {
         border-color: color-mix(in oklab, var(--color-emerald-500) 60%, transparent);
+      }
+    }
+  }
+  .border-emerald-500\/70 {
+    border-color: color-mix(in srgb, oklch(69.6% 0.17 162.48) 70%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      & {
+        border-color: color-mix(in oklab, var(--color-emerald-500) 70%, transparent);
       }
     }
   }
@@ -582,6 +602,9 @@
   }
   .object-contain {
     object-fit: contain;
+  }
+  .p-1\.5 {
+    padding: calc(var(--spacing) * 1.5);
   }
   .p-2 {
     padding: calc(var(--spacing) * 2);
@@ -724,6 +747,14 @@
   .ring-1 {
     --tw-ring-shadow: var(--tw-ring-inset,) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor);
     box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
+  }
+  .shadow-black\/10 {
+    --tw-shadow-color: color-mix(in srgb, #000 10%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      & {
+        --tw-shadow-color: color-mix(in oklab, color-mix(in oklab, var(--color-black) 10%, transparent) var(--tw-shadow-alpha), transparent);
+      }
+    }
   }
   .shadow-black\/50 {
     --tw-shadow-color: color-mix(in srgb, #000 50%, transparent);

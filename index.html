@@ -287,12 +287,21 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
             </div>
         </div>
         <div class="flex w-full flex-col gap-3 sm:flex-row sm:items-end sm:justify-end lg:ml-auto lg:w-auto">
-            <div class="w-full sm:w-auto">
-                <label for="sel_player" class="text-xs text-slate-400" data-i18n="header.watchPlayerLabel">关注玩家</label>
-                <select id="sel_player" autocomplete="off"
-                        class="mt-1 min-w-[180px] rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm font-medium text-slate-100 outline-none focus:border-emerald-400/70 focus:ring-2 focus:ring-emerald-500/40">
-                    <option value="<hoozi>">hoozi</option>
-                </select>
+            <div class="flex w-full flex-nowrap items-end gap-2 overflow-x-auto sm:w-auto sm:justify-end">
+                <div class="flex shrink-0 items-center gap-1 rounded-2xl border border-slate-800/70 bg-slate-950/60 p-1.5 shadow-inner shadow-black/10">
+                    <button id="viewModeFree" type="button"
+                            class="rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-1 text-xs font-semibold text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60"
+                            data-i18n="header.viewModeFree">自由视角</button>
+                    <button id="viewModeFollow" type="button"
+                            class="rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-1 text-xs font-semibold text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60"
+                            data-i18n="header.viewModeFollow">固定跟随</button>
+                </div>
+                <div class="flex min-w-[200px] shrink-0">
+                    <select id="sel_player" autocomplete="off"
+                            class="min-w-[180px] rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm font-medium text-slate-100 outline-none focus:border-emerald-400/70 focus:ring-2 focus:ring-emerald-500/40">
+                        <option value="<hoozi>">hoozi</option>
+                    </select>
+                </div>
             </div>
         </div>
     </div>
@@ -473,17 +482,9 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
                     <div id="mapControls"
                          class="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-slate-700/70 bg-slate-950/80 px-2.5 py-1.5 text-xs text-slate-200 lg:border-slate-700/60 lg:bg-slate-950/60">
                         <div class="map-zoom-panel flex shrink-0 items-center gap-1.5">
-                            <button id="zoomOut" type="button"
-                                    class="rounded-full border border-slate-700 bg-slate-950/70 px-2 py-0.5 text-xs text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60">
-                                -
-                            </button>
                             <button id="zoomReset" type="button"
                                     class="rounded-full border border-slate-700 bg-slate-950/70 px-2.5 py-0.5 text-xs text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60">
                                 <span data-i18n="map.zoomReset">重置</span>
-                            </button>
-                            <button id="zoomIn" type="button"
-                                    class="rounded-full border border-slate-700 bg-slate-950/70 px-2 py-0.5 text-xs text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60">
-                                +
                             </button>
                         </div>
                         <div id="focusPanel" class="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">

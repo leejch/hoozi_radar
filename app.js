@@ -19,7 +19,8 @@ const translations = {
             title: 'HOOZi 网页雷达',
             connectionStatusLabel: '连接状态',
             purchaseLink: 'HOOZi卡密购买',
-            watchPlayerLabel: '关注玩家'
+            viewModeFree: '自由视角',
+            viewModeFollow: '固定跟随'
         },
         config: {
             connection: '连接配置',
@@ -74,7 +75,7 @@ const translations = {
             connectingTitle: '正在连接',
             connectingSubtitle: '正在连接 {target}',
             instructionsTitle: '未连接',
-            instructionsSubtitle: '①启动游戏 ②打开HOOZi ③在副机启用FRP',
+            instructionsSubtitle: '①启动游戏 ②打开HOOZi ③若为公网访问，需在副机启用FRP',
             noDataTitle: '等待玩家数据',
             noDataSubtitle: '当前地图暂无玩家数据或尚未同步',
             mapLoadingTitle: '加载高清地图资源',
@@ -119,7 +120,8 @@ const translations = {
             title: 'HOOZi 網頁雷達',
             connectionStatusLabel: '連線狀態',
             purchaseLink: 'HOOZi 卡密購買',
-            watchPlayerLabel: '關注玩家'
+            viewModeFree: '自由視角',
+            viewModeFollow: '固定跟隨'
         },
         config: {
             connection: '連線設定',
@@ -174,7 +176,7 @@ const translations = {
             connectingTitle: '正在連線',
             connectingSubtitle: '正在連線 {target}',
             instructionsTitle: '未連線',
-            instructionsSubtitle: '①啟動遊戲 ②開啟HOOZi ③在副機啟用FRP',
+            instructionsSubtitle: '①啟動遊戲 ②開啟HOOZi ③若為公網訪問，需在副機啟用FRP',
             noDataTitle: '等待玩家資料',
             noDataSubtitle: '目前地圖暫無玩家資料或尚未同步',
             mapLoadingTitle: '載入高畫質地圖資源',
@@ -219,7 +221,8 @@ const translations = {
             title: 'HOOZi Radar',
             connectionStatusLabel: 'Status',
             purchaseLink: 'Buy HOOZi Key',
-            watchPlayerLabel: 'Follow Player'
+            viewModeFree: 'Free View',
+            viewModeFollow: 'Follow Focus'
         },
         config: {
             connection: 'Connection',
@@ -274,7 +277,7 @@ const translations = {
             connectingTitle: 'Connecting',
             connectingSubtitle: 'Connecting to {target}',
             instructionsTitle: 'Not Connected',
-            instructionsSubtitle: '① Start the game ② Launch HOOZi ③ Enable FRP on the secondary PC',
+            instructionsSubtitle: '① Start the game ② Launch HOOZi ③ For public network access, enable FRP on the secondary PC',
             noDataTitle: 'Waiting for player data',
             noDataSubtitle: 'No player data available or not yet synced for this map',
             mapLoadingTitle: 'Loading High-Resolution Map',
@@ -357,6 +360,16 @@ const DESKTOP_RIGHT_MIN_WIDTH = 320;
 const DESKTOP_MIN_MAP_SIZE = 320;
 const MIN_SCALE = 1.0;
 const MAX_SCALE = 3.0;
+const VIEW_MODE_FOLLOW = 'follow';
+const VIEW_MODE_FREE = 'free';
+
+function normalizeViewMode(value) {
+    return value === VIEW_MODE_FREE ? VIEW_MODE_FREE : VIEW_MODE_FOLLOW;
+}
+
+function getDefaultScaleForMode(mode) {
+    return mode === VIEW_MODE_FREE ? 1 : 1.5;
+}
 
 function clampScale(value) {
     if (!Number.isFinite(value)) {
@@ -387,6 +400,8 @@ const refs = {
     statusIndicator: doc.querySelector('[data-role="status-indicator"]'),
     statusText: doc.querySelector('[data-role="status-text"]'),
     playerSelect: doc.getElementById('sel_player'),
+    viewModeFreeButton: doc.getElementById('viewModeFree'),
+    viewModeFollowButton: doc.getElementById('viewModeFollow'),
     mapStage: doc.getElementById('mapStage'),
     mapStageContainer: doc.querySelector('.map-stage-container'),
     mapControls: doc.getElementById('mapControls'),
@@ -401,8 +416,6 @@ const refs = {
     focusName: doc.getElementById('focusPlayerName'),
     focusTeamBadge: doc.getElementById('focusTeamBadge'),
     focusMeta: doc.getElementById('focusMeta'),
-    zoomIn: doc.getElementById('zoomIn'),
-    zoomOut: doc.getElementById('zoomOut'),
     zoomReset: doc.getElementById('zoomReset'),
     reconnectButton: doc.getElementById('reconnectButton'),
     downloadLatestButton: doc.getElementById('downloadLatestButton'),
@@ -554,6 +567,7 @@ const state = {
     pixelRatio: window.devicePixelRatio || 1,
     isSelectingPlayer: false,
     viewport: { scale: 1, translateX: 0, translateY: 0 },
+    viewMode: VIEW_MODE_FOLLOW,
     isConnected: false,
     playerTableSignature: null,
     latestMessageText: '',
@@ -620,8 +634,12 @@ const settings = {
     tableKills: readSetting('conf_table_kills', true),
     tableMarks: readSetting('conf_table_marks', true),
     tableVisible: readSetting('conf_table_visible', true),
-    selectedPlayer: readSetting('sel_player', '<hoozi>')
+    selectedPlayer: readSetting('sel_player', '<hoozi>'),
+    viewMode: normalizeViewMode(readSetting('view_mode', VIEW_MODE_FOLLOW))
 };
+
+state.viewMode = settings.viewMode;
+state.viewport.scale = clampScale(getDefaultScaleForMode(state.viewMode));
 
 // Initialize input values
 refs.inputs.ip.value = settings.ipaddr;
@@ -645,6 +663,8 @@ refs.inputs.tableRank.checked = settings.tableRank;
 refs.inputs.tableKills.checked = settings.tableKills;
 refs.inputs.tableMarks.checked = settings.tableMarks;
 refs.inputs.tableVisible.checked = settings.tableVisible;
+
+updateViewModeControls();
 
 const playerTableColumns = [
     {
@@ -1085,12 +1105,13 @@ function applyTransform() {
 }
 
 function resetViewport() {
-    state.viewport.scale = 1;
+    state.viewport.scale = clampScale(getDefaultScaleForMode(state.viewMode));
     state.viewport.translateX = 0;
     state.viewport.translateY = 0;
     applyTransform();
     updateCanvasResolution();
     renderPlayers();
+    followSelectedPlayer();
 }
 
 function zoomAt(point, factor) {
@@ -1105,6 +1126,75 @@ function zoomAt(point, factor) {
     applyTransform();
     updateCanvasResolution();
     renderPlayers();
+    followSelectedPlayer();
+}
+
+function updateViewModeControls() {
+    const freeButton = refs.viewModeFreeButton;
+    const followButton = refs.viewModeFollowButton;
+
+    const setState = (button, active) => {
+        if (!button) return;
+        button.setAttribute('aria-pressed', active ? 'true' : 'false');
+        button.classList.toggle('border-emerald-500/70', active);
+        button.classList.toggle('text-emerald-300', active);
+        button.classList.toggle('bg-emerald-500/10', active);
+        button.classList.toggle('border-slate-700', !active);
+        button.classList.toggle('text-slate-200', !active);
+        button.classList.toggle('bg-slate-950/70', !active);
+    };
+
+    const isFollow = state.viewMode === VIEW_MODE_FOLLOW;
+    setState(freeButton, !isFollow);
+    setState(followButton, isFollow);
+}
+
+function setViewMode(mode, { recenter = false } = {}) {
+    const normalized = normalizeViewMode(mode);
+    const changed = state.viewMode !== normalized;
+    settings.viewMode = normalized;
+    state.viewMode = normalized;
+    localStorage.setItem('view_mode', normalized);
+    updateViewModeControls();
+
+    if (normalized === VIEW_MODE_FOLLOW && (recenter || changed)) {
+        followSelectedPlayer();
+    }
+}
+
+function followSelectedPlayer() {
+    if (state.viewMode !== VIEW_MODE_FOLLOW) {
+        return;
+    }
+    if (!state.mapLoaded || !state.players.length) {
+        return;
+    }
+    const target = state.players.find(player => player.name === settings.selectedPlayer) || state.players[0];
+    if (!target || !target.pos) {
+        return;
+    }
+
+    const stage = refs.mapStage;
+    if (!stage) return;
+    const rect = stage.getBoundingClientRect();
+    if (!rect.width || !rect.height) {
+        return;
+    }
+
+    const posX = Number(target.pos.x);
+    const posY = Number(target.pos.y);
+    if (!Number.isFinite(posX) || !Number.isFinite(posY)) {
+        return;
+    }
+
+    const scale = clampScale(state.viewport.scale);
+    state.viewport.scale = scale;
+    const baseX = ((posX - RAW_OFFSET_LEFT) / RAW_VISIBLE_WIDTH) * rect.width;
+    const baseY = ((posY - RAW_OFFSET_TOP) / RAW_VISIBLE_HEIGHT) * rect.height;
+
+    state.viewport.translateX = rect.width / 2 - baseX * scale;
+    state.viewport.translateY = rect.height / 2 - baseY * scale;
+    applyTransform();
 }
 
 function populatePlayerSelect(players) {
@@ -1626,6 +1716,7 @@ function updatePlayers(players) {
         setOverlayState('info', t('overlay.noDataTitle'), t('overlay.noDataSubtitle'));
     }
     updatePlayerInfo();
+    followSelectedPlayer();
     renderPlayers();
     if (snapshot.signature !== state.playerTableSignature) {
         renderPlayerTable(snapshot);
@@ -1645,6 +1736,7 @@ function onMapReady() {
         setOverlayState('info', t('overlay.noDataTitle'), t('overlay.noDataSubtitle'));
     }
     renderPlayers();
+    followSelectedPlayer();
 }
 
 refs.mapImage.addEventListener('load', onMapReady);
@@ -1683,8 +1775,21 @@ refs.playerSelect.addEventListener('change', (event) => {
     settings.selectedPlayer = event.target.value;
     localStorage.setItem('sel_player', settings.selectedPlayer);
     updatePlayerInfo();
+    followSelectedPlayer();
     renderPlayers();
 });
+
+if (refs.viewModeFreeButton) {
+    refs.viewModeFreeButton.addEventListener('click', () => {
+        setViewMode(VIEW_MODE_FREE);
+    });
+}
+
+if (refs.viewModeFollowButton) {
+    refs.viewModeFollowButton.addEventListener('click', () => {
+        setViewMode(VIEW_MODE_FOLLOW, { recenter: true });
+    });
+}
 
 refs.inputs.ip.addEventListener('change', (event) => {
     const value = (event.target.value || '').trim() || 'auto';
@@ -1826,6 +1931,10 @@ function createPinchState() {
     };
 }
 
+function isPanningAllowed() {
+    return state.viewMode !== VIEW_MODE_FOLLOW;
+}
+
 refs.mapStage.addEventListener('pointerdown', (event) => {
     if (isOverlayBlocking()) return;
     if (refs.mapControls && refs.mapControls.contains(event.target)) {
@@ -1833,7 +1942,7 @@ refs.mapStage.addEventListener('pointerdown', (event) => {
     }
     refs.mapStage.setPointerCapture(event.pointerId);
     updatePointer(event);
-    if (activePointers.size === 1) {
+    if (activePointers.size === 1 && isPanningAllowed()) {
         panState = {
             pointerId: event.pointerId,
             start: { x: event.clientX, y: event.clientY },
@@ -1892,7 +2001,7 @@ function releasePointer(event) {
     if (panState && panState.pointerId === event.pointerId) {
         panState = null;
     }
-    if (activePointers.size === 1 && !pinchState) {
+    if (activePointers.size === 1 && !pinchState && isPanningAllowed()) {
         const [id, pointer] = activePointers.entries().next().value;
         panState = {
             pointerId: id,
@@ -1902,6 +2011,10 @@ function releasePointer(event) {
         refs.mapStage.classList.add('dragging');
     } else if (!activePointers.size) {
         refs.mapStage.classList.remove('dragging');
+    }
+
+    if (state.viewMode === VIEW_MODE_FOLLOW && !activePointers.size) {
+        followSelectedPlayer();
     }
 }
 
@@ -1931,16 +2044,6 @@ refs.mapStage.addEventListener('dblclick', (event) => {
     zoomAt(point, 1.35);
 });
 
-refs.zoomIn.addEventListener('click', () => {
-    const rect = refs.mapStage.getBoundingClientRect();
-    zoomAt({ x: rect.width / 2, y: rect.height / 2 }, 1.18);
-});
-
-refs.zoomOut.addEventListener('click', () => {
-    const rect = refs.mapStage.getBoundingClientRect();
-    zoomAt({ x: rect.width / 2, y: rect.height / 2 }, 0.85);
-});
-
 refs.zoomReset.addEventListener('click', () => {
     resetViewport();
 });
@@ -1949,6 +2052,7 @@ const handleLayoutChange = () => {
     syncMapControlsHost();
     resizeCanvas();
     renderPlayers();
+    followSelectedPlayer();
 };
 
 if (typeof desktopQuery.addEventListener === 'function') {
@@ -1963,6 +2067,7 @@ const scheduleResize = () => {
     resizeTimer = setTimeout(() => {
         resizeCanvas();
         renderPlayers();
+        followSelectedPlayer();
     }, 120);
 };
 
