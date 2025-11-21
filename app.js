@@ -221,8 +221,8 @@ const translations = {
             title: 'HOOZi Radar',
             connectionStatusLabel: 'Status',
             purchaseLink: 'Buy HOOZi Key',
-            viewModeFree: 'Free View',
-            viewModeFollow: 'Follow Focus'
+            viewModeFree: 'Free',
+            viewModeFollow: 'Follow'
         },
         config: {
             connection: 'Connection',
