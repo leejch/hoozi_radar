@@ -19,7 +19,6 @@ const translations = {
             title: 'HOOZi 网页雷达',
             connectionStatusLabel: '连接状态',
             purchaseLink: 'HOOZi卡密购买',
-            watchPlayerLabel: '关注玩家',
             viewModeFree: '自由视角',
             viewModeFollow: '固定跟随'
         },
@@ -121,7 +120,6 @@ const translations = {
             title: 'HOOZi 網頁雷達',
             connectionStatusLabel: '連線狀態',
             purchaseLink: 'HOOZi 卡密購買',
-            watchPlayerLabel: '關注玩家',
             viewModeFree: '自由視角',
             viewModeFollow: '固定跟隨'
         },
@@ -223,7 +221,6 @@ const translations = {
             title: 'HOOZi Radar',
             connectionStatusLabel: 'Status',
             purchaseLink: 'Buy HOOZi Key',
-            watchPlayerLabel: 'Follow Player',
             viewModeFree: 'Free View',
             viewModeFollow: 'Follow Focus'
         },
