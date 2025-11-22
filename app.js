@@ -11,6 +11,13 @@ const STATIC_SOURCE_URLS = {
 const isHttpsAccess = typeof window !== 'undefined' && window.location && window.location.protocol === 'https:';
 const STATIC_SOURCE_ORDER = isHttpsAccess ? ['remote', 'local'] : ['local', 'remote'];
 const DEFAULT_LOCAL_WS_TARGET = 'ws://127.0.0.1:2334/ws';
+const CURRENT_HOSTNAME = typeof window !== 'undefined' && window.location ? window.location.hostname : '';
+const CURRENT_HOST_WITH_PORT = typeof window !== 'undefined' && window.location ? window.location.host : '';
+const DEFAULT_WS_PORT = '2334';
+const DEFAULT_WSS_PORT = '443';
+const DEFAULT_WS_PATH = '/ws';
+const DEFAULT_WS_PROTOCOL = isHttpsAccess ? 'wss' : 'ws';
+const LOCAL_DEFAULT_HOST = '127.0.0.1';
 
 const translations = {
     'zh-Hans': {
@@ -24,6 +31,12 @@ const translations = {
         },
         config: {
             connection: '连接配置',
+            connectionAuto: '自动',
+            connectionManual: '手动',
+            protocol: '协议',
+            host: 'IP地址/域名',
+            port: '端口',
+            path: '路径',
             ipPlaceholder: 'auto',
             ipHelper: 'auto自动, 或手动填写ws/wss地址',
             toggles: '地图绘制信息',
@@ -125,6 +138,12 @@ const translations = {
         },
         config: {
             connection: '連線設定',
+            connectionAuto: '自動',
+            connectionManual: '手動',
+            protocol: '協議',
+            host: 'IP位址/網域',
+            port: '連接埠',
+            path: '路徑',
             ipPlaceholder: 'auto',
             ipHelper: 'auto自動, 或手動填寫ws/wss地址',
             toggles: '地圖繪製資訊',
@@ -226,6 +245,12 @@ const translations = {
         },
         config: {
             connection: 'Connection',
+            connectionAuto: 'Auto',
+            connectionManual: 'Manual',
+            protocol: 'Protocol',
+            host: 'Host / Domain',
+            port: 'Port',
+            path: 'Path',
             ipPlaceholder: 'auto',
             ipHelper: 'Use auto or enter a ws/wss address manually',
             toggles: 'Map Overlay Info',
@@ -419,6 +444,9 @@ const refs = {
     zoomReset: doc.getElementById('zoomReset'),
     reconnectButton: doc.getElementById('reconnectButton'),
     configReconnectButton: doc.getElementById('configReconnectButton'),
+    connectionModeAutoButton: doc.getElementById('connectionModeAuto'),
+    connectionModeManualButton: doc.getElementById('connectionModeManual'),
+    connectionManualFields: doc.querySelector('[data-role="connection-manual-fields"]'),
     downloadLatestButton: doc.getElementById('downloadLatestButton'),
     configColumn: doc.querySelector('.config-column'),
     configStack: doc.querySelector('.config-stack'),
@@ -434,7 +462,11 @@ const refs = {
     playerTableToggle: doc.getElementById('conf_table_visible'),
     playerTableToggleLabel: doc.querySelector('[data-role="player-table-toggle-label"]'),
     inputs: {
-        ip: doc.getElementById('conf_ipaddr'),
+        protocol: doc.getElementById('conf_protocol'),
+        protocolReadonly: doc.getElementById('conf_protocol_readonly'),
+        host: doc.getElementById('conf_host'),
+        port: doc.getElementById('conf_port'),
+        path: doc.getElementById('conf_path'),
         font: doc.getElementById('conf_fontsize'),
         gkill: doc.getElementById('conf_gkill'),
         glevel: doc.getElementById('conf_glevel'),
@@ -613,8 +645,120 @@ function readSetting(key, fallback) {
     return stored;
 }
 
+const legacyIpaddr = readSetting('conf_ipaddr', 'auto');
+
+function normalizeProtocolValue(value) {
+    if (isHttpsAccess) {
+        return 'wss';
+    }
+    return value === 'wss' ? 'wss' : 'ws';
+}
+
+function normalizePathValue(value) {
+    const trimmed = (value || '').trim();
+    if (!trimmed) {
+        return DEFAULT_WS_PATH;
+    }
+    return trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+}
+
+function getDefaultHost() {
+    return isHttpsAccess ? (CURRENT_HOSTNAME || '') : LOCAL_DEFAULT_HOST;
+}
+
+function getDefaultPortForProtocol(protocol) {
+    return protocol === 'wss' ? DEFAULT_WSS_PORT : DEFAULT_WS_PORT;
+}
+
+function composeManualTarget(parts) {
+    const path = normalizePathValue(parts.path);
+    return `${parts.protocol}://${parts.host}:${parts.port}${path}`;
+}
+
+function normalizeManualSettings({ syncInputs = true, persist = true } = {}) {
+    const previousProtocol = settings.manualProtocol;
+    settings.manualProtocol = normalizeProtocolValue(settings.manualProtocol);
+    const protocolChanged = settings.manualProtocol !== previousProtocol;
+    settings.manualHost = (settings.manualHost || '').trim() || getDefaultHost();
+    const fallbackPort = getDefaultPortForProtocol(settings.manualProtocol);
+    const rawPort = String(settings.manualPort || '').trim();
+    settings.manualPort = protocolChanged ? fallbackPort : (rawPort || fallbackPort);
+    settings.manualPath = normalizePathValue(settings.manualPath);
+
+    const payload = {
+        protocol: settings.manualProtocol,
+        host: settings.manualHost,
+        port: settings.manualPort,
+        path: settings.manualPath
+    };
+
+    if (persist) {
+        localStorage.setItem('conf_manual_protocol', payload.protocol);
+        localStorage.setItem('conf_manual_host', payload.host);
+        localStorage.setItem('conf_manual_port', payload.port);
+        localStorage.setItem('conf_manual_path', payload.path);
+        if (settings.connectionMode === 'manual') {
+            localStorage.setItem('conf_ipaddr', composeManualTarget(payload));
+        }
+    }
+
+    if (syncInputs) {
+        if (!isHttpsAccess && refs.inputs.protocol) {
+            refs.inputs.protocol.value = payload.protocol;
+        }
+        if (refs.inputs.protocolReadonly) {
+            refs.inputs.protocolReadonly.textContent = 'wss';
+        }
+        if (refs.inputs.host) {
+            refs.inputs.host.value = payload.host;
+        }
+        if (refs.inputs.port) {
+            refs.inputs.port.value = payload.port;
+        }
+        if (refs.inputs.path) {
+            refs.inputs.path.value = payload.path;
+        }
+    }
+
+    return payload;
+}
+
+function applyLegacyIpaddr(raw) {
+    const value = (raw || '').trim();
+    if (!value || value.toLowerCase() === 'auto') {
+        return;
+    }
+
+    const withScheme = /^wss?:\/\//i.test(value) ? value : `${DEFAULT_WS_PROTOCOL}://${value}`;
+    try {
+        const parsed = new URL(withScheme);
+        settings.manualProtocol = normalizeProtocolValue(parsed.protocol.replace(':', ''));
+        settings.manualHost = parsed.hostname || settings.manualHost;
+        settings.manualPort = parsed.port || settings.manualPort;
+        settings.manualPath = parsed.pathname || settings.manualPath;
+        return;
+    } catch (error) {
+        // Fall back to best-effort parsing
+    }
+
+    const stripped = value.replace(/^wss?:\/\//i, '');
+    const [hostWithPort, ...pathParts] = stripped.split('/');
+    const [hostPart, portPart] = hostWithPort.split(':');
+    settings.manualHost = hostPart || settings.manualHost;
+    if (portPart) {
+        settings.manualPort = portPart;
+    }
+    if (pathParts.length) {
+        settings.manualPath = `/${pathParts.join('/')}`;
+    }
+}
+
 const settings = {
-    ipaddr: readSetting('conf_ipaddr', 'auto'),
+    connectionMode: readSetting('conf_connection_mode', null),
+    manualProtocol: readSetting('conf_manual_protocol', DEFAULT_WS_PROTOCOL),
+    manualHost: readSetting('conf_manual_host', isHttpsAccess ? (CURRENT_HOSTNAME || '') : LOCAL_DEFAULT_HOST),
+    manualPort: readSetting('conf_manual_port', DEFAULT_WS_PORT),
+    manualPath: readSetting('conf_manual_path', DEFAULT_WS_PATH),
     fontsize: readSetting('conf_fontsize', 10),
     gkill: readSetting('conf_gkill', 3),
     glevel: readSetting('conf_glevel', 250),
@@ -639,11 +783,25 @@ const settings = {
     viewMode: normalizeViewMode(readSetting('view_mode', VIEW_MODE_FOLLOW))
 };
 
+if (settings.connectionMode !== 'manual' && settings.connectionMode !== 'auto') {
+    settings.connectionMode = legacyIpaddr && legacyIpaddr !== 'auto' ? 'manual' : 'auto';
+}
+
+if (settings.connectionMode === 'manual' && legacyIpaddr && legacyIpaddr !== 'auto') {
+    applyLegacyIpaddr(legacyIpaddr);
+}
+
+normalizeManualSettings({ syncInputs: false, persist: false });
+
 state.viewMode = settings.viewMode;
 state.viewport.scale = clampScale(getDefaultScaleForMode(state.viewMode));
 
 // Initialize input values
-refs.inputs.ip.value = settings.ipaddr;
+if (settings.connectionMode === 'auto') {
+    localStorage.setItem('conf_ipaddr', 'auto');
+}
+normalizeManualSettings();
+localStorage.setItem('conf_connection_mode', settings.connectionMode);
 refs.inputs.font.value = settings.fontsize;
 refs.inputs.gkill.value = settings.gkill;
 refs.inputs.glevel.value = settings.glevel;
@@ -666,6 +824,7 @@ refs.inputs.tableMarks.checked = settings.tableMarks;
 refs.inputs.tableVisible.checked = settings.tableVisible;
 
 updateViewModeControls();
+updateConnectionModeControls();
 
 const playerTableColumns = [
     {
@@ -841,19 +1000,15 @@ function updateStatus(stateName, label) {
 }
 
 function buildTarget() {
-    const raw = (settings.ipaddr || '').trim();
-    if (!raw || raw.toLowerCase() === 'auto') {
-        if (isHttpsAccess) {
-            return location.host ? `wss://${location.host}/ws` : null;
-        }
-        return DEFAULT_LOCAL_WS_TARGET;
+    if (settings.connectionMode === 'manual') {
+        const payload = normalizeManualSettings();
+        return composeManualTarget(payload);
     }
-    if (/^wss?:\/\//i.test(raw)) {
-        return raw;
+
+    if (isHttpsAccess) {
+        return CURRENT_HOST_WITH_PORT ? `wss://${CURRENT_HOST_WITH_PORT}${DEFAULT_WS_PATH}` : null;
     }
-    const scheme = isHttpsAccess ? 'wss://' : 'ws://';
-    const sanitized = raw.replace(/^\/+/, '');
-    return `${scheme}${sanitized}`;
+    return DEFAULT_LOCAL_WS_TARGET;
 }
 
 function clearSocket() {
@@ -1148,6 +1303,74 @@ function updateViewModeControls() {
     const isFollow = state.viewMode === VIEW_MODE_FOLLOW;
     setState(freeButton, !isFollow);
     setState(followButton, isFollow);
+}
+
+function renderProtocolControl() {
+    const select = refs.inputs.protocol;
+    const readonly = refs.inputs.protocolReadonly;
+    const normalized = normalizeManualSettings({ syncInputs: false, persist: false });
+
+    if (isHttpsAccess) {
+        if (select) {
+            select.classList.add('hidden');
+            select.setAttribute('tabindex', '-1');
+        }
+        if (readonly) {
+            readonly.classList.remove('hidden');
+            readonly.textContent = 'wss';
+        }
+        settings.manualProtocol = 'wss';
+    } else {
+        if (select) {
+            select.classList.remove('hidden');
+            select.removeAttribute('tabindex');
+            select.value = normalized.protocol;
+        }
+        if (readonly) {
+            readonly.classList.add('hidden');
+        }
+    }
+}
+
+function updateConnectionModeControls() {
+    const autoButton = refs.connectionModeAutoButton;
+    const manualButton = refs.connectionModeManualButton;
+    const manualFields = refs.connectionManualFields;
+
+    const setState = (button, active) => {
+        if (!button) return;
+        button.setAttribute('aria-pressed', active ? 'true' : 'false');
+        button.classList.toggle('border-emerald-500/70', active);
+        button.classList.toggle('text-emerald-300', active);
+        button.classList.toggle('bg-emerald-500/10', active);
+        button.classList.toggle('border-slate-700', !active);
+        button.classList.toggle('text-slate-200', !active);
+        button.classList.toggle('bg-slate-950/70', !active);
+    };
+
+    const isManual = settings.connectionMode === 'manual';
+    setState(autoButton, !isManual);
+    setState(manualButton, isManual);
+
+    if (manualFields) {
+        manualFields.classList.toggle('hidden', !isManual);
+    }
+
+    renderProtocolControl();
+}
+
+function setConnectionMode(mode) {
+    const nextMode = mode === 'manual' ? 'manual' : 'auto';
+    settings.connectionMode = nextMode;
+    localStorage.setItem('conf_connection_mode', nextMode);
+
+    if (nextMode === 'auto') {
+        localStorage.setItem('conf_ipaddr', 'auto');
+    } else {
+        normalizeManualSettings();
+    }
+
+    updateConnectionModeControls();
 }
 
 function setViewMode(mode, { recenter = false } = {}) {
@@ -1792,12 +2015,48 @@ if (refs.viewModeFollowButton) {
     });
 }
 
-refs.inputs.ip.addEventListener('change', (event) => {
-    const value = (event.target.value || '').trim() || 'auto';
-    settings.ipaddr = value;
-    event.target.value = value;
-    localStorage.setItem('conf_ipaddr', value);
-});
+if (refs.connectionModeAutoButton) {
+    refs.connectionModeAutoButton.addEventListener('click', () => {
+        setConnectionMode('auto');
+    });
+}
+
+if (refs.connectionModeManualButton) {
+    refs.connectionModeManualButton.addEventListener('click', () => {
+        setConnectionMode('manual');
+    });
+}
+
+if (refs.inputs.protocol) {
+    refs.inputs.protocol.addEventListener('change', (event) => {
+        settings.manualProtocol = normalizeProtocolValue(event.target.value);
+        settings.manualPort = getDefaultPortForProtocol(settings.manualProtocol);
+        normalizeManualSettings();
+    });
+}
+
+if (refs.inputs.host) {
+    refs.inputs.host.addEventListener('change', (event) => {
+        settings.manualHost = (event.target.value || '').trim();
+        normalizeManualSettings();
+    });
+}
+
+if (refs.inputs.port) {
+    refs.inputs.port.addEventListener('change', (event) => {
+        settings.manualPort = String(event.target.value || '').trim();
+        normalizeManualSettings();
+    });
+}
+
+if (refs.inputs.path) {
+    refs.inputs.path.addEventListener('change', (event) => {
+        const value = normalizePathValue(event.target.value);
+        settings.manualPath = value;
+        event.target.value = value;
+        normalizeManualSettings();
+    });
+}
 
 refs.inputs.font.addEventListener('input', (event) => {
     let value = Number(event.target.value);
