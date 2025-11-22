@@ -311,7 +311,12 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
         <aside class="config-column w-full overflow-y-auto overscroll-auto">
             <div class="config-stack flex flex-1 flex-col space-y-4">
                 <section class="glass-panel rounded-3xl p-4" data-role="connection-config">
-                    <h2 class="text-sm font-semibold uppercase text-slate-300" data-i18n="config.connection">连接配置</h2>
+                    <div class="flex items-center justify-between gap-2">
+                        <h2 class="text-sm font-semibold uppercase text-slate-300" data-i18n="config.connection">连接配置</h2>
+                        <button id="configReconnectButton" type="button"
+                                class="shrink-0 rounded-full border border-emerald-500/60 bg-emerald-500/10 px-3 py-1 text-[0.7rem] font-semibold text-emerald-300 transition hover:bg-emerald-500/20 focus:outline-none focus:ring-2 focus:ring-emerald-500/60"
+                                data-i18n="map.reconnect">重连</button>
+                    </div>
                     <div class="mt-3 space-y-2">
                         <label class="sr-only" for="conf_ipaddr" data-i18n="config.connection">连接配置</label>
                         <input id="conf_ipaddr" type="text" placeholder="auto"
