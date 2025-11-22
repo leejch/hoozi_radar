@@ -418,6 +418,7 @@ const refs = {
     focusMeta: doc.getElementById('focusMeta'),
     zoomReset: doc.getElementById('zoomReset'),
     reconnectButton: doc.getElementById('reconnectButton'),
+    configReconnectButton: doc.getElementById('configReconnectButton'),
     downloadLatestButton: doc.getElementById('downloadLatestButton'),
     configColumn: doc.querySelector('.config-column'),
     configStack: doc.querySelector('.config-stack'),
@@ -1885,9 +1886,15 @@ if (refs.playerTableToggle) {
     });
 }
 
-refs.reconnectButton.addEventListener('click', () => {
-    connect();
-});
+const handleReconnectClick = () => connect();
+
+if (refs.reconnectButton) {
+    refs.reconnectButton.addEventListener('click', handleReconnectClick);
+}
+
+if (refs.configReconnectButton) {
+    refs.configReconnectButton.addEventListener('click', handleReconnectClick);
+}
 
 if (refs.downloadLatestButton) {
     refs.downloadLatestButton.addEventListener('click', downloadLatestMessage);
