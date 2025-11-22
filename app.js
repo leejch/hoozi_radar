@@ -682,7 +682,9 @@ function normalizeManualSettings({ syncInputs = true, persist = true } = {}) {
     settings.manualHost = (settings.manualHost || '').trim() || getDefaultHost();
     const fallbackPort = getDefaultPortForProtocol(settings.manualProtocol);
     const rawPort = String(settings.manualPort || '').trim();
-    settings.manualPort = protocolChanged ? fallbackPort : (rawPort || fallbackPort);
+    const shouldResetForHttps = isHttpsAccess && settings.manualProtocol === 'wss' && (!rawPort || rawPort === DEFAULT_WS_PORT);
+    const shouldUseDefaultPort = protocolChanged || shouldResetForHttps;
+    settings.manualPort = shouldUseDefaultPort ? fallbackPort : (rawPort || fallbackPort);
     settings.manualPath = normalizePathValue(settings.manualPath);
 
     const payload = {
@@ -757,7 +759,7 @@ const settings = {
     connectionMode: readSetting('conf_connection_mode', null),
     manualProtocol: readSetting('conf_manual_protocol', DEFAULT_WS_PROTOCOL),
     manualHost: readSetting('conf_manual_host', isHttpsAccess ? (CURRENT_HOSTNAME || '') : LOCAL_DEFAULT_HOST),
-    manualPort: readSetting('conf_manual_port', DEFAULT_WS_PORT),
+    manualPort: readSetting('conf_manual_port', getDefaultPortForProtocol(DEFAULT_WS_PROTOCOL)),
     manualPath: readSetting('conf_manual_path', DEFAULT_WS_PATH),
     fontsize: readSetting('conf_fontsize', 10),
     gkill: readSetting('conf_gkill', 3),
