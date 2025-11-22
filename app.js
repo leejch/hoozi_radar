@@ -14,6 +14,7 @@ const DEFAULT_LOCAL_WS_TARGET = 'ws://127.0.0.1:2334/ws';
 const CURRENT_HOSTNAME = typeof window !== 'undefined' && window.location ? window.location.hostname : '';
 const CURRENT_HOST_WITH_PORT = typeof window !== 'undefined' && window.location ? window.location.host : '';
 const DEFAULT_WS_PORT = '2334';
+const DEFAULT_WSS_PORT = '443';
 const DEFAULT_WS_PATH = '/ws';
 const DEFAULT_WS_PROTOCOL = isHttpsAccess ? 'wss' : 'ws';
 const LOCAL_DEFAULT_HOST = '127.0.0.1';
@@ -665,15 +666,23 @@ function getDefaultHost() {
     return isHttpsAccess ? (CURRENT_HOSTNAME || '') : LOCAL_DEFAULT_HOST;
 }
 
+function getDefaultPortForProtocol(protocol) {
+    return protocol === 'wss' ? DEFAULT_WSS_PORT : DEFAULT_WS_PORT;
+}
+
 function composeManualTarget(parts) {
     const path = normalizePathValue(parts.path);
     return `${parts.protocol}://${parts.host}:${parts.port}${path}`;
 }
 
 function normalizeManualSettings({ syncInputs = true, persist = true } = {}) {
+    const previousProtocol = settings.manualProtocol;
     settings.manualProtocol = normalizeProtocolValue(settings.manualProtocol);
+    const protocolChanged = settings.manualProtocol !== previousProtocol;
     settings.manualHost = (settings.manualHost || '').trim() || getDefaultHost();
-    settings.manualPort = String(settings.manualPort || '').trim() || DEFAULT_WS_PORT;
+    const fallbackPort = getDefaultPortForProtocol(settings.manualProtocol);
+    const rawPort = String(settings.manualPort || '').trim();
+    settings.manualPort = protocolChanged ? fallbackPort : (rawPort || fallbackPort);
     settings.manualPath = normalizePathValue(settings.manualPath);
 
     const payload = {
@@ -2021,6 +2030,7 @@ if (refs.connectionModeManualButton) {
 if (refs.inputs.protocol) {
     refs.inputs.protocol.addEventListener('change', (event) => {
         settings.manualProtocol = normalizeProtocolValue(event.target.value);
+        settings.manualPort = getDefaultPortForProtocol(settings.manualProtocol);
         normalizeManualSettings();
     });
 }
