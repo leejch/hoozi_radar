@@ -604,7 +604,9 @@ const state = {
     isConnected: false,
     playerTableSignature: null,
     latestMessageText: '',
-    playerTableHasColumns: false
+    playerTableHasColumns: false,
+    hasDemoData: false,
+    hasLiveData: false
 };
 
 const desktopQuery = window.matchMedia('(min-width: 1024px)');
@@ -1059,7 +1061,7 @@ function connect() {
     };
 
     socket.onmessage = (event) => {
-        handleMessage(event.data);
+        handleMessage(event.data, { source: 'live' });
     };
 
     socket.onerror = () => {
@@ -1070,8 +1072,13 @@ function connect() {
         if (state.socket !== socket) {
             return;
         }
+        const hadLiveData = state.hasLiveData;
         state.isConnected = false;
+        state.hasLiveData = false;
         updateStatus('error', t('status.disconnected'));
+        if (!hadLiveData && state.hasDemoData) {
+            return;
+        }
         setOverlayState('info', t('overlay.instructionsTitle'), t('overlay.instructionsSubtitle'), { showReconnect: true });
         state.mapLoaded = false;
         state.players = [];
@@ -1839,8 +1846,9 @@ function renderPlayerTable(snapshot) {
     body.appendChild(fragment);
 }
 
-function handleMessage(raw) {
+function handleMessage(raw, options = {}) {
     if (!raw) return;
+    const source = options.source || 'live';
     let payload;
     try {
         payload = JSON.parse(raw);
@@ -1852,6 +1860,14 @@ function handleMessage(raw) {
     state.latestMessageText = JSON.stringify(payload, null, 2);
     updateDownloadButtonState();
 
+    if (source === 'live') {
+        state.hasLiveData = true;
+        state.hasDemoData = false;
+    } else if (source === 'demo') {
+        state.hasDemoData = true;
+        state.hasLiveData = false;
+    }
+
     if (Object.prototype.hasOwnProperty.call(payload, 'map')) {
         const incomingMapId = normalizeMapId(payload.map);
         updateMap(incomingMapId);
@@ -1859,6 +1875,26 @@ function handleMessage(raw) {
     if (Array.isArray(payload.players)) {
         updatePlayers(payload.players);
     }
+}
+
+function loadExampleData() {
+    const exampleUrl = `${LOCAL_STATIC_BASE_URL}example.json`;
+    fetch(exampleUrl, { cache: 'no-cache' })
+        .then((response) => {
+            if (!response.ok) {
+                throw new Error(`Unexpected status ${response.status}`);
+            }
+            return response.json();
+        })
+        .then((data) => {
+            if (state.hasLiveData) {
+                return;
+            }
+            handleMessage(JSON.stringify(data), { source: 'demo' });
+        })
+        .catch((error) => {
+            console.error('Failed to load example data', error);
+        });
 }
 
 function updateDownloadButtonState() {
@@ -2358,3 +2394,4 @@ resizeCanvas();
 updateStatus('connecting', t('status.waiting'));
 setOverlayState('loading', t('overlay.waitingTitle'), t('overlay.waitingSubtitle'));
 connect();
+loadExampleData();

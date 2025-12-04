@@ -1,0 +1,85 @@
+{
+  "map": 4,
+  "players": [
+    {
+      "black": false,
+      "hostile": true,
+      "kills": 0,
+      "level": 913,
+      "name": "玩家昵称示例A",
+      "pos": {
+        "x": 1106.7615966796875,
+        "y": 662.691650390625
+      },
+      "pro": false,
+      "rank": "黄金2",
+      "team": 8,
+      "uid": 1001540971008,
+      "white": false
+    },
+    {
+      "black": false,
+      "hostile": true,
+      "kills": 1,
+      "level": 855,
+      "name": "玩家昵称示例B",
+      "pos": {
+        "x": 1076.705810546875,
+        "y": 678.6421508789062
+      },
+      "pro": false,
+      "rank": "铂金3",
+      "team": 8,
+      "uid": 1005459315585,
+      "white": false
+    },
+    {
+      "black": false,
+      "hostile": true,
+      "kills": 2,
+      "level": 602,
+      "name": "玩家昵称示例C",
+      "pos": {
+        "x": 988.3181762695312,
+        "y": 742.9156494140625
+      },
+      "pro": false,
+      "rank": "钻石4",
+      "team": 6,
+      "uid": 1007459315585,
+      "white": false
+    },
+    {
+      "black": false,
+      "hostile": true,
+      "kills": 4,
+      "level": 350,
+      "name": "玩家昵称示例D",
+      "pos": {
+        "x": 1012.4476928710938,
+        "y": 587.219482421875
+      },
+      "pro": false,
+      "rank": "钻石1",
+      "team": 5,
+      "uid": 1009459315585,
+      "white": false
+    },
+    {
+      "black": false,
+      "hostile": true,
+      "kills": 0,
+      "level": 120,
+      "name": "玩家昵称示例E",
+      "pos": {
+        "x": 962.1151733398438,
+        "y": 648.7863159179688
+      },
+      "pro": false,
+      "rank": "黄金4",
+      "team": 5,
+      "uid": 1011459315585,
+      "white": false
+    }
+  ]
+}
