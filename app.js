@@ -25,7 +25,6 @@ const translations = {
         header: {
             title: 'HOOZi 网页雷达',
             connectionStatusLabel: '连接状态',
-            purchaseLink: 'HOOZi卡密购买',
             viewModeFree: '自由视角',
             viewModeFollow: '固定跟随'
         },
@@ -132,7 +131,6 @@ const translations = {
         header: {
             title: 'HOOZi 網頁雷達',
             connectionStatusLabel: '連線狀態',
-            purchaseLink: 'HOOZi 卡密購買',
             viewModeFree: '自由視角',
             viewModeFollow: '固定跟隨'
         },
@@ -239,7 +237,6 @@ const translations = {
         header: {
             title: 'HOOZi Radar',
             connectionStatusLabel: 'Status',
-            purchaseLink: 'Buy HOOZi Key',
             viewModeFree: 'Free',
             viewModeFollow: 'Follow'
         },
