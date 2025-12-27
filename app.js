@@ -1077,6 +1077,9 @@ function connect() {
         state.players = [];
         state.mapId = null;
         refs.mapImage.removeAttribute('src');
+        delete refs.mapImage.dataset.assetName;
+        delete refs.mapImage.dataset.assetSource;
+        delete refs.mapImage.dataset.assetSourceIndex;
         refs.playerCount.textContent = '0';
         updatePlayerInfo();
         renderPlayers();
@@ -1919,11 +1922,18 @@ function updateMap(mapId) {
     const assetName = `${mapId}.png`;
     const currentAsset = refs.mapImage.dataset.assetName;
     const currentSource = refs.mapImage.dataset.assetSource;
-    const isSameAssetLoading = currentAsset === assetName && refs.mapImage.getAttribute('src') && !refs.mapImage.complete;
+    const currentSrc = refs.mapImage.getAttribute('src');
+    const isSameAssetLoading = currentAsset === assetName && currentSrc && !refs.mapImage.complete;
     if (isSameAssetLoading) {
         return;
     }
-    if (currentAsset === assetName && currentSource && refs.mapImage.complete) {
+    const isSameAssetReady = currentAsset === assetName
+        && currentSource
+        && currentSrc
+        && refs.mapImage.complete
+        && refs.mapImage.naturalWidth
+        && refs.mapImage.naturalHeight;
+    if (isSameAssetReady) {
         onMapReady();
     } else if (!applyStaticImageSource(refs.mapImage, assetName, 0)) {
         const missingMapId = state.mapId ?? 'unknown';
