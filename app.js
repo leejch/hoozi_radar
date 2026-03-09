@@ -414,6 +414,10 @@ function normalizeMapId(value) {
     return str === '' ? null : str;
 }
 
+function isNoTransferMapId(mapId) {
+    return mapId === '0';
+}
+
 const refs = {
     layout: doc.querySelector('[data-role="layout"]'),
     brandLogo: doc.querySelector('[data-role="brand-logo"]'),
@@ -1116,24 +1120,31 @@ function syncMapStageSize() {
         );
         const widthCandidate = Math.max(0, availableWidth - reservedRightWidth);
         const boundedWidth = layoutHasTable && widthCandidate > 0 ? widthCandidate : availableWidth;
-        let size = Math.min(boundedWidth, interiorHeight, availableVerticalSpace);
-        if (!Number.isFinite(size) || size < 0) {
-            size = 0;
+        let stageWidth = boundedWidth;
+        if (!Number.isFinite(stageWidth) || stageWidth < 0) {
+            stageWidth = 0;
         }
-        const minSize = Math.min(DESKTOP_MIN_MAP_SIZE, boundedWidth, interiorHeight);
-        if (minSize > 0 && size < minSize) {
-            size = minSize;
+        if (stageWidth > 0) {
+            stageWidth = Math.max(stageWidth, Math.min(DESKTOP_MIN_MAP_SIZE, boundedWidth));
         }
 
-        stage.style.width = `${size}px`;
-        stage.style.height = `${size}px`;
+        let stageHeight = interiorHeight;
+        if (!Number.isFinite(stageHeight) || stageHeight < 0) {
+            stageHeight = 0;
+        }
+        if (stageHeight > 0) {
+            stageHeight = Math.max(stageHeight, Math.min(DESKTOP_MIN_MAP_SIZE, interiorHeight));
+        }
+
+        stage.style.width = `${stageWidth}px`;
+        stage.style.height = `${stageHeight}px`;
 
         if (refs.mapStageContainer) {
-            refs.mapStageContainer.style.width = `${size}px`;
-            refs.mapStageContainer.style.height = `${size}px`;
+            refs.mapStageContainer.style.width = `${stageWidth}px`;
+            refs.mapStageContainer.style.height = `${stageHeight}px`;
         }
 
-        const sideHeight = Math.min(size, interiorHeight || availableVerticalSpace, availableVerticalSpace);
+        const sideHeight = Math.min(stageHeight, interiorHeight || availableVerticalSpace, availableVerticalSpace);
         layout.style.height = `${availableVerticalSpace}px`;
         layout.style.maxHeight = `${availableVerticalSpace}px`;
         if (refs.configColumn) {
@@ -1155,7 +1166,7 @@ function syncMapStageSize() {
             refs.playerTableScroll.style.maxHeight = `${sideHeight}px`;
         }
         if (refs.mapShell) {
-            refs.mapShell.style.minHeight = `${size}px`;
+            refs.mapShell.style.minHeight = `${stageHeight}px`;
         }
     } else {
         stage.style.width = '';
@@ -1910,6 +1921,19 @@ function applyStaticImageSource(target, assetName, sourceIndex) {
 
 function updateMap(mapId) {
     if (!mapId) return;
+
+    if (isNoTransferMapId(mapId)) {
+        state.mapId = null;
+        state.mapLoaded = false;
+        refs.mapImage.removeAttribute('src');
+        delete refs.mapImage.dataset.assetName;
+        delete refs.mapImage.dataset.assetSource;
+        delete refs.mapImage.dataset.assetSourceIndex;
+        setOverlayState('info', t('overlay.noTransferTitle'), t('overlay.noTransferSubtitle'));
+        renderPlayers();
+        return;
+    }
+
     if (state.mapId === mapId && state.mapLoaded) {
         return;
     }
