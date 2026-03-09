@@ -377,7 +377,8 @@ const RAW_OFFSET_LEFT = 454;
 const RAW_OFFSET_TOP = 0;
 const RAW_VISIBLE_WIDTH = 1015;
 const RAW_VISIBLE_HEIGHT = 1015;
-const DESKTOP_LEFT_COLUMN_WIDTH = 300;
+const DESKTOP_LEFT_COLUMN_WIDTH_WITH_TABLE = 320;
+const DESKTOP_LEFT_COLUMN_WIDTH_WITHOUT_TABLE = 300;
 const DESKTOP_RIGHT_MIN_WIDTH = 320;
 const DESKTOP_MIN_MAP_SIZE = 320;
 const MIN_SCALE = 1.0;
@@ -412,6 +413,10 @@ function normalizeMapId(value) {
     }
     const str = String(value).trim();
     return str === '' ? null : str;
+}
+
+function isNoTransferMapId(mapId) {
+    return mapId === '0';
 }
 
 const refs = {
@@ -452,6 +457,7 @@ const refs = {
     playerTableShell: doc.querySelector('[data-role="player-table-shell"]'),
     playerTableWrapper: doc.querySelector('[data-role="player-table-wrapper"]'),
     playerTableScroll: doc.querySelector('[data-role="player-table-scroll"]'),
+    playerTableElement: doc.querySelector('.player-table'),
     playerTableHeader: doc.querySelector('[data-role="player-table-header"]'),
     playerTableBody: doc.querySelector('[data-role="player-table-body"]'),
     playerTableEmpty: doc.querySelector('[data-role="player-table-empty"]'),
@@ -1084,6 +1090,36 @@ function connect() {
     };
 }
 
+function getPreferredPlayerTableWidth() {
+    const shell = refs.playerTableShell;
+    const scroll = refs.playerTableScroll;
+    const table = refs.playerTableElement;
+    if (!shell || !scroll || !table) {
+        return DESKTOP_RIGHT_MIN_WIDTH;
+    }
+
+    const headerCells = Array.from((refs.playerTableHeader && refs.playerTableHeader.children) || []);
+    if (!headerCells.length) {
+        return 0;
+    }
+
+    const shellExtraWidth = Math.max(0, shell.offsetWidth - scroll.clientWidth);
+    const tableStyles = window.getComputedStyle(table);
+    const borderLeft = parseFloat(tableStyles.borderLeftWidth) || 0;
+    const borderRight = parseFloat(tableStyles.borderRightWidth) || 0;
+
+    const previousInlineWidth = table.style.width;
+    table.style.width = 'max-content';
+    const intrinsicTableWidth = Math.ceil(table.scrollWidth + borderLeft + borderRight);
+    table.style.width = previousInlineWidth;
+
+    if (!Number.isFinite(intrinsicTableWidth) || intrinsicTableWidth <= 0) {
+        return 0;
+    }
+
+    return Math.max(0, intrinsicTableWidth + shellExtraWidth);
+}
+
 function syncMapStageSize() {
     const stage = refs.mapStage;
     const layout = refs.layout;
@@ -1099,7 +1135,7 @@ function syncMapStageSize() {
         const paddingBottom = parseFloat(layoutStyles.paddingBottom) || 0;
         const horizontalPadding = paddingLeft + paddingRight;
         const gapX = parseFloat(layoutStyles.columnGap || layoutStyles.gap) || 0;
-        const viewportWidth = window.innerWidth;
+        const layoutContentWidth = Math.max(0, (parseFloat(layoutStyles.width) || 0) - horizontalPadding);
         const viewportHeight = window.innerHeight;
         const headerHeight = refs.header ? refs.header.getBoundingClientRect().height : 0;
         const footerHeight = refs.footer ? refs.footer.getBoundingClientRect().height : 0;
@@ -1108,32 +1144,57 @@ function syncMapStageSize() {
 
         const layoutHasTable = !layout.classList.contains('player-table-hidden');
         const columnGapCount = layoutHasTable ? 2 : 1;
-        const reservedRightWidth = layoutHasTable ? DESKTOP_RIGHT_MIN_WIDTH : 0;
-
+        const leftColumnWidth = layoutHasTable ? DESKTOP_LEFT_COLUMN_WIDTH_WITH_TABLE : DESKTOP_LEFT_COLUMN_WIDTH_WITHOUT_TABLE;
         const availableWidth = Math.max(
                 0,
-                viewportWidth - DESKTOP_LEFT_COLUMN_WIDTH - horizontalPadding - gapX * columnGapCount
+                layoutContentWidth - leftColumnWidth - gapX * columnGapCount
         );
-        const widthCandidate = Math.max(0, availableWidth - reservedRightWidth);
-        const boundedWidth = layoutHasTable && widthCandidate > 0 ? widthCandidate : availableWidth;
-        let size = Math.min(boundedWidth, interiorHeight, availableVerticalSpace);
-        if (!Number.isFinite(size) || size < 0) {
-            size = 0;
+
+        let stageHeight = interiorHeight;
+        if (!Number.isFinite(stageHeight) || stageHeight < 0) {
+            stageHeight = 0;
         }
-        const minSize = Math.min(DESKTOP_MIN_MAP_SIZE, boundedWidth, interiorHeight);
-        if (minSize > 0 && size < minSize) {
-            size = minSize;
+        if (stageHeight > 0) {
+            stageHeight = Math.max(stageHeight, Math.min(DESKTOP_MIN_MAP_SIZE, interiorHeight));
         }
 
-        stage.style.width = `${size}px`;
-        stage.style.height = `${size}px`;
+        let stageWidth = availableWidth;
+        let playerTableWidth = 0;
+        if (layoutHasTable) {
+            const minViewportTableWidth = Math.ceil(window.innerWidth * 0.2);
+            const preferredPlayerTableWidth = Math.max(
+                    getPreferredPlayerTableWidth(),
+                    minViewportTableWidth
+            );
+            const widthWhenTablePreferred = Math.max(0, availableWidth - preferredPlayerTableWidth);
+            if (widthWhenTablePreferred >= stageHeight) {
+                stageWidth = widthWhenTablePreferred;
+                playerTableWidth = preferredPlayerTableWidth;
+            } else {
+                stageWidth = Math.max(0, Math.min(stageHeight, availableWidth - minViewportTableWidth));
+                playerTableWidth = Math.max(minViewportTableWidth, availableWidth - stageWidth);
+            }
+        }
+
+        if (!Number.isFinite(stageWidth) || stageWidth < 0) {
+            stageWidth = 0;
+        }
+        if (stageWidth > 0) {
+            stageWidth = Math.max(stageWidth, Math.min(DESKTOP_MIN_MAP_SIZE, availableWidth));
+        }
+
+        if (stageWidth < stageHeight) {
+            stageHeight = stageWidth;
+        }
+
+        stage.style.width = `${stageWidth}px`;
+        stage.style.height = `${stageHeight}px`;
 
         if (refs.mapStageContainer) {
-            refs.mapStageContainer.style.width = `${size}px`;
-            refs.mapStageContainer.style.height = `${size}px`;
+            refs.mapStageContainer.style.width = `${stageWidth}px`;
+            refs.mapStageContainer.style.height = `${stageHeight}px`;
         }
-
-        const sideHeight = Math.min(size, interiorHeight || availableVerticalSpace, availableVerticalSpace);
+        const sideHeight = Math.min(stageHeight, interiorHeight || availableVerticalSpace, availableVerticalSpace);
         layout.style.height = `${availableVerticalSpace}px`;
         layout.style.maxHeight = `${availableVerticalSpace}px`;
         if (refs.configColumn) {
@@ -1143,6 +1204,11 @@ function syncMapStageSize() {
         if (refs.configStack) {
             refs.configStack.style.height = `${sideHeight}px`;
             refs.configStack.style.maxHeight = `${sideHeight}px`;
+        }
+        if (refs.playerTableSection) {
+            refs.playerTableSection.style.width = layoutHasTable ? `${playerTableWidth}px` : '';
+            refs.playerTableSection.style.minWidth = layoutHasTable ? `${playerTableWidth}px` : '';
+            refs.playerTableSection.style.maxWidth = layoutHasTable ? `${playerTableWidth}px` : '';
         }
         if (refs.playerTableShell) {
             refs.playerTableShell.style.height = `${sideHeight}px`;
@@ -1155,7 +1221,7 @@ function syncMapStageSize() {
             refs.playerTableScroll.style.maxHeight = `${sideHeight}px`;
         }
         if (refs.mapShell) {
-            refs.mapShell.style.minHeight = `${size}px`;
+            refs.mapShell.style.minHeight = `${stageHeight}px`;
         }
     } else {
         stage.style.width = '';
@@ -1174,6 +1240,11 @@ function syncMapStageSize() {
         if (refs.configStack) {
             refs.configStack.style.height = '';
             refs.configStack.style.maxHeight = '';
+        }
+        if (refs.playerTableSection) {
+            refs.playerTableSection.style.width = '';
+            refs.playerTableSection.style.minWidth = '';
+            refs.playerTableSection.style.maxWidth = '';
         }
         if (refs.playerTableShell) {
             refs.playerTableShell.style.height = '';
@@ -1388,6 +1459,35 @@ function setViewMode(mode, { recenter = false } = {}) {
     }
 }
 
+
+function getMapDisplayRect(width, height) {
+    const safeWidth = Number.isFinite(width) && width > 0 ? width : 0;
+    const safeHeight = Number.isFinite(height) && height > 0 ? height : 0;
+    if (!safeWidth || !safeHeight) {
+        return { x: 0, y: 0, width: 0, height: 0 };
+    }
+
+    const mapAspect = RAW_VISIBLE_WIDTH / RAW_VISIBLE_HEIGHT;
+    const stageAspect = safeWidth / safeHeight;
+    let displayWidth = safeWidth;
+    let displayHeight = safeHeight;
+
+    if (stageAspect > mapAspect) {
+        displayHeight = safeHeight;
+        displayWidth = displayHeight * mapAspect;
+    } else {
+        displayWidth = safeWidth;
+        displayHeight = displayWidth / mapAspect;
+    }
+
+    return {
+        x: (safeWidth - displayWidth) / 2,
+        y: (safeHeight - displayHeight) / 2,
+        width: displayWidth,
+        height: displayHeight
+    };
+}
+
 function followSelectedPlayer() {
     if (state.viewMode !== VIEW_MODE_FOLLOW) {
         return;
@@ -1413,10 +1513,15 @@ function followSelectedPlayer() {
         return;
     }
 
+    const mapRect = getMapDisplayRect(rect.width, rect.height);
+    if (!mapRect.width || !mapRect.height) {
+        return;
+    }
+
     const scale = clampScale(state.viewport.scale);
     state.viewport.scale = scale;
-    const baseX = ((posX - RAW_OFFSET_LEFT) / RAW_VISIBLE_WIDTH) * rect.width;
-    const baseY = ((posY - RAW_OFFSET_TOP) / RAW_VISIBLE_HEIGHT) * rect.height;
+    const baseX = mapRect.x + ((posX - RAW_OFFSET_LEFT) / RAW_VISIBLE_WIDTH) * mapRect.width;
+    const baseY = mapRect.y + ((posY - RAW_OFFSET_TOP) / RAW_VISIBLE_HEIGHT) * mapRect.height;
 
     state.viewport.translateX = rect.width / 2 - baseX * scale;
     state.viewport.translateY = rect.height / 2 - baseY * scale;
@@ -1513,11 +1618,21 @@ function renderPlayers() {
     const ctx = mapCtx;
     const fontSize = Number(settings.fontsize) || 10;
     const fontDeclaration = `${fontSize}px "Microsoft YaHei", "Noto Sans SC", "Inter", sans-serif`;
-    const scaleX = refs.mapCanvas.width / RAW_VISIBLE_WIDTH;
-    const scaleY = refs.mapCanvas.height / RAW_VISIBLE_HEIGHT;
+    const mapRectCanvas = getMapDisplayRect(refs.mapCanvas.width, refs.mapCanvas.height);
+    if (!mapRectCanvas.width || !mapRectCanvas.height) {
+        return;
+    }
+    const uniformScale = mapRectCanvas.width / RAW_VISIBLE_WIDTH;
 
     ctx.save();
-    ctx.setTransform(scaleX, 0, 0, scaleY, -RAW_OFFSET_LEFT * scaleX, -RAW_OFFSET_TOP * scaleY);
+    ctx.setTransform(
+        uniformScale,
+        0,
+        0,
+        uniformScale,
+        mapRectCanvas.x - RAW_OFFSET_LEFT * uniformScale,
+        mapRectCanvas.y - RAW_OFFSET_TOP * uniformScale
+    );
     ctx.imageSmoothingEnabled = false;
     ctx.beginPath();
     ctx.rect(RAW_OFFSET_LEFT, RAW_OFFSET_TOP, RAW_VISIBLE_WIDTH, RAW_VISIBLE_HEIGHT);
@@ -1694,6 +1809,19 @@ function createPlayerTableSnapshot(players) {
     };
 }
 
+function requestTableSizingRefresh() {
+    if (!desktopQuery.matches) {
+        return;
+    }
+    if (!settings.tableVisible) {
+        return;
+    }
+    if (!state.playerTableHasColumns) {
+        return;
+    }
+    scheduleLayoutRefresh();
+}
+
 function scheduleLayoutRefresh() {
     if (layoutRefreshScheduled) {
         return;
@@ -1756,6 +1884,11 @@ function updatePlayerTableSectionVisibility(visible) {
     }
 }
 
+
+function refreshTableDrivenLayout() {
+    requestTableSizingRefresh();
+}
+
 function renderPlayerTable(snapshot) {
     const body = refs.playerTableBody;
     const headerRow = refs.playerTableHeader;
@@ -1789,6 +1922,7 @@ function renderPlayerTable(snapshot) {
     }
 
     if (!body) {
+        refreshTableDrivenLayout();
         return;
     }
 
@@ -1798,6 +1932,7 @@ function renderPlayerTable(snapshot) {
         if (emptyRow) {
             emptyRow.classList.add('hidden');
         }
+        refreshTableDrivenLayout();
         return;
     }
 
@@ -1806,6 +1941,7 @@ function renderPlayerTable(snapshot) {
             emptyRow.classList.remove('hidden');
             body.appendChild(emptyRow);
         }
+        refreshTableDrivenLayout();
         return;
     }
 
@@ -1837,6 +1973,7 @@ function renderPlayerTable(snapshot) {
     });
 
     body.appendChild(fragment);
+    refreshTableDrivenLayout();
 }
 
 function handleMessage(raw) {
@@ -1910,6 +2047,19 @@ function applyStaticImageSource(target, assetName, sourceIndex) {
 
 function updateMap(mapId) {
     if (!mapId) return;
+
+    if (isNoTransferMapId(mapId)) {
+        state.mapId = null;
+        state.mapLoaded = false;
+        refs.mapImage.removeAttribute('src');
+        delete refs.mapImage.dataset.assetName;
+        delete refs.mapImage.dataset.assetSource;
+        delete refs.mapImage.dataset.assetSourceIndex;
+        setOverlayState('info', t('overlay.noTransferTitle'), t('overlay.noTransferSubtitle'));
+        renderPlayers();
+        return;
+    }
+
     if (state.mapId === mapId && state.mapLoaded) {
         return;
     }
