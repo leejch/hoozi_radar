@@ -1600,18 +1600,11 @@ function renderPlayers() {
     const ctx = mapCtx;
     const fontSize = Number(settings.fontsize) || 10;
     const fontDeclaration = `${fontSize}px "Microsoft YaHei", "Noto Sans SC", "Inter", sans-serif`;
-    const mapRectCss = getMapDisplayRect(state.canvasCssWidth, state.canvasCssHeight);
-    if (!mapRectCss.width || !mapRectCss.height) {
+    const mapRectCanvas = getMapDisplayRect(refs.mapCanvas.width, refs.mapCanvas.height);
+    if (!mapRectCanvas.width || !mapRectCanvas.height) {
         return;
     }
-    const ratio = state.pixelRatio || getEffectivePixelRatio();
-    const mapRectDevice = {
-        x: mapRectCss.x * ratio,
-        y: mapRectCss.y * ratio,
-        width: mapRectCss.width * ratio,
-        height: mapRectCss.height * ratio
-    };
-    const uniformScale = mapRectDevice.width / RAW_VISIBLE_WIDTH;
+    const uniformScale = mapRectCanvas.width / RAW_VISIBLE_WIDTH;
 
     ctx.save();
     ctx.setTransform(
@@ -1619,8 +1612,8 @@ function renderPlayers() {
         0,
         0,
         uniformScale,
-        mapRectDevice.x - RAW_OFFSET_LEFT * uniformScale,
-        mapRectDevice.y - RAW_OFFSET_TOP * uniformScale
+        mapRectCanvas.x - RAW_OFFSET_LEFT * uniformScale,
+        mapRectCanvas.y - RAW_OFFSET_TOP * uniformScale
     );
     ctx.imageSmoothingEnabled = false;
     ctx.beginPath();
