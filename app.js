@@ -1157,14 +1157,18 @@ function syncMapStageSize() {
         let stageWidth = availableWidth;
         let playerTableWidth = 0;
         if (layoutHasTable) {
-            const preferredPlayerTableWidth = getPreferredPlayerTableWidth();
+            const minViewportTableWidth = Math.ceil(window.innerWidth * 0.2);
+            const preferredPlayerTableWidth = Math.max(
+                    getPreferredPlayerTableWidth(),
+                    minViewportTableWidth
+            );
             const widthWhenTablePreferred = Math.max(0, availableWidth - preferredPlayerTableWidth);
             if (widthWhenTablePreferred >= stageHeight) {
                 stageWidth = widthWhenTablePreferred;
                 playerTableWidth = preferredPlayerTableWidth;
             } else {
-                stageWidth = Math.min(stageHeight, availableWidth);
-                playerTableWidth = Math.max(0, availableWidth - stageWidth);
+                stageWidth = Math.max(0, Math.min(stageHeight, availableWidth - minViewportTableWidth));
+                playerTableWidth = Math.max(minViewportTableWidth, availableWidth - stageWidth);
             }
         }
 
