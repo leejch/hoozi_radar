@@ -294,6 +294,9 @@
   .w-full {
     width: 100%;
   }
+  .w-max {
+    width: max-content;
+  }
   .max-w-6xl {
     max-width: var(--container-6xl);
   }

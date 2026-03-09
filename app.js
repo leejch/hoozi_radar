@@ -1091,53 +1091,29 @@ function connect() {
 }
 
 function getPreferredPlayerTableWidth() {
-    const baseWidth = DESKTOP_RIGHT_MIN_WIDTH;
     const shell = refs.playerTableShell;
     const scroll = refs.playerTableScroll;
     const table = refs.playerTableElement;
     if (!shell || !scroll || !table) {
-        return baseWidth;
+        return DESKTOP_RIGHT_MIN_WIDTH;
+    }
+
+    const headerCells = Array.from((refs.playerTableHeader && refs.playerTableHeader.children) || []);
+    if (!headerCells.length) {
+        return 0;
     }
 
     const shellExtraWidth = Math.max(0, shell.offsetWidth - scroll.clientWidth);
-
-    const headerCells = Array.from((refs.playerTableHeader && refs.playerTableHeader.children) || []);
-    const columnCount = headerCells.length;
-    if (!columnCount) {
-        return baseWidth;
-    }
-
-    const maxColumnWidths = headerCells.map((cell) => Math.ceil(cell.scrollWidth || 0));
-
-    const bodyRows = refs.playerTableBody
-        ? Array.from(refs.playerTableBody.querySelectorAll('tr'))
-        : [];
-    bodyRows.forEach((row) => {
-        if (row.dataset.role === 'player-table-empty' || row.classList.contains('hidden')) {
-            return;
-        }
-        const cells = Array.from(row.children);
-        for (let i = 0; i < columnCount; i += 1) {
-            const cell = cells[i];
-            if (!cell) continue;
-            const width = Math.ceil(cell.scrollWidth || 0);
-            if (width > maxColumnWidths[i]) {
-                maxColumnWidths[i] = width;
-            }
-        }
-    });
-
-    const intrinsicContentWidth = maxColumnWidths.reduce((sum, width) => sum + Math.max(0, width), 0);
     const tableStyles = window.getComputedStyle(table);
     const borderLeft = parseFloat(tableStyles.borderLeftWidth) || 0;
     const borderRight = parseFloat(tableStyles.borderRightWidth) || 0;
-    const intrinsicTableWidth = intrinsicContentWidth + borderLeft + borderRight;
+    const intrinsicTableWidth = Math.ceil(table.scrollWidth + borderLeft + borderRight);
 
     if (!Number.isFinite(intrinsicTableWidth) || intrinsicTableWidth <= 0) {
-        return baseWidth;
+        return 0;
     }
 
-    return Math.max(baseWidth, Math.ceil(intrinsicTableWidth + shellExtraWidth));
+    return Math.max(0, intrinsicTableWidth + shellExtraWidth);
 }
 
 function syncMapStageSize() {
