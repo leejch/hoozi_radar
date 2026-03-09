@@ -1112,21 +1112,10 @@ function syncMapStageSize() {
 
         const layoutHasTable = !layout.classList.contains('player-table-hidden');
         const columnGapCount = layoutHasTable ? 2 : 1;
-        const reservedRightWidth = layoutHasTable ? DESKTOP_RIGHT_MIN_WIDTH : 0;
-
         const availableWidth = Math.max(
                 0,
                 viewportWidth - DESKTOP_LEFT_COLUMN_WIDTH - horizontalPadding - gapX * columnGapCount
         );
-        const widthCandidate = Math.max(0, availableWidth - reservedRightWidth);
-        const boundedWidth = layoutHasTable && widthCandidate > 0 ? widthCandidate : availableWidth;
-        let stageWidth = boundedWidth;
-        if (!Number.isFinite(stageWidth) || stageWidth < 0) {
-            stageWidth = 0;
-        }
-        if (stageWidth > 0) {
-            stageWidth = Math.max(stageWidth, Math.min(DESKTOP_MIN_MAP_SIZE, boundedWidth));
-        }
 
         let stageHeight = interiorHeight;
         if (!Number.isFinite(stageHeight) || stageHeight < 0) {
@@ -1136,6 +1125,31 @@ function syncMapStageSize() {
             stageHeight = Math.max(stageHeight, Math.min(DESKTOP_MIN_MAP_SIZE, interiorHeight));
         }
 
+        let stageWidth = availableWidth;
+        let playerTableWidth = 0;
+        if (layoutHasTable) {
+            const preferredPlayerTableWidth = DESKTOP_RIGHT_MIN_WIDTH;
+            const widthWhenTablePreferred = Math.max(0, availableWidth - preferredPlayerTableWidth);
+            if (widthWhenTablePreferred >= stageHeight) {
+                stageWidth = widthWhenTablePreferred;
+                playerTableWidth = preferredPlayerTableWidth;
+            } else {
+                stageWidth = Math.min(stageHeight, availableWidth);
+                playerTableWidth = Math.max(0, availableWidth - stageWidth);
+            }
+        }
+
+        if (!Number.isFinite(stageWidth) || stageWidth < 0) {
+            stageWidth = 0;
+        }
+        if (stageWidth > 0) {
+            stageWidth = Math.max(stageWidth, Math.min(DESKTOP_MIN_MAP_SIZE, availableWidth));
+        }
+
+        if (stageWidth < stageHeight) {
+            stageHeight = stageWidth;
+        }
+
         stage.style.width = `${stageWidth}px`;
         stage.style.height = `${stageHeight}px`;
 
@@ -1143,7 +1157,6 @@ function syncMapStageSize() {
             refs.mapStageContainer.style.width = `${stageWidth}px`;
             refs.mapStageContainer.style.height = `${stageHeight}px`;
         }
-
         const sideHeight = Math.min(stageHeight, interiorHeight || availableVerticalSpace, availableVerticalSpace);
         layout.style.height = `${availableVerticalSpace}px`;
         layout.style.maxHeight = `${availableVerticalSpace}px`;
@@ -1158,6 +1171,8 @@ function syncMapStageSize() {
         if (refs.playerTableShell) {
             refs.playerTableShell.style.height = `${sideHeight}px`;
             refs.playerTableShell.style.maxHeight = `${availableVerticalSpace}px`;
+            refs.playerTableShell.style.width = layoutHasTable ? `${playerTableWidth}px` : '';
+            refs.playerTableShell.style.minWidth = layoutHasTable ? `${playerTableWidth}px` : '';
         }
         if (refs.playerTableWrapper) {
             refs.playerTableWrapper.style.maxHeight = `${sideHeight}px`;
@@ -1189,6 +1204,8 @@ function syncMapStageSize() {
         if (refs.playerTableShell) {
             refs.playerTableShell.style.height = '';
             refs.playerTableShell.style.maxHeight = '';
+            refs.playerTableShell.style.width = '';
+            refs.playerTableShell.style.minWidth = '';
         }
         if (refs.playerTableWrapper) {
             refs.playerTableWrapper.style.maxHeight = '';
