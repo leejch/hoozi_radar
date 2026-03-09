@@ -1088,6 +1088,23 @@ function connect() {
     };
 }
 
+function getPreferredPlayerTableWidth() {
+    const baseWidth = DESKTOP_RIGHT_MIN_WIDTH;
+    const shell = refs.playerTableShell;
+    const scroll = refs.playerTableScroll;
+    if (!shell || !scroll) {
+        return baseWidth;
+    }
+
+    const shellExtraWidth = Math.max(0, shell.offsetWidth - scroll.clientWidth);
+    const contentWidth = Math.max(scroll.scrollWidth, scroll.clientWidth);
+    if (!Number.isFinite(contentWidth) || contentWidth <= 0) {
+        return baseWidth;
+    }
+
+    return Math.max(baseWidth, Math.ceil(contentWidth + shellExtraWidth));
+}
+
 function syncMapStageSize() {
     const stage = refs.mapStage;
     const layout = refs.layout;
@@ -1128,7 +1145,7 @@ function syncMapStageSize() {
         let stageWidth = availableWidth;
         let playerTableWidth = 0;
         if (layoutHasTable) {
-            const preferredPlayerTableWidth = DESKTOP_RIGHT_MIN_WIDTH;
+            const preferredPlayerTableWidth = getPreferredPlayerTableWidth();
             const widthWhenTablePreferred = Math.max(0, availableWidth - preferredPlayerTableWidth);
             if (widthWhenTablePreferred >= stageHeight) {
                 stageWidth = widthWhenTablePreferred;
