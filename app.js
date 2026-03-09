@@ -1185,11 +1185,14 @@ function syncMapStageSize() {
             refs.configStack.style.height = `${sideHeight}px`;
             refs.configStack.style.maxHeight = `${sideHeight}px`;
         }
+        if (refs.playerTableSection) {
+            refs.playerTableSection.style.width = layoutHasTable ? `${playerTableWidth}px` : '';
+            refs.playerTableSection.style.minWidth = layoutHasTable ? `${playerTableWidth}px` : '';
+            refs.playerTableSection.style.maxWidth = layoutHasTable ? `${playerTableWidth}px` : '';
+        }
         if (refs.playerTableShell) {
             refs.playerTableShell.style.height = `${sideHeight}px`;
             refs.playerTableShell.style.maxHeight = `${availableVerticalSpace}px`;
-            refs.playerTableShell.style.width = layoutHasTable ? `${playerTableWidth}px` : '';
-            refs.playerTableShell.style.minWidth = layoutHasTable ? `${playerTableWidth}px` : '';
         }
         if (refs.playerTableWrapper) {
             refs.playerTableWrapper.style.maxHeight = `${sideHeight}px`;
@@ -1218,11 +1221,14 @@ function syncMapStageSize() {
             refs.configStack.style.height = '';
             refs.configStack.style.maxHeight = '';
         }
+        if (refs.playerTableSection) {
+            refs.playerTableSection.style.width = '';
+            refs.playerTableSection.style.minWidth = '';
+            refs.playerTableSection.style.maxWidth = '';
+        }
         if (refs.playerTableShell) {
             refs.playerTableShell.style.height = '';
             refs.playerTableShell.style.maxHeight = '';
-            refs.playerTableShell.style.width = '';
-            refs.playerTableShell.style.minWidth = '';
         }
         if (refs.playerTableWrapper) {
             refs.playerTableWrapper.style.maxHeight = '';
