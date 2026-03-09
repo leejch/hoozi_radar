@@ -377,7 +377,8 @@ const RAW_OFFSET_LEFT = 454;
 const RAW_OFFSET_TOP = 0;
 const RAW_VISIBLE_WIDTH = 1015;
 const RAW_VISIBLE_HEIGHT = 1015;
-const DESKTOP_LEFT_COLUMN_WIDTH = 300;
+const DESKTOP_LEFT_COLUMN_WIDTH_WITH_TABLE = 320;
+const DESKTOP_LEFT_COLUMN_WIDTH_WITHOUT_TABLE = 300;
 const DESKTOP_RIGHT_MIN_WIDTH = 320;
 const DESKTOP_MIN_MAP_SIZE = 320;
 const MIN_SCALE = 1.0;
@@ -1126,9 +1127,10 @@ function syncMapStageSize() {
 
         const layoutHasTable = !layout.classList.contains('player-table-hidden');
         const columnGapCount = layoutHasTable ? 2 : 1;
+        const leftColumnWidth = layoutHasTable ? DESKTOP_LEFT_COLUMN_WIDTH_WITH_TABLE : DESKTOP_LEFT_COLUMN_WIDTH_WITHOUT_TABLE;
         const availableWidth = Math.max(
                 0,
-                layoutContentWidth - DESKTOP_LEFT_COLUMN_WIDTH - gapX * columnGapCount
+                layoutContentWidth - leftColumnWidth - gapX * columnGapCount
         );
 
         let stageHeight = interiorHeight;
