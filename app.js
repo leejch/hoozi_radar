@@ -1107,7 +1107,11 @@ function getPreferredPlayerTableWidth() {
     const tableStyles = window.getComputedStyle(table);
     const borderLeft = parseFloat(tableStyles.borderLeftWidth) || 0;
     const borderRight = parseFloat(tableStyles.borderRightWidth) || 0;
+
+    const previousInlineWidth = table.style.width;
+    table.style.width = 'max-content';
     const intrinsicTableWidth = Math.ceil(table.scrollWidth + borderLeft + borderRight);
+    table.style.width = previousInlineWidth;
 
     if (!Number.isFinite(intrinsicTableWidth) || intrinsicTableWidth <= 0) {
         return 0;
