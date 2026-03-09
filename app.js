@@ -1791,6 +1791,19 @@ function createPlayerTableSnapshot(players) {
     };
 }
 
+function requestTableSizingRefresh() {
+    if (!desktopQuery.matches) {
+        return;
+    }
+    if (!settings.tableVisible) {
+        return;
+    }
+    if (!state.playerTableHasColumns) {
+        return;
+    }
+    scheduleLayoutRefresh();
+}
+
 function scheduleLayoutRefresh() {
     if (layoutRefreshScheduled) {
         return;
@@ -2249,6 +2262,7 @@ tableCheckboxBindings.forEach(([key, settingKey]) => {
         settings[settingKey] = checked;
         localStorage.setItem(key, checked);
         renderPlayerTable();
+        requestTableSizingRefresh();
     });
 });
 
@@ -2265,6 +2279,7 @@ if (refs.playerTableToggle) {
         settings.tableVisible = checked;
         localStorage.setItem('conf_table_visible', settings.tableVisible);
         renderPlayerTable();
+        requestTableSizingRefresh();
     });
 }
 
