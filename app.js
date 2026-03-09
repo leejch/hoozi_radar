@@ -1098,7 +1098,15 @@ function getPreferredPlayerTableWidth() {
     }
 
     const shellExtraWidth = Math.max(0, shell.offsetWidth - scroll.clientWidth);
-    const contentWidth = Math.max(scroll.scrollWidth, scroll.clientWidth);
+    const headerRow = refs.playerTableHeader;
+    const headerWidth = headerRow ? headerRow.scrollWidth : 0;
+    const hasDataRows = state.players.length > 0;
+
+    let contentWidth = Math.max(scroll.scrollWidth, scroll.clientWidth);
+    if (!hasDataRows && Number.isFinite(headerWidth) && headerWidth > 0) {
+        contentWidth = Math.max(scroll.clientWidth, headerWidth);
+    }
+
     if (!Number.isFinite(contentWidth) || contentWidth <= 0) {
         return baseWidth;
     }
@@ -1866,6 +1874,11 @@ function updatePlayerTableSectionVisibility(visible) {
     }
 }
 
+
+function refreshTableDrivenLayout() {
+    requestTableSizingRefresh();
+}
+
 function renderPlayerTable(snapshot) {
     const body = refs.playerTableBody;
     const headerRow = refs.playerTableHeader;
@@ -1899,6 +1912,7 @@ function renderPlayerTable(snapshot) {
     }
 
     if (!body) {
+        refreshTableDrivenLayout();
         return;
     }
 
@@ -1908,6 +1922,7 @@ function renderPlayerTable(snapshot) {
         if (emptyRow) {
             emptyRow.classList.add('hidden');
         }
+        refreshTableDrivenLayout();
         return;
     }
 
@@ -1916,6 +1931,7 @@ function renderPlayerTable(snapshot) {
             emptyRow.classList.remove('hidden');
             body.appendChild(emptyRow);
         }
+        refreshTableDrivenLayout();
         return;
     }
 
@@ -1947,6 +1963,7 @@ function renderPlayerTable(snapshot) {
     });
 
     body.appendChild(fragment);
+    refreshTableDrivenLayout();
 }
 
 function handleMessage(raw) {
