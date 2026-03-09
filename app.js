@@ -1114,13 +1114,10 @@ function syncMapStageSize() {
 
     if (desktopQuery.matches) {
         const layoutStyles = window.getComputedStyle(layout);
-        const paddingLeft = parseFloat(layoutStyles.paddingLeft) || 0;
-        const paddingRight = parseFloat(layoutStyles.paddingRight) || 0;
         const paddingTop = parseFloat(layoutStyles.paddingTop) || 0;
         const paddingBottom = parseFloat(layoutStyles.paddingBottom) || 0;
-        const horizontalPadding = paddingLeft + paddingRight;
         const gapX = parseFloat(layoutStyles.columnGap || layoutStyles.gap) || 0;
-        const viewportWidth = window.innerWidth;
+        const layoutContentWidth = parseFloat(layoutStyles.width) || 0;
         const viewportHeight = window.innerHeight;
         const headerHeight = refs.header ? refs.header.getBoundingClientRect().height : 0;
         const footerHeight = refs.footer ? refs.footer.getBoundingClientRect().height : 0;
@@ -1131,7 +1128,7 @@ function syncMapStageSize() {
         const columnGapCount = layoutHasTable ? 2 : 1;
         const availableWidth = Math.max(
                 0,
-                viewportWidth - DESKTOP_LEFT_COLUMN_WIDTH - horizontalPadding - gapX * columnGapCount
+                layoutContentWidth - DESKTOP_LEFT_COLUMN_WIDTH - gapX * columnGapCount
         );
 
         let stageHeight = interiorHeight;
