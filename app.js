@@ -1441,6 +1441,35 @@ function setViewMode(mode, { recenter = false } = {}) {
     }
 }
 
+
+function getMapDisplayRect(width, height) {
+    const safeWidth = Number.isFinite(width) && width > 0 ? width : 0;
+    const safeHeight = Number.isFinite(height) && height > 0 ? height : 0;
+    if (!safeWidth || !safeHeight) {
+        return { x: 0, y: 0, width: 0, height: 0 };
+    }
+
+    const mapAspect = RAW_VISIBLE_WIDTH / RAW_VISIBLE_HEIGHT;
+    const stageAspect = safeWidth / safeHeight;
+    let displayWidth = safeWidth;
+    let displayHeight = safeHeight;
+
+    if (stageAspect > mapAspect) {
+        displayHeight = safeHeight;
+        displayWidth = displayHeight * mapAspect;
+    } else {
+        displayWidth = safeWidth;
+        displayHeight = displayWidth / mapAspect;
+    }
+
+    return {
+        x: (safeWidth - displayWidth) / 2,
+        y: (safeHeight - displayHeight) / 2,
+        width: displayWidth,
+        height: displayHeight
+    };
+}
+
 function followSelectedPlayer() {
     if (state.viewMode !== VIEW_MODE_FOLLOW) {
         return;
@@ -1466,10 +1495,15 @@ function followSelectedPlayer() {
         return;
     }
 
+    const mapRect = getMapDisplayRect(rect.width, rect.height);
+    if (!mapRect.width || !mapRect.height) {
+        return;
+    }
+
     const scale = clampScale(state.viewport.scale);
     state.viewport.scale = scale;
-    const baseX = ((posX - RAW_OFFSET_LEFT) / RAW_VISIBLE_WIDTH) * rect.width;
-    const baseY = ((posY - RAW_OFFSET_TOP) / RAW_VISIBLE_HEIGHT) * rect.height;
+    const baseX = mapRect.x + ((posX - RAW_OFFSET_LEFT) / RAW_VISIBLE_WIDTH) * mapRect.width;
+    const baseY = mapRect.y + ((posY - RAW_OFFSET_TOP) / RAW_VISIBLE_HEIGHT) * mapRect.height;
 
     state.viewport.translateX = rect.width / 2 - baseX * scale;
     state.viewport.translateY = rect.height / 2 - baseY * scale;
@@ -1566,11 +1600,28 @@ function renderPlayers() {
     const ctx = mapCtx;
     const fontSize = Number(settings.fontsize) || 10;
     const fontDeclaration = `${fontSize}px "Microsoft YaHei", "Noto Sans SC", "Inter", sans-serif`;
-    const scaleX = refs.mapCanvas.width / RAW_VISIBLE_WIDTH;
-    const scaleY = refs.mapCanvas.height / RAW_VISIBLE_HEIGHT;
+    const mapRectCss = getMapDisplayRect(state.canvasCssWidth, state.canvasCssHeight);
+    if (!mapRectCss.width || !mapRectCss.height) {
+        return;
+    }
+    const ratio = state.pixelRatio || getEffectivePixelRatio();
+    const mapRectDevice = {
+        x: mapRectCss.x * ratio,
+        y: mapRectCss.y * ratio,
+        width: mapRectCss.width * ratio,
+        height: mapRectCss.height * ratio
+    };
+    const uniformScale = mapRectDevice.width / RAW_VISIBLE_WIDTH;
 
     ctx.save();
-    ctx.setTransform(scaleX, 0, 0, scaleY, -RAW_OFFSET_LEFT * scaleX, -RAW_OFFSET_TOP * scaleY);
+    ctx.setTransform(
+        uniformScale,
+        0,
+        0,
+        uniformScale,
+        mapRectDevice.x - RAW_OFFSET_LEFT * uniformScale,
+        mapRectDevice.y - RAW_OFFSET_TOP * uniformScale
+    );
     ctx.imageSmoothingEnabled = false;
     ctx.beginPath();
     ctx.rect(RAW_OFFSET_LEFT, RAW_OFFSET_TOP, RAW_VISIBLE_WIDTH, RAW_VISIBLE_HEIGHT);
