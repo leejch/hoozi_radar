@@ -606,7 +606,9 @@ const state = {
     latestMessageText: '',
     playerTableHasColumns: false,
     hasDemoData: false,
-    hasLiveData: false
+    hasLiveData: false,
+    demoLoadScheduled: false,
+    demoLoadAttempted: false
 };
 
 const desktopQuery = window.matchMedia('(min-width: 1024px)');
@@ -1878,6 +1880,11 @@ function handleMessage(raw, options = {}) {
 }
 
 function loadExampleData() {
+    if (state.demoLoadAttempted || state.hasLiveData) {
+        return;
+    }
+    state.demoLoadAttempted = true;
+
     const exampleUrl = `${LOCAL_STATIC_BASE_URL}example.json`;
     fetch(exampleUrl, { cache: 'no-cache' })
         .then((response) => {
@@ -1895,6 +1902,26 @@ function loadExampleData() {
         .catch((error) => {
             console.error('Failed to load example data', error);
         });
+}
+
+function scheduleExampleDataLoad() {
+    if (state.demoLoadScheduled) {
+        return;
+    }
+    state.demoLoadScheduled = true;
+
+    const run = () => {
+        window.setTimeout(() => {
+            loadExampleData();
+        }, 300);
+    };
+
+    if (document.readyState === 'complete') {
+        run();
+        return;
+    }
+
+    window.addEventListener('load', run, { once: true });
 }
 
 function updateDownloadButtonState() {
@@ -2394,4 +2421,4 @@ resizeCanvas();
 updateStatus('connecting', t('status.waiting'));
 setOverlayState('loading', t('overlay.waitingTitle'), t('overlay.waitingSubtitle'));
 connect();
-loadExampleData();
+scheduleExampleDataLoad();
