@@ -2006,8 +2006,12 @@ async function loadExampleData() {
             console.warn(`Failed to load demo data from ${EXAMPLE_DATA_PATH}: ${response.status}`);
             return;
         }
-        const payload = await response.json();
-        handleMessage(JSON.stringify(payload));
+        const message = await response.text();
+        if (!message) {
+            return;
+        }
+        handleMessage(message);
+        updateStatus('connected', t('status.connected'));
     } catch (error) {
         console.warn(`Failed to load demo data from ${EXAMPLE_DATA_PATH}.`, error);
     }
@@ -2533,5 +2537,11 @@ syncMapControlsHost();
 resizeCanvas();
 updateStatus('connecting', t('status.waiting'));
 setOverlayState('loading', t('overlay.waitingTitle'), t('overlay.waitingSubtitle'));
-connect();
-loadExampleData();
+
+if (doc.readyState === 'complete') {
+    loadExampleData();
+} else {
+    window.addEventListener('load', () => {
+        loadExampleData();
+    }, { once: true });
+}
