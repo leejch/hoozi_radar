@@ -1184,10 +1184,6 @@ function syncMapStageSize() {
             stageWidth = Math.max(stageWidth, Math.min(DESKTOP_MIN_MAP_SIZE, availableWidth));
         }
 
-        if (stageWidth < stageHeight) {
-            stageHeight = stageWidth;
-        }
-
         stage.style.width = `${stageWidth}px`;
         stage.style.height = `${stageHeight}px`;
 
