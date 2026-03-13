@@ -18,6 +18,7 @@ const DEFAULT_WSS_PORT = '443';
 const DEFAULT_WS_PATH = '/ws';
 const DEFAULT_WS_PROTOCOL = isHttpsAccess ? 'wss' : 'ws';
 const LOCAL_DEFAULT_HOST = '127.0.0.1';
+const EXAMPLE_DATA_PATH = `${LOCAL_STATIC_BASE_URL}example.json`;
 
 const translations = {
     'zh-Hans': {
@@ -1998,6 +1999,20 @@ function handleMessage(raw) {
     }
 }
 
+async function loadExampleData() {
+    try {
+        const response = await fetch(EXAMPLE_DATA_PATH, { cache: 'no-store' });
+        if (!response.ok) {
+            console.warn(`Failed to load demo data from ${EXAMPLE_DATA_PATH}: ${response.status}`);
+            return;
+        }
+        const payload = await response.json();
+        handleMessage(JSON.stringify(payload));
+    } catch (error) {
+        console.warn(`Failed to load demo data from ${EXAMPLE_DATA_PATH}.`, error);
+    }
+}
+
 function updateDownloadButtonState() {
     if (!refs.downloadLatestButton) {
         return;
@@ -2519,3 +2534,4 @@ resizeCanvas();
 updateStatus('connecting', t('status.waiting'));
 setOverlayState('loading', t('overlay.waitingTitle'), t('overlay.waitingSubtitle'));
 connect();
+loadExampleData();
