@@ -416,7 +416,7 @@ function normalizeMapId(value) {
 }
 
 function isNoTransferMapId(mapId) {
-    return mapId === '0';
+    return mapId === '-1' || mapId === '0';
 }
 
 const refs = {
