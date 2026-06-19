@@ -563,7 +563,49 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
     </div>
 </footer>
 
-<script type="module" src="./src/main.js"></script>
+<script type="module">
+    if (window.location.protocol === 'file:') {
+        const language = navigator.language || 'en';
+        const traditional = language.startsWith('zh-TW') || language.startsWith('zh-HK') || language.startsWith('zh-MO');
+        const simplified = language.startsWith('zh') && !traditional;
+        const copy = traditional
+            ? {
+                title: '需要本機 HTTP 伺服器',
+                subtitle: '瀏覽器不允許透過 file:// 載入 ES Modules。請在專案目錄執行 npm start，然後開啟 http://127.0.0.1:8080/。',
+                status: '啟動方式錯誤'
+            }
+            : simplified
+                ? {
+                    title: '需要本地 HTTP 服务器',
+                    subtitle: '浏览器不允许通过 file:// 加载 ES Modules。请在项目目录执行 npm start，然后打开 http://127.0.0.1:8080/。',
+                    status: '启动方式错误'
+                }
+                : {
+                    title: 'Local HTTP server required',
+                    subtitle: 'Browsers cannot load ES Modules through file://. Run npm start in the project directory, then open http://127.0.0.1:8080/.',
+                    status: 'Invalid launch method'
+                };
+        const overlay = document.getElementById('mapOverlay');
+        overlay.dataset.state = 'info';
+        overlay.dataset.reconnect = 'false';
+        document.getElementById('overlayTitle').textContent = copy.title;
+        document.getElementById('overlaySubtitle').textContent = copy.subtitle;
+        document.querySelector('[data-role="status-text"]').textContent = copy.status;
+        const indicator = document.querySelector('[data-role="status-indicator"]');
+        indicator.classList.remove('bg-slate-500');
+        indicator.classList.add('bg-rose-500');
+        console.info(copy.subtitle);
+    } else {
+        import('./src/main.js').catch((error) => {
+            console.error('Failed to load HOOZi radar modules', error);
+            const overlay = document.getElementById('mapOverlay');
+            overlay.dataset.state = 'info';
+            overlay.dataset.reconnect = 'false';
+            document.getElementById('overlayTitle').textContent = 'Module load failed';
+            document.getElementById('overlaySubtitle').textContent = error instanceof Error ? error.message : String(error);
+        });
+    }
+</script>
 
 </body>
 </html>

@@ -69,18 +69,30 @@ hoozi_radar/
 └── references/                   只读 HOOZi 3.0 Lua 参考快照
 ```
 
-旧版单体 `app.js` 已删除。`index.html` 只把 `./src/main.js` 作为模块入口加载。
+旧版单体 `app.js` 已删除。`index.html` 中的内联模块启动器会检测不受支持的
+`file://` 打开方式；通过 HTTP 访问时，仅导入 `./src/main.js` 作为应用入口。
 
 ## 本地运行
 
-浏览器原生 ES Modules 应通过 HTTP 提供。在仓库根目录可使用任意静态文件
-服务器，例如：
+浏览器原生 ES Modules 必须通过 HTTP 提供。直接双击 `index.html` 会生成
+`file://` 地址，浏览器会阻止它加载模块。
+
+请在仓库根目录使用内置服务器：
+
+```powershell
+npm start
+```
+
+该命令会在 `http://127.0.0.1:8080/` 提供项目，并使用默认浏览器打开页面。
+如果只需要启动服务器而不打开浏览器，请执行 `npm run serve`。
+
+也可以使用其他静态 HTTP 服务器，例如：
 
 ```powershell
 python -m http.server 8080
 ```
 
-然后打开 `http://127.0.0.1:8080/`，并确认 HOOZi 3.0 已加载
+打开 `http://127.0.0.1:8080/`，并确认 HOOZi 3.0 已加载
 `web_radar.lua` 且网页雷达 server 已启用。本机自动模式会连接
 `ws://127.0.0.1:9001`。
 

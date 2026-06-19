@@ -71,19 +71,31 @@ hoozi_radar/
 └── references/                   Read-only HOOZi 3.0 Lua reference snapshot
 ```
 
-The old `app.js` monolith is removed. `index.html` loads only
-`./src/main.js` as a module entry.
+The old `app.js` monolith is removed. An inline module bootstrap in
+`index.html` detects unsupported `file://` launches and otherwise imports
+`./src/main.js` as the only application entry.
 
 ## Running locally
 
-Browser ES modules should be served over HTTP. From the repository root, use
-any static server, for example:
+Browser ES modules must be served over HTTP. Directly double-clicking
+`index.html` creates a `file://` URL and browsers will block its module imports.
+
+From the repository root, use the built-in server:
+
+```powershell
+npm start
+```
+
+This serves the project at `http://127.0.0.1:8080/` and opens it in the default
+browser. To start the server without opening a browser, run `npm run serve`.
+
+Any equivalent static HTTP server also works, for example:
 
 ```powershell
 python -m http.server 8080
 ```
 
-Then open `http://127.0.0.1:8080/` and ensure HOOZi 3.0 has loaded
+Open `http://127.0.0.1:8080/` and ensure HOOZi 3.0 has loaded
 `web_radar.lua` with its server enabled. Local auto mode connects to
 `ws://127.0.0.1:9001`.
 

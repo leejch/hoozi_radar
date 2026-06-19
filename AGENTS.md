@@ -75,10 +75,12 @@ Important limits:
 
 ## Active frontend structure
 
-The page uses one native ES-module entry:
+The page uses one native ES-module application entry. Its small inline module
+bootstrap prevents an unsupported `file://` launch from attempting imports and
+shows the local-server command instead. Under HTTP it imports:
 
 ```html
-<script type="module" src="./src/main.js"></script>
+import('./src/main.js')
 ```
 
 Do not add a bundler or unordered classic script tags without explicit user
@@ -87,7 +89,10 @@ active project.
 
 Module responsibilities:
 
-- `src/main.js`: bootstrap, WebSocket lifecycle, ping/reconnect, and module
+- `scripts/dev-server.mjs`: dependency-free local HTTP server used by
+  `npm start` / `npm run serve`; it must serve `.js`/`.mjs` with JavaScript MIME
+  types and `nosniff`.
+- `src/main.js`: application bootstrap, WebSocket lifecycle, ping/reconnect, and module
   wiring. Keep parsing and DOM details out of this file.
 - `src/config.js`: constants, defaults, persisted settings, connection target
   construction, team colors, and shared numeric helpers.
@@ -187,10 +192,11 @@ npx @tailwindcss/cli -i ./input.css -o ./styles.css
 Get-ChildItem -Recurse -Filter *.js src | ForEach-Object { node --check $_.FullName }
 ```
 
-Also verify in a browser served over HTTP (ES modules do not work reliably from
-all `file://` contexts):
+Also verify in a browser served over HTTP (`file://` cannot load this native
+module graph):
 
-- `index.html` loads only `src/main.js` as the application entry;
+- `index.html` reports the `npm start` instruction under `file://` and imports
+  only `src/main.js` as the application entry under HTTP;
 - every module import returns successfully;
 - the default WebSocket target is `ws://127.0.0.1:9001`;
 - a valid `state` fixture updates map/player/ring UI;
