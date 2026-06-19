@@ -8,7 +8,7 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HOOZi 网页雷达</title>
+    <title>HOOZi 3.0 网页雷达</title>
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <meta name="theme-color" content="#020617">
     <link href="./styles.css" rel="stylesheet">
@@ -274,7 +274,7 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
                 <img data-role="brand-logo" data-asset-name="default.png" alt="HOOZi" class="h-8 w-8 object-contain" draggable="false" referrerpolicy="origin">
             </div>
             <div class="space-y-1">
-                <h1 class="text-2xl font-semibold text-white sm:text-3xl" data-i18n="header.title">HOOZi 网页雷达</h1>
+                <h1 class="text-2xl font-semibold text-white sm:text-3xl" data-i18n="header.title">HOOZi 3.0 网页雷达</h1>
                 <div class="flex items-center gap-1.5 text-[0.7rem] text-slate-400">
                     <span data-i18n="header.connectionStatusLabel">连接状态</span>
                     <span data-role="status-indicator"
@@ -298,7 +298,7 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
                 <div class="flex w-[160px] shrink-0">
                     <select id="sel_player" autocomplete="off"
                             class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm font-medium text-slate-100 outline-none focus:border-emerald-400/70 focus:ring-2 focus:ring-emerald-500/40">
-                        <option value="<hoozi>">hoozi</option>
+                        <option value="">—</option>
                     </select>
                 </div>
             </div>
@@ -370,62 +370,52 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
                                 <span data-i18n="config.toggleName">昵称</span>
                             </label>
                             <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
-                                <input id="conf_showlprefix" type="checkbox"
+                                <input id="conf_showlegend" type="checkbox"
                                        class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                                <span data-i18n="config.toggleLevel">等级</span>
+                                <span data-i18n="config.toggleLegend">英雄</span>
                             </label>
                             <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
-                                <input id="conf_showrankprefix" type="checkbox"
+                                <input id="conf_showvitals" type="checkbox"
                                        class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                                <span data-i18n="config.toggleRank">段位</span>
+                                <span data-i18n="config.toggleVitals">生命护盾</span>
                             </label>
                         </div>
                         <div class="grid grid-cols-3 gap-1.5 text-sm text-slate-200">
                             <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
-                                <input id="conf_showkprefix" type="checkbox"
+                                <input id="conf_showstats" type="checkbox"
                                        class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                                <span data-i18n="config.toggleKills">击杀</span>
+                                <span data-i18n="config.toggleStats">等级战绩</span>
                             </label>
                             <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
-                                <input id="conf_showmprefix" type="checkbox"
+                                <input id="conf_showteamlinks" type="checkbox"
                                        class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                                <span data-i18n="config.toggleRoster">名册</span>
+                                <span data-i18n="config.toggleTeamLinks">同队连线</span>
                             </label>
                             <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
-                                <input id="conf_showsprefix" type="checkbox"
+                                <input id="conf_showring" type="checkbox"
                                        class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                                <span data-i18n="config.toggleSuspect">嫌疑</span>
+                                <span data-i18n="config.toggleRing">安全区</span>
                             </label>
                         </div>
                     </div>
                 </section>
                 <section class="glass-panel rounded-3xl py-2 px-4">
-                    <h2 class="text-sm font-semibold uppercase text-slate-300" data-i18n="config.quickFilter">快捷过滤</h2>
+                    <h2 class="text-sm font-semibold uppercase text-slate-300" data-i18n="config.filters">实体显示</h2>
                     <div class="mt-3 space-y-2.5">
                         <label class="flex items-center gap-3 rounded-2xl border border-slate-800/70 bg-slate-950/40 px-3 py-1.5 text-sm transition hover:border-emerald-400/60">
-                            <input id="conf_showmp" type="checkbox"
+                            <input id="conf_showdead" type="checkbox"
                                    class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                            <span class="text-slate-200" data-i18n="config.filterOnlyMarks">仅显示 权 / 作弊 / 白</span>
+                            <span class="text-slate-200" data-i18n="config.showDead">显示死亡玩家</span>
                         </label>
                         <label class="flex items-center gap-3 rounded-2xl border border-slate-800/70 bg-slate-950/40 px-3 py-1.5 text-sm transition hover:border-emerald-400/60">
-                            <input id="conf_showsp" type="checkbox"
+                            <input id="conf_showdown" type="checkbox"
                                    class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                            <span class="text-slate-200" data-i18n="config.filterOnlySuspicious">仅显示 低等级 / 高击杀</span>
+                            <span class="text-slate-200" data-i18n="config.showDown">显示倒地玩家</span>
                         </label>
-                        <div class="grid grid-cols-3 gap-2.5 text-[0.7rem] uppercase text-slate-500">
+                        <div class="grid grid-cols-1 gap-2.5 text-[0.7rem] uppercase text-slate-500">
                             <label class="space-y-2">
                                 <span data-i18n="config.fontSize">字体大小</span>
                                 <input id="conf_fontsize" type="number" min="6" max="48" step="1"
-                                       class="w-full rounded-xl border border-slate-700/70 bg-slate-950/70 px-3 py-1.5 text-sm text-slate-100 focus:border-emerald-400/70 focus:outline-none focus:ring-2 focus:ring-emerald-500/40">
-                            </label>
-                            <label class="space-y-2">
-                                <span data-i18n="config.killsAtLeast">击杀达到</span>
-                                <input id="conf_gkill" type="number" min="0" step="1"
-                                       class="w-full rounded-xl border border-slate-700/70 bg-slate-950/70 px-3 py-1.5 text-sm text-slate-100 focus:border-emerald-400/70 focus:outline-none focus:ring-2 focus:ring-emerald-500/40">
-                            </label>
-                            <label class="space-y-2">
-                                <span data-i18n="config.levelBelow">等级低于</span>
-                                <input id="conf_glevel" type="number" min="0" step="1"
                                        class="w-full rounded-xl border border-slate-700/70 bg-slate-950/70 px-3 py-1.5 text-sm text-slate-100 focus:border-emerald-400/70 focus:outline-none focus:ring-2 focus:ring-emerald-500/40">
                             </label>
                         </div>
@@ -453,36 +443,36 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
                                 <span data-i18n="table.columns.name">昵称</span>
                             </label>
                             <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
-                                <input id="conf_table_level" type="checkbox"
+                                <input id="conf_table_legend" type="checkbox"
                                        class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                                <span data-i18n="table.columns.level">等级</span>
+                                <span data-i18n="table.columns.legend">英雄</span>
+                            </label>
+                            <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
+                                <input id="conf_table_vitals" type="checkbox"
+                                       class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
+                                <span data-i18n="table.columns.vitals">生命 / 护盾</span>
                             </label>
                             <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
                                 <input id="conf_table_rank" type="checkbox"
                                        class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                                <span data-i18n="table.columns.rank">段位</span>
+                                <span data-i18n="table.columns.rank">等级 / 段位</span>
                             </label>
                             <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
-                                <input id="conf_table_kills" type="checkbox"
+                                <input id="conf_table_combat" type="checkbox"
                                        class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                                <span data-i18n="table.columns.kills">击杀</span>
-                            </label>
-                            <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
-                                <input id="conf_table_marks" type="checkbox"
-                                       class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                                <span data-i18n="table.columns.marks">标记</span>
+                                <span data-i18n="table.columns.combat">击杀 / 伤害</span>
                             </label>
                         </div>
                         <div class="grid grid-cols-2 gap-1.5">
                             <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
-                                <input id="conf_table_uid_short" type="checkbox"
+                                <input id="conf_table_uid" type="checkbox"
                                        class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                                <span data-i18n="table.columns.uidShort">短UID</span>
+                                <span data-i18n="table.columns.uid">平台 UID</span>
                             </label>
                             <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
-                                <input id="conf_table_uid_long" type="checkbox"
+                                <input id="conf_table_status" type="checkbox"
                                        class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                                <span data-i18n="table.columns.uidLong">长UID</span>
+                                <span data-i18n="table.columns.status">状态 / 距离</span>
                             </label>
                         </div>
                     </div>
@@ -543,7 +533,7 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
         <section class="hidden lg:flex lg:h-full lg:flex-shrink-0" data-role="player-table-section">
             <div class="player-table-shell glass-panel flex h-full w-full flex-col rounded-3xl p-2" data-role="player-table-shell">
                 <div class="flex items-center justify-between">
-                    <h2 class="pl-2 text-sm font-semibold uppercase text-slate-300" data-i18n="table.title">玩家信息</h2>
+                    <h2 class="pl-2 text-sm font-semibold uppercase text-slate-300" data-i18n="table.title">HOOZi 3.0 玩家信息</h2>
                     <button id="downloadLatestButton" type="button" disabled
                             class="rounded-full border border-slate-700/70 bg-slate-900/60 px-3 py-1 text-[0.7rem] font-semibold text-slate-300 transition hover:border-slate-500/60 hover:text-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-500/30 disabled:cursor-not-allowed disabled:opacity-50"
                             data-i18n="config.downloadLatest">导出玩家列表</button>
@@ -569,11 +559,11 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
 <footer class="w-full py-0.5 sm:py-1 border-t border-slate-800/60 bg-slate-950/80 backdrop-blur-xl text-xs text-slate-700">
     <div class="max-w-6xl mx-auto flex flex-col sm:flex-row justify-center items-center sm:space-x-3 px-3">
         <p data-i18n="footer.copyright">Copyright © hoozi.net 版权所有</p>
-        <p data-i18n="footer.disclaimer">所有其他商标、标志及著作权均为其各自所有者所有</p>
+        <p data-i18n="footer.disclaimer">HOOZi 3.0 Lua 数据流网页雷达</p>
     </div>
 </footer>
 
-<script src="./app.js"></script>
+<script type="module" src="./src/main.js"></script>
 
 </body>
 </html>

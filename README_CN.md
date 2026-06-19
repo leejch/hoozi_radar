@@ -1,0 +1,136 @@
+# HOOZi 3.0 网页雷达
+
+本仓库是 HOOZi 网页雷达的浏览器前端。当前版本接收 HOOZi 3.0
+`web_radar.lua` 脚本生成的本地 WebSocket 状态数据流。
+
+前端是由原生浏览器 ES Modules 和 Tailwind CSS v4 构成的静态站点，不使用
+JavaScript bundler，也没有生产环境运行时依赖。
+
+## HOOZi 3.0 迁移
+
+旧版前端围绕 HOOZi 2.0 传输协议和单体 `app.js` 开发，依赖 2334 端口、
+`/ws` 路径、嵌套玩家坐标、数字地图 ID、基于昵称的本机玩家识别、旧版裁剪
+坐标系、名册标记和派生长 UID。
+
+HOOZi 3.0 版本改为严格遵循仓库中的 Lua 脚本：
+
+- 本地 WebSocket 地址：`ws://127.0.0.1:9001`
+- 使用 `kind` 区分的完整 `state` 快照
+- 原始 `game.world.map_name` 字符串
+- 1000×1000 地图域中的扁平 `x`/`y` 坐标
+- 稳定的玩家 `id` 和明确的 `self` 字段
+- 生命、护盾、倒地/死亡状态、英雄、UID、等级、击杀、伤害、段位、
+  队伍/小队、名册元数据和可选安全区
+- 可选的浏览器 `ping` 与 Lua `pong`
+
+浏览器渲染循环会在相邻 Lua 快照之间插值玩家位置和安全区几何数据。前端
+不会伪造已经不受支持的 HOOZi 2.0 字段。
+
+## 数据流
+
+```text
+HOOZi 3.0 运行时游戏数据
+        ↓
+web_radar.lua 快照与地图坐标转换
+        ↓ 127.0.0.1:9001 上的 WebSocket JSON
+src/protocol/hoozi3.js 验证和归一化
+        ↓
+src/state/store.js 快照状态与插值
+        ↓
+Canvas 雷达、玩家表格、焦点信息和控制项
+```
+
+`web_radar.lua` 只监听环回地址。如果通过独立 HClient 中继开放网页雷达，
+请在“手动”模式中配置相应的 `ws` 或 `wss` 地址。中继鉴权不属于本仓库，
+也不属于 Lua 协议。
+
+完整消息和字段定义见
+[`docs/protocol/hoozi3-web-radar-protocol.md`](docs/protocol/hoozi3-web-radar-protocol.md)。
+
+## 项目结构
+
+```text
+hoozi_radar/
+├── index.html                    静态页面和 Tailwind UI
+├── input.css                     Tailwind CSS v4 输入文件
+├── styles.css                    生成的样式表
+├── src/
+│   ├── main.js                   启动和 WebSocket 生命周期
+│   ├── config.js                 常量、设置与连接目标
+│   ├── i18n.js                   简中、繁中和英文文本
+│   ├── protocol/hoozi3.js        协议验证与归一化
+│   ├── state/store.js            快照、选择与插值
+│   ├── render/entities.js        安全区和玩家 Canvas 渲染
+│   ├── render/radar.js           渲染循环、尺寸、跟随、拖动与缩放
+│   ├── ui/controls.js            控制项、焦点 UI 和玩家表格
+│   └── assets/maps.js            CDN 优先的图片回退
+├── static/                       本地回退图片
+├── docs/protocol/                项目协议文档
+└── references/                   只读 HOOZi 3.0 Lua 参考快照
+```
+
+旧版单体 `app.js` 已删除。`index.html` 只把 `./src/main.js` 作为模块入口加载。
+
+## 本地运行
+
+浏览器原生 ES Modules 应通过 HTTP 提供。在仓库根目录可使用任意静态文件
+服务器，例如：
+
+```powershell
+python -m http.server 8080
+```
+
+然后打开 `http://127.0.0.1:8080/`，并确认 HOOZi 3.0 已加载
+`web_radar.lua` 且网页雷达 server 已启用。本机自动模式会连接
+`ws://127.0.0.1:9001`。
+
+如果页面本身使用 HTTPS，浏览器通常会把普通 `ws://` 连接视为混合内容并
+阻止。此时请在手动模式中使用部署环境提供的、经过授权的 `wss://` 中继。
+
+## 安装工具与构建 CSS
+
+安装锁定的开发依赖：
+
+```powershell
+npm install
+```
+
+修改 `index.html` 或 JavaScript 中的 Tailwind utility class 后重新生成样式：
+
+```powershell
+npx @tailwindcss/cli -i ./input.css -o ./styles.css
+```
+
+项目无需 bundling，所有 JavaScript 文件都以原生 ES Modules 提供。
+
+## 地图与静态资源
+
+图片按以下顺序加载：
+
+1. `https://img.hoozi.net/static/`
+2. 本地 `./static/`
+
+如果 Lua 地图值为 `mp_rr_example`，前端将请求 `mp_rr_example.png`。仓库仍
+保留旧版数字地图文件，但由于现有参考资料没有定义权威的映射关系，前端
+不会把原始地图名自动映射到数字文件。
+
+英雄和段位图标 key 会保留在归一化状态及导出的快照中。在获得权威的资源
+key 命名空间之前，前端不会自行把这些 key 拼接成 URL。
+
+## 开发规则
+
+- 修改协议或渲染语义前，先阅读根目录 `AGENTS.md` 和要求的参考文件。
+- `references/hapex3-lua-script-factory/` 必须保持只读。
+- 以 `web_radar.lua` 为首要事实来源，不要从旧前端推断 HOOZi 3.0 语义。
+- 协议解析、状态、Canvas 渲染、DOM 控制和资源回退应保持在现有模块中。
+- 用户可见文本需要同时更新简体中文、繁体中文和英文。
+- 未经明确批准，不要增加 bundler 或生产依赖。
+- Tailwind class 发生变化时必须重新生成 `styles.css`。
+
+## 已知协议限制
+
+当前 Lua 脚本没有发送战利品或投掷物数组，因此前端无法渲染这些实体。
+参考资料也没有完整定义 yaw 朝向、图标 key 命名空间、`rank_color` 格式、
+数字 `roster` 分类，或原始地图名到旧版数字资源的映射。前端只保留或展示
+原始值，不会编造解释；完整的不确定项列表见协议文档。
+
