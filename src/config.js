@@ -84,8 +84,8 @@ export function normalizeViewMode(value) {
     return value === VIEW_MODE_FREE ? VIEW_MODE_FREE : VIEW_MODE_FOLLOW;
 }
 
-export function defaultScaleForMode(mode) {
-    return mode === VIEW_MODE_FREE ? 1 : 1.5;
+export function defaultScaleForMode() {
+    return MIN_SCALE;
 }
 
 export function teamColorFor(team) {
@@ -124,7 +124,10 @@ export function loadSettings() {
     settings.manualPort = String(settings.manualPort || '').trim();
     settings.manualPath = normalizeWebSocketPath(settings.manualPath);
     settings.fontSize = clamp(Math.round(Number(settings.fontSize) || DEFAULT_SETTINGS.fontSize), 7, 32);
-    settings.viewMode = normalizeViewMode(settings.viewMode);
+    // Every page load starts in fixed-follow mode. View-mode changes are
+    // intentionally session-only so an old persisted free-view choice cannot
+    // move the focus away from the local player on the next launch.
+    settings.viewMode = VIEW_MODE_FOLLOW;
     return settings;
 }
 

@@ -144,6 +144,14 @@ column widths inside a horizontally scrollable viewport so the desktop layout
 can reserve the smallest table panel width and give the remaining width and
 height to the map stage.
 
+The responsive map stage is only an observation port. Its initial drawing
+surface is retained when the browser width or player-table visibility changes,
+so responsive layout changes crop or reveal content instead of rescaling map,
+ring, and player geometry. User-controlled zoom is clamped to 100%–300% for
+buttons, wheel input, and two-pointer pinch input. Page load defaults to fixed
+follow, which re-centers the selected player after zoom and observation-port
+changes.
+
 ## Ring fields
 
 | Field | JSON type | Unit/domain | Verified meaning and transformation | Frontend behavior |
@@ -204,7 +212,8 @@ The browser parser:
 | `src/state/store.js` | Atomic snapshots, selection, ordering, and frame interpolation |
 | `src/render/ring.js` | Map-only outside-zone filter and thin sky-blue ring boundary |
 | `src/render/entities.js` | Team links, local marker, player marker, vitals, and labels on the unaffected top canvas |
-| `src/render/radar.js` | Canvas sizing, square coordinate transform, pan/zoom/follow behavior |
+| `src/render/viewport.js` | Pure zoom bounds, gesture anchors, observation-port resize, and fixed-follow transform math |
+| `src/render/radar.js` | Fixed drawing-surface sizing, observation-port clipping, coordinate transform, and pan/zoom/follow behavior |
 | `src/ui/controls.js` | Connection inputs, display settings, focus selector, and table |
 | `src/assets/maps.js` | Exact map-name asset lookup with CDN-first and local fallback |
 | `src/main.js` | WebSocket lifecycle and module wiring |

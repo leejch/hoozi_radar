@@ -28,6 +28,8 @@ The HOOZi 3.0 version follows the checked-in Lua script instead:
   map consumes the remaining width and height
 - independent map-overlay switches and independent table columns for every
   verified non-coordinate player field
+- a fixed radar drawing surface behind a responsive observation port, with
+  100%–300% button, wheel, and pinch zoom
 
 Player positions and ring geometry are interpolated between Lua snapshots for
 the browser render loop. Unsupported HOOZi 2.0 fields are not synthesized.
@@ -68,6 +70,7 @@ hoozi_radar/
 │   ├── state/store.js            Snapshots, selection, and interpolation
 │   ├── render/ring.js            Map-only outside-ring filter and boundary
 │   ├── render/entities.js        Player canvas rendering above map effects
+│   ├── render/viewport.js        Pure zoom, anchor, resize, and follow math
 │   ├── render/radar.js           Render loop, sizing, follow, pan, and zoom
 │   ├── ui/controls.js            Controls, focus UI, and player table
 │   └── assets/maps.js            CDN-first image fallback
@@ -79,6 +82,19 @@ hoozi_radar/
 The old `app.js` monolith is removed. An inline module bootstrap in
 `index.html` detects unsupported `file://` launches and otherwise imports
 `./src/main.js` as the only application entry.
+
+## Radar observation port and zoom
+
+The responsive map panel is an observation port, not a drawing-scale input.
+The drawing surface is locked after the initial desktop column layout settles.
+Later window resizing or player-table visibility changes only alter the visible
+crop; they do not resize the map image, ring canvas, or player canvas.
+
+Radar zoom defaults to 100% and is strictly clamped to 100%–300%. The bottom-
+right minus/percentage/plus control, mouse wheel, and two-pointer pinch gesture
+all use the same bounded scale calculation. Free view keeps the map point under
+the gesture anchor stable. Fixed follow is the page-load default and always
+re-centers the selected player after zoom or observation-port resizing.
 
 ## Running locally
 

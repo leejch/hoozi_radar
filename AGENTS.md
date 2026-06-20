@@ -106,8 +106,10 @@ Module responsibilities:
   canvas between the map image and player overlays.
 - `src/render/entities.js`: pure canvas drawing for player entities above the
   ring effect so map filters never alter player information.
-- `src/render/radar.js`: canvas sizing, the 1000×1000 transform, render loop,
-  follow/free view, pan, pinch, and zoom.
+- `src/render/viewport.js`: pure, DOM-free zoom bounds, anchor, observation-port,
+  and fixed-follow transform calculations.
+- `src/render/radar.js`: fixed drawing-surface sizing, the 1000×1000 transform,
+  render loop, observation-port clipping, follow/free view, pan, pinch, and zoom.
 - `src/ui/controls.js`: DOM lookup, localized status/overlay updates, settings
   controls, player selector, focus metadata, and player table.
 - `src/assets/maps.js`: CDN-first image loading with local fallback and exact

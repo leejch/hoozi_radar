@@ -12,7 +12,7 @@ const translations = {
             playerTable: '玩家信息列表', playerTableShow: '显示'
         },
         map: {
-            reconnect: '重连', mapLabel: '地图', aliveLabel: '存活', zoomReset: '重置', focusLabel: '焦点',
+            reconnect: '重连', mapLabel: '地图', aliveLabel: '存活', zoomControls: '地图缩放', zoomOut: '缩小', zoomIn: '放大', focusLabel: '焦点',
             focusHealth: '血量', focusShield: '护盾', focusKills: '击杀'
         },
         table: {
@@ -51,7 +51,7 @@ const translations = {
             playerTable: '玩家資訊列表', playerTableShow: '顯示'
         },
         map: {
-            reconnect: '重新連線', mapLabel: '地圖', aliveLabel: '存活', zoomReset: '重設', focusLabel: '焦點',
+            reconnect: '重新連線', mapLabel: '地圖', aliveLabel: '存活', zoomControls: '地圖縮放', zoomOut: '縮小', zoomIn: '放大', focusLabel: '焦點',
             focusHealth: '血量', focusShield: '護盾', focusKills: '擊殺'
         },
         table: {
@@ -90,7 +90,7 @@ const translations = {
             playerTable: 'Player table fields', playerTableShow: 'Show'
         },
         map: {
-            reconnect: 'Reconnect', mapLabel: 'Map', aliveLabel: 'Alive', zoomReset: 'Reset', focusLabel: 'Focus',
+            reconnect: 'Reconnect', mapLabel: 'Map', aliveLabel: 'Alive', zoomControls: 'Map zoom', zoomOut: 'Zoom out', zoomIn: 'Zoom in', focusLabel: 'Focus',
             focusHealth: 'Health', focusShield: 'Shield', focusKills: 'Kills'
         },
         table: {

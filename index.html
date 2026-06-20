@@ -57,8 +57,10 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
 
         #mapViewport {
             position: absolute;
-            inset: 0;
+            top: 0;
+            left: 0;
             transform-origin: top left;
+            will-change: transform;
         }
 
         #mapViewport img,
@@ -543,16 +545,27 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
                             <span id="aliveCount" class="text-sm font-semibold text-white">0</span>
                         </div>
                     </div>
+                    <div id="mapZoomControls"
+                         class="absolute right-3 bottom-3 z-20 flex items-center gap-1 rounded-full border border-slate-700/80 bg-slate-950/85 p-1 text-xs text-slate-100 shadow-lg shadow-black/30 backdrop-blur-sm"
+                         role="group" aria-labelledby="zoomControlsLabel">
+                        <span id="zoomControlsLabel" class="sr-only" data-i18n="map.zoomControls">地图缩放</span>
+                        <button id="zoomOut" type="button"
+                                class="flex size-7 items-center justify-center rounded-full border border-slate-700 bg-slate-900/80 text-base font-semibold leading-none transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60 disabled:cursor-not-allowed disabled:opacity-35">
+                            <span aria-hidden="true">−</span>
+                            <span class="sr-only" data-i18n="map.zoomOut">缩小</span>
+                        </button>
+                        <output id="zoomValue" class="min-w-12 text-center font-mono text-[0.7rem] font-semibold tabular-nums text-slate-100"
+                                aria-live="polite">100%</output>
+                        <button id="zoomIn" type="button"
+                                class="flex size-7 items-center justify-center rounded-full border border-slate-700 bg-slate-900/80 text-base font-semibold leading-none transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60 disabled:cursor-not-allowed disabled:opacity-35">
+                            <span aria-hidden="true">+</span>
+                            <span class="sr-only" data-i18n="map.zoomIn">放大</span>
+                        </button>
+                    </div>
                 </div>
                 <div class="map-controls-outlet" data-role="map-controls-outlet">
                     <div id="mapControls"
                          class="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-slate-700/70 bg-slate-950/80 px-2.5 py-1.5 text-xs text-slate-200 lg:border-slate-700/60 lg:bg-slate-950/60">
-                        <div class="map-zoom-panel flex shrink-0 items-center gap-1.5">
-                            <button id="zoomReset" type="button"
-                                    class="rounded-full border border-slate-700 bg-slate-950/70 px-2.5 py-0.5 text-xs text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60">
-                                <span data-i18n="map.zoomReset">重置</span>
-                            </button>
-                        </div>
                         <div id="focusPanel" class="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
                             <span class="text-[0.6rem] uppercase text-slate-500" data-i18n="map.focusLabel">焦点</span>
                             <span id="focusTeamBadge" class="size-2 rounded-full bg-slate-500"></span>
