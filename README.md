@@ -24,8 +24,9 @@ The HOOZi 3.0 version follows the checked-in Lua script instead:
 - health, shield, down/dead state, legend, UID, level, kills, damage, rank,
   squad/team, roster metadata, and an optional ring
 - optional browser `ping` and Lua `pong`
-- a desktop layout that keeps table columns intrinsic and scrollable while the
-  map consumes the remaining width and height
+- a desktop layout that keeps table columns intrinsically sized and horizontally
+  scrollable while guaranteeing that the map viewport is never narrower than
+  it is tall
 - independent map-overlay switches and independent table columns for every
   verified non-coordinate player field
 - a fixed radar drawing surface behind a responsive observation port, with
@@ -72,6 +73,7 @@ hoozi_radar/
 │   ├── render/entities.js        Player canvas rendering above map effects
 │   ├── render/viewport.js        Pure zoom, anchor, resize, and follow math
 │   ├── render/radar.js           Render loop, sizing, follow, pan, and zoom
+│   ├── ui/layout.js              Map-first desktop column allocation
 │   ├── ui/controls.js            Controls, focus UI, and player table
 │   └── assets/maps.js            CDN-first image fallback
 ├── static/                       Local fallback images
@@ -95,6 +97,13 @@ right minus/percentage/plus control, mouse wheel, and two-pointer pinch gesture
 all use the same bounded scale calculation. Free view keeps the map point under
 the gesture anchor stable. Fixed follow is the page-load default and always
 re-centers the selected player after zoom or observation-port resizing.
+
+In the three-column desktop layout, the player-table panel is limited to a
+controlled 180–320px viewport and its intrinsic columns scroll horizontally.
+The map receives all remaining width. If that width cannot accommodate the full
+available height, the observation-port height is reduced until `width >= height`.
+The same allocation runs after window resizing, table field changes, snapshot
+content changes, and player-table visibility changes.
 
 ## Running locally
 

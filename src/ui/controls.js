@@ -1,11 +1,11 @@
 import { VIEW_MODE_FOLLOW, VIEW_MODE_FREE, saveSetting, teamColorFor } from '../config.js';
 import { formatPlayerStatus } from '../render/entities.js';
+import { allocateDesktopLayout } from './layout.js';
 
 const DESKTOP_QUERY = window.matchMedia('(min-width: 1024px)');
 const DESKTOP_CONFIG_WIDTH = 300;
-const DESKTOP_TABLE_MIN_WIDTH = 320;
-const DESKTOP_MAP_MIN_WIDTH = 320;
-const DESKTOP_COLUMN_GAPS = 10;
+const DESKTOP_TABLE_MIN_WIDTH = 180;
+const DESKTOP_TABLE_PREFERRED_WIDTH = 320;
 
 export function collectDomReferences(root = document) {
     const byId = (id) => root.getElementById(id);
@@ -17,6 +17,7 @@ export function collectDomReferences(root = document) {
         playerSelect: byId('sel_player'),
         viewModeFreeButton: byId('viewModeFree'),
         viewModeFollowButton: byId('viewModeFollow'),
+        mapStageContainer: root.querySelector('.map-stage-container'),
         mapStage: byId('mapStage'),
         mapViewport: byId('mapViewport'),
         mapImage: byId('mapImage'),
@@ -42,10 +43,6 @@ export function collectDomReferences(root = document) {
         connectionManualFields: root.querySelector('[data-role="connection-manual-fields"]'),
         downloadLatestButton: byId('downloadLatestButton'),
         playerTableSection: root.querySelector('[data-role="player-table-section"]'),
-        playerTableShell: root.querySelector('[data-role="player-table-shell"]'),
-        playerTableToolbar: root.querySelector('[data-role="player-table-toolbar"]'),
-        playerTableScroll: root.querySelector('[data-role="player-table-scroll"]'),
-        playerTableElement: root.querySelector('.player-table'),
         playerTableHeader: root.querySelector('[data-role="player-table-header"]'),
         playerTableBody: root.querySelector('[data-role="player-table-body"]'),
         settingInputs: [...root.querySelectorAll('input[data-setting]')],
@@ -100,32 +97,45 @@ function displayStatus(player, t) {
 export function createUiController({ refs, store, settings, t, onReconnect, onViewModeChange }) {
     let layoutFrame = 0;
 
-    function minimumTableViewportWidth() {
-        const toolbarWidth = refs.playerTableToolbar?.scrollWidth || 0;
-        const shellOverhead = refs.playerTableShell && refs.playerTableScroll
-            ? Math.max(0, refs.playerTableShell.offsetWidth - refs.playerTableScroll.clientWidth)
-            : 0;
-        return Math.max(DESKTOP_TABLE_MIN_WIDTH, Math.ceil(toolbarWidth + shellOverhead));
+    function layoutContentBox() {
+        const style = window.getComputedStyle(refs.layout);
+        const horizontalPadding = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+        const verticalPadding = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+        return {
+            width: Math.max(0, refs.layout.clientWidth - horizontalPadding),
+            height: Math.max(0, refs.layout.clientHeight - verticalPadding),
+            columnGap: parseFloat(style.columnGap) || 0
+        };
     }
 
     function syncDesktopLayout() {
         layoutFrame = 0;
         if (!DESKTOP_QUERY.matches) {
             refs.layout.style.removeProperty('grid-template-columns');
-            return;
-        }
-        if (!settings.tableVisible) {
-            refs.layout.style.gridTemplateColumns = `${DESKTOP_CONFIG_WIDTH}px minmax(0, 1fr)`;
+            refs.mapStageContainer.style.removeProperty('height');
+            delete refs.layout.dataset.mapAllocatedWidth;
+            delete refs.layout.dataset.mapAllocatedHeight;
+            delete refs.layout.dataset.tableAllocatedWidth;
             return;
         }
 
-        const availableWidth = refs.layout.clientWidth;
-        const maximumTableWidth = Math.max(
-            DESKTOP_TABLE_MIN_WIDTH,
-            availableWidth - DESKTOP_CONFIG_WIDTH - DESKTOP_MAP_MIN_WIDTH - DESKTOP_COLUMN_GAPS
-        );
-        const tableWidth = Math.min(minimumTableViewportWidth(), maximumTableWidth);
-        refs.layout.style.gridTemplateColumns = `${DESKTOP_CONFIG_WIDTH}px minmax(0, 1fr) ${Math.round(tableWidth)}px`;
+        const content = layoutContentBox();
+        const allocation = allocateDesktopLayout({
+            width: content.width,
+            height: content.height,
+            tableVisible: settings.tableVisible,
+            configWidth: DESKTOP_CONFIG_WIDTH,
+            columnGap: content.columnGap,
+            tableMinWidth: DESKTOP_TABLE_MIN_WIDTH,
+            tablePreferredWidth: DESKTOP_TABLE_PREFERRED_WIDTH
+        });
+        refs.layout.style.gridTemplateColumns = settings.tableVisible
+            ? `${allocation.configWidth}px minmax(0, 1fr) ${allocation.tableWidth}px`
+            : `${allocation.configWidth}px minmax(0, 1fr)`;
+        refs.mapStageContainer.style.height = `${allocation.mapHeight}px`;
+        refs.layout.dataset.mapAllocatedWidth = String(Math.floor(allocation.mapWidth));
+        refs.layout.dataset.mapAllocatedHeight = String(allocation.mapHeight);
+        refs.layout.dataset.tableAllocatedWidth = String(allocation.tableWidth);
     }
 
     function scheduleLayoutSync() {
@@ -324,6 +334,7 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
 
     window.addEventListener('resize', scheduleLayoutSync);
     if (typeof DESKTOP_QUERY.addEventListener === 'function') DESKTOP_QUERY.addEventListener('change', scheduleLayoutSync);
+    if ('ResizeObserver' in window) new ResizeObserver(scheduleLayoutSync).observe(refs.layout);
     document.fonts?.ready.then(scheduleLayoutSync);
 
     syncConnectionControls();

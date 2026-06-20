@@ -110,6 +110,8 @@ Module responsibilities:
   and fixed-follow transform calculations.
 - `src/render/radar.js`: fixed drawing-surface sizing, the 1000×1000 transform,
   render loop, observation-port clipping, follow/free view, pan, pinch, and zoom.
+- `src/ui/layout.js`: pure desktop column allocation that gives width to the map
+  before the horizontally scrollable player-table viewport.
 - `src/ui/controls.js`: DOM lookup, localized status/overlay updates, settings
   controls, player selector, focus metadata, and player table.
 - `src/assets/maps.js`: CDN-first image loading with local fallback and exact

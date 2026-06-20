@@ -140,9 +140,12 @@ therefore has no NPC category to render.
 
 All verified non-coordinate player fields have independent table visibility
 controls and default to visible. The table itself uses intrinsic, non-shrinking
-column widths inside a horizontally scrollable viewport so the desktop layout
-can reserve the smallest table panel width and give the remaining width and
-height to the map stage.
+column widths inside a horizontally scrollable viewport. Its desktop panel is
+limited to a controlled 180–320px allocation so table content cannot consume
+newly available page width. The map receives the remaining width, and its
+observation-port height is capped when necessary so map width is never less
+than map height. This allocation is repeated after table content, field
+visibility, table visibility, or page dimensions change.
 
 The responsive map stage is only an observation port. Its initial drawing
 surface is retained when the browser width or player-table visibility changes,
@@ -214,6 +217,7 @@ The browser parser:
 | `src/render/entities.js` | Team links, local marker, player marker, vitals, and labels on the unaffected top canvas |
 | `src/render/viewport.js` | Pure zoom bounds, gesture anchors, observation-port resize, and fixed-follow transform math |
 | `src/render/radar.js` | Fixed drawing-surface sizing, observation-port clipping, coordinate transform, and pan/zoom/follow behavior |
+| `src/ui/layout.js` | Pure map-first desktop column and observation-port allocation |
 | `src/ui/controls.js` | Connection inputs, display settings, focus selector, and table |
 | `src/assets/maps.js` | Exact map-name asset lookup with CDN-first and local fallback |
 | `src/main.js` | WebSocket lifecycle and module wiring |
