@@ -30,7 +30,7 @@ The HOOZi 3.0 version follows the checked-in Lua script instead:
 - independent map-overlay switches and independent table columns for every
   verified non-coordinate player field
 - a fixed square radar drawing surface behind a responsive observation port, with
-  100%–300% button, wheel, and pinch zoom
+  50%–300% button, wheel, and pinch zoom
 - validated JSON import and export of the current HOOZi `state` player data
 
 Player positions and ring geometry are interpolated between Lua snapshots for
@@ -90,15 +90,16 @@ The old `app.js` monolith is removed. An inline module bootstrap in
 ## Radar observation port and zoom
 
 The responsive map panel is an observation port, not a drawing-scale input.
-The drawing surface uses equal width and height. Its side is the larger initial
-observation-port dimension, so at 100% both map dimensions cover the port and
-the shorter observation axis is cropped instead of exposing empty space. The
-surface is then locked after the initial desktop column layout settles. This
-keeps map imagery, player coordinates, and ring circles on one uniform scale.
+The drawing surface uses equal width and height. Its side is the smaller initial
+observation-port dimension, so at 100% one map dimension exactly reaches the
+corresponding port edge while the complete square remains visible. The longer
+observation axis may contain empty space. The surface is then locked after the
+initial desktop column layout settles. This keeps map imagery, player
+coordinates, and ring circles on one uniform scale.
 Later window resizing or player-table visibility changes only alter the visible
 crop; they do not resize the map image, ring canvas, or player canvas.
 
-Radar zoom is strictly clamped to 100%–300%. Fixed follow is the page-load
+Radar zoom is strictly clamped to 50%–300%. Fixed follow is the page-load
 default and starts at 150%; selecting free view resets to a centered 100%, while
 selecting fixed follow resets to 150% and re-centers the selected player. The
 bottom-right minus/percentage/plus control, mouse wheel, and two-pointer pinch

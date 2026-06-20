@@ -163,11 +163,12 @@ This allocation is repeated after table content, field visibility, table
 visibility, or page dimensions change.
 
 The responsive map stage is only an observation port. Its initial square
-drawing-surface side is the larger observation-port dimension. At 100%, both
-map dimensions therefore cover the port and the shorter axis is cropped rather
-than exposing empty space. The surface is then retained when browser width or
-player-table visibility changes, preventing map images, circles, and player
-geometry from being stretched. User-controlled zoom is clamped to 100%–300%
+drawing-surface side is the smaller observation-port dimension. At 100%, one
+map dimension exactly reaches the corresponding port edge while the complete
+square remains visible; the longer observation axis may contain empty space.
+The surface is then retained when browser width or player-table visibility
+changes, preventing map images, circles, and player geometry from being
+stretched. User-controlled zoom is clamped to 50%–300%
 for buttons, wheel input, and two-pointer pinch input. Page load defaults to
 fixed follow at 150%. Selecting free view resets to a centered 100%; selecting
 fixed follow resets to 150% and re-centers the selected player.

@@ -18,14 +18,14 @@ import {
     translationForFollow
 } from '../src/render/viewport.js';
 
-test('a rectangular observation port creates a covering square map surface', () => {
+test('a rectangular observation port creates a short-edge-fitted square map surface', () => {
     assert.deepEqual(squareSurfaceForObservation({ width: 1280, height: 720 }), {
-        width: 1280,
-        height: 1280
+        width: 720,
+        height: 720
     });
     assert.deepEqual(squareSurfaceForObservation({ width: 540, height: 800 }), {
-        width: 800,
-        height: 800
+        width: 540,
+        height: 540
     });
 });
 
@@ -34,19 +34,20 @@ test('mode defaults are 150 percent follow and 100 percent free view', () => {
     assert.equal(defaultScaleForMode(VIEW_MODE_FREE), 1);
 });
 
-test('100 percent centers a square that covers both observation dimensions', () => {
+test('100 percent centers a square whose fitted edge reaches the observation edge', () => {
     const observation = { width: 1280, height: 720 };
     const surface = squareSurfaceForObservation(observation);
-    const translation = translationForCenteredSurface(surface, observation, MIN_SCALE);
+    const translation = translationForCenteredSurface(surface, observation, 1);
 
-    assert.deepEqual(translation, { x: 0, y: -280 });
-    assert.ok(surface.width * MIN_SCALE >= observation.width);
-    assert.ok(surface.height * MIN_SCALE >= observation.height);
+    assert.deepEqual(translation, { x: 280, y: 0 });
+    assert.equal(surface.height, observation.height);
+    assert.ok(surface.width < observation.width);
 });
 
-test('all zoom inputs share the strict 100% to 300% range', () => {
+test('all zoom inputs share the strict 50% to 300% range', () => {
     assert.equal(normalizeZoomScale(Number.NEGATIVE_INFINITY), MIN_SCALE);
     assert.equal(normalizeZoomScale(0.25), MIN_SCALE);
+    assert.equal(normalizeZoomScale(0.5), 0.5);
     assert.equal(normalizeZoomScale(1.3754), 1.375);
     assert.equal(normalizeZoomScale(9), MAX_SCALE);
     assert.equal(normalizeZoomScale(Number.POSITIVE_INFINITY), MIN_SCALE);

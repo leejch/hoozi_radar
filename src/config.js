@@ -9,7 +9,7 @@ export const DEFAULT_LOCAL_WS_TARGET = 'ws://127.0.0.1:9001';
 export const DEFAULT_WS_PORT = '9001';
 export const DEFAULT_WSS_PORT = '443';
 export const MAP_SIDE = 1000;
-export const MIN_SCALE = 1;
+export const MIN_SCALE = 0.5;
 export const MAX_SCALE = 3;
 export const VIEW_MODE_FOLLOW = 'follow';
 export const VIEW_MODE_FREE = 'free';
@@ -85,7 +85,7 @@ export function normalizeViewMode(value) {
 }
 
 export function defaultScaleForMode(mode) {
-    return mode === VIEW_MODE_FOLLOW ? 1.5 : MIN_SCALE;
+    return mode === VIEW_MODE_FOLLOW ? 1.5 : 1;
 }
 
 export function teamColorFor(team) {

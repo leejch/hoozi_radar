@@ -6,7 +6,7 @@ export function normalizeZoomScale(value) {
 
 export function squareSurfaceForObservation(observation) {
     if (![observation?.width, observation?.height].every(Number.isFinite)) return null;
-    const side = Math.max(observation.width, observation.height);
+    const side = Math.min(observation.width, observation.height);
     if (side <= 0) return null;
     return { width: side, height: side };
 }
