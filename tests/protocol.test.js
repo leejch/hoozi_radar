@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 
 import { HooziProtocolError, parseHoozi3Message, parseHoozi3StateFile } from '../src/protocol/hoozi3.js';
 import { createRadarStore } from '../src/state/store.js';
@@ -12,6 +13,15 @@ const basePlayer = {
     kills: 4, damage: 800, rank: 'Gold', rank_icon_key: 'gold',
     rank_color: '#fff', roster: 0
 };
+
+const requiredPlayerFields = [
+    'id', 'self', 'name', 'index', 'team', 'squad', 'x', 'y', 'yaw',
+    'hp', 'max_hp', 'shield', 'max_shield', 'distance', 'is_dead',
+    'is_down', 'legend', 'legend_icon_key', 'uid', 'level', 'kills',
+    'damage', 'rank', 'rank_icon_key', 'rank_color', 'roster'
+];
+
+const legacyPlayerFields = ['black', 'white', 'pro', 'hostile', 'pos'];
 
 test('normalizes the checked-in state payload without legacy field synthesis', () => {
     const message = parseHoozi3Message(JSON.stringify({
@@ -58,6 +68,43 @@ test('state-file import rejects non-state JSON messages', () => {
     }));
     assert.equal(state.kind, 'state');
     assert.equal(state.players.length, 1);
+});
+
+test('checked-in HOOZi 3.0 fixture is complete, importable, and legacy-free', async () => {
+    const fixtureText = await readFile(
+        new URL('./fixtures/hoozi3-state-example.json', import.meta.url),
+        'utf8'
+    );
+    const raw = JSON.parse(fixtureText);
+    const normalized = parseHoozi3StateFile(fixtureText);
+
+    assert.equal(raw.kind, 'state');
+    assert.equal(raw.map, 'mp_rr_arena_skygarden');
+    assert.equal(raw.players.length, 12);
+    assert.equal(normalized.players.length, raw.players.length);
+    assert.equal(raw.players.filter((player) => player.self).length, 1);
+    assert.equal(new Set(raw.players.map((player) => player.id)).size, raw.players.length);
+
+    for (const player of raw.players) {
+        for (const field of requiredPlayerFields) {
+            assert.equal(Object.hasOwn(player, field), true, `${player.id} is missing ${field}`);
+        }
+        for (const field of legacyPlayerFields) {
+            assert.equal(Object.hasOwn(player, field), false, `${player.id} contains legacy ${field}`);
+        }
+        assert.equal(typeof player.uid, 'string');
+        assert.equal(player.max_hp, 100);
+        assert.ok(player.x >= 0 && player.x <= 1000);
+        assert.ok(player.y >= 0 && player.y <= 1000);
+    }
+
+    assert.deepEqual(Object.keys(raw.ring).sort(), [
+        'radius', 't_end', 't_now', 't_start', 'x', 'y'
+    ]);
+    assert.ok(raw.ring.radius > 0);
+    assert.ok(raw.ring.t_start <= raw.ring.t_now);
+    assert.ok(raw.ring.t_now <= raw.ring.t_end);
+    assert.equal(normalized.ring.radius, raw.ring.radius);
 });
 
 test('an imported snapshot does not corrupt live server timestamp ordering', () => {
