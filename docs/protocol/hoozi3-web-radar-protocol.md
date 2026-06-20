@@ -162,6 +162,12 @@ wide as it is tall. Content beyond the capped table panel scrolls horizontally.
 This allocation is repeated after table content, field visibility, table
 visibility, or page dimensions change.
 
+Player markers use the same four-pixel radius for local and remote players.
+Normal marker outlines are one pixel and the selected outline is 1.5 pixels.
+The blue shield bar is drawn directly above the health bar with a shared edge;
+health fill is white and both bars use a 0.75-pixel dark border. Entity labels
+default to a 10-pixel font with a two-pixel dark outline.
+
 The responsive map stage is only an observation port. Its initial square
 drawing-surface side is the smaller observation-port dimension. At 100%, one
 map dimension exactly reaches the corresponding port edge while the complete

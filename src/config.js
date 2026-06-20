@@ -27,7 +27,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
     manualHost: '127.0.0.1',
     manualPort: DEFAULT_WS_PORT,
     manualPath: '',
-    fontSize: 11,
+    fontSize: 10,
     showName: true,
     showLegend: true,
     showHealth: true,

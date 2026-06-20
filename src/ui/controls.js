@@ -344,7 +344,7 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
     }
     refs.inputs.fontSize.value = String(settings.fontSize);
     refs.inputs.fontSize.addEventListener('change', () => {
-        settings.fontSize = Math.min(32, Math.max(7, Number(refs.inputs.fontSize.value) || 11));
+        settings.fontSize = Math.min(32, Math.max(7, Number(refs.inputs.fontSize.value) || 10));
         refs.inputs.fontSize.value = String(settings.fontSize);
         saveSetting('fontSize', settings.fontSize);
     });

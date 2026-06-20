@@ -1,5 +1,13 @@
 import { MAP_SIDE, teamColorFor } from '../config.js';
 
+const PLAYER_RADIUS = 4;
+const PLAYER_BORDER_WIDTH = 1;
+const SELECTED_BORDER_WIDTH = 1.5;
+const BAR_WIDTH = 28;
+const BAR_HEIGHT = 4;
+const BAR_BORDER_WIDTH = 0.75;
+const TEXT_OUTLINE_WIDTH = 2;
+
 function mapPoint(position, width, height) {
     const mapScale = Math.min(width, height) / MAP_SIDE;
     return {
@@ -19,7 +27,12 @@ function drawBar(ctx, x, y, width, height, value, maximum, color) {
     ctx.fillStyle = 'rgba(2, 6, 23, 0.82)';
     ctx.fillRect(x, y, width, height);
     ctx.fillStyle = color;
-    ctx.fillRect(x + 1, y + 1, Math.max(0, (width - 2) * ratio), Math.max(0, height - 2));
+    ctx.fillRect(
+        x + BAR_BORDER_WIDTH,
+        y + BAR_BORDER_WIDTH,
+        Math.max(0, (width - BAR_BORDER_WIDTH * 2) * ratio),
+        Math.max(0, height - BAR_BORDER_WIDTH * 2)
+    );
 }
 
 export function renderEntities(ctx, snapshot, settings, selectedPlayer, dimensions, t) {
@@ -60,9 +73,9 @@ export function renderEntities(ctx, snapshot, settings, selectedPlayer, dimensio
         ctx.globalAlpha = alpha;
         ctx.fillStyle = player.self ? '#FFFFFF' : teamColor;
         ctx.strokeStyle = selected ? '#FFFFFF' : 'rgba(2, 6, 23, 0.95)';
-        ctx.lineWidth = selected ? 3 : 1.5;
+        ctx.lineWidth = selected ? SELECTED_BORDER_WIDTH : PLAYER_BORDER_WIDTH;
         ctx.beginPath();
-        ctx.arc(point.x, point.y, player.self ? 6 : 5, 0, Math.PI * 2);
+        ctx.arc(point.x, point.y, PLAYER_RADIUS, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
 
@@ -84,13 +97,13 @@ export function renderEntities(ctx, snapshot, settings, selectedPlayer, dimensio
             ctx.stroke();
         }
 
-        let barY = point.y + 8;
-        if (settings.showHealth) {
-            drawBar(ctx, point.x - 14, barY, 28, 4, player.hp, player.max_hp, '#4ADE80');
-            barY += 5;
-        }
+        let barY = point.y + 7;
         if (settings.showShield) {
-            drawBar(ctx, point.x - 14, barY, 28, 4, player.shield, player.max_shield, '#60A5FA');
+            drawBar(ctx, point.x - BAR_WIDTH / 2, barY, BAR_WIDTH, BAR_HEIGHT, player.shield, player.max_shield, '#60A5FA');
+            barY += BAR_HEIGHT;
+        }
+        if (settings.showHealth) {
+            drawBar(ctx, point.x - BAR_WIDTH / 2, barY, BAR_WIDTH, BAR_HEIGHT, player.hp, player.max_hp, '#FFFFFF');
         }
 
         const parts = [];
@@ -112,7 +125,7 @@ export function renderEntities(ctx, snapshot, settings, selectedPlayer, dimensio
         ctx.globalAlpha = label.alpha;
         const y = label.point.y - 9;
         ctx.strokeStyle = 'rgba(2, 6, 23, 0.92)';
-        ctx.lineWidth = 3;
+        ctx.lineWidth = TEXT_OUTLINE_WIDTH;
         ctx.strokeText(label.text.slice(0, 72), label.point.x, y);
         ctx.fillStyle = label.color;
         ctx.fillText(label.text.slice(0, 72), label.point.x, y);
