@@ -84,8 +84,8 @@ export function normalizeViewMode(value) {
     return value === VIEW_MODE_FREE ? VIEW_MODE_FREE : VIEW_MODE_FOLLOW;
 }
 
-export function defaultScaleForMode() {
-    return MIN_SCALE;
+export function defaultScaleForMode(mode) {
+    return mode === VIEW_MODE_FOLLOW ? 1.5 : MIN_SCALE;
 }
 
 export function teamColorFor(team) {

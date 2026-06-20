@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-import { mapAssetName, mapDefinition, mapDisplayName } from '../src/assets/maps.js';
+import { createFallbackImageLoader, mapAssetName, mapDefinition, mapDisplayName } from '../src/assets/maps.js';
 
 const i18nSource = await readFile(new URL('../src/i18n.js', import.meta.url), 'utf8');
 
@@ -44,4 +44,30 @@ test('all six map names are present in all three supported languages', () => {
     ]) {
         assert.ok(i18nSource.includes(label), `missing localized map label: ${label}`);
     }
+});
+
+test('an image stays hidden until a requested asset finishes loading', () => {
+    const listeners = {};
+    const image = {
+        dataset: {},
+        hidden: false,
+        addEventListener(type, listener) {
+            listeners[type] = listener;
+        },
+        removeAttribute(name) {
+            if (name === 'src') delete this.src;
+        }
+    };
+    const loader = createFallbackImageLoader(image);
+
+    loader.load('4.png');
+    assert.equal(image.hidden, true);
+    assert.match(image.src, /\/4\.png$/);
+
+    listeners.load();
+    assert.equal(image.hidden, false);
+
+    loader.clear();
+    assert.equal(image.hidden, true);
+    assert.equal(Object.hasOwn(image, 'src'), false);
 });

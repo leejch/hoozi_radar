@@ -2,7 +2,8 @@ import {
     MAX_SCALE,
     MIN_SCALE,
     VIEW_MODE_FOLLOW,
-    VIEW_MODE_FREE
+    VIEW_MODE_FREE,
+    defaultScaleForMode
 } from '../config.js';
 import { renderEntities } from './entities.js';
 import { renderRingEffect } from './ring.js';
@@ -11,6 +12,7 @@ import {
     normalizeZoomScale,
     squareSurfaceForObservation,
     translationAfterObservationResize,
+    translationForCenteredSurface,
     translationForAnchor,
     translationForFollow
 } from './viewport.js';
@@ -119,9 +121,14 @@ export function createRadarRenderer({ refs, store, settings, t }) {
 
     function resetViewport() {
         const viewport = store.state.viewport;
-        viewport.scale = MIN_SCALE;
-        viewport.translateX = (viewportWidth - surface.width) / 2;
-        viewport.translateY = (viewportHeight - surface.height) / 2;
+        viewport.scale = defaultScaleForMode(store.state.viewMode);
+        const centered = translationForCenteredSurface(
+            surface,
+            { width: viewportWidth, height: viewportHeight },
+            viewport.scale
+        );
+        viewport.translateX = centered?.x || 0;
+        viewport.translateY = centered?.y || 0;
         if (store.state.viewMode !== VIEW_MODE_FOLLOW || !centerOn(selectedPosition())) applyTransform();
         syncZoomControls();
     }
@@ -151,8 +158,12 @@ export function createRadarRenderer({ refs, store, settings, t }) {
     function setViewMode(mode, recenter = true) {
         store.state.viewMode = mode === VIEW_MODE_FREE ? VIEW_MODE_FREE : VIEW_MODE_FOLLOW;
         settings.viewMode = store.state.viewMode;
-        if (recenter && store.state.viewMode === VIEW_MODE_FOLLOW) centerOn(selectedPosition());
-        else applyTransform();
+        if (recenter) resetViewport();
+        else {
+            store.state.viewport.scale = defaultScaleForMode(store.state.viewMode);
+            applyTransform();
+            syncZoomControls();
+        }
     }
 
     function renderFrame(now) {

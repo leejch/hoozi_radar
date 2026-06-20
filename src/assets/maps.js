@@ -27,6 +27,7 @@ export function createFallbackImageLoader(image, { onLoad, onMissing } = {}) {
     const loadSource = () => {
         const source = STATIC_SOURCES[sourceIndex];
         if (!source || !currentAsset) {
+            image.hidden = true;
             image.removeAttribute('src');
             onMissing?.(currentAsset);
             return;
@@ -35,9 +36,13 @@ export function createFallbackImageLoader(image, { onLoad, onMissing } = {}) {
         image.src = assetUrl(source.baseUrl, currentAsset);
     };
 
-    image.addEventListener('load', () => onLoad?.(currentAsset, image.dataset.assetSource));
+    image.addEventListener('load', () => {
+        image.hidden = false;
+        onLoad?.(currentAsset, image.dataset.assetSource);
+    });
     image.addEventListener('error', () => {
         if (!currentAsset) return;
+        image.hidden = true;
         sourceIndex += 1;
         loadSource();
     });
@@ -48,6 +53,7 @@ export function createFallbackImageLoader(image, { onLoad, onMissing } = {}) {
             requestToken += 1;
             currentAsset = normalized;
             sourceIndex = 0;
+            image.hidden = true;
             image.dataset.assetRequest = String(requestToken);
             if (!normalized) {
                 image.removeAttribute('src');
@@ -58,6 +64,7 @@ export function createFallbackImageLoader(image, { onLoad, onMissing } = {}) {
         clear() {
             requestToken += 1;
             currentAsset = '';
+            image.hidden = true;
             image.removeAttribute('src');
             delete image.dataset.assetSource;
         }

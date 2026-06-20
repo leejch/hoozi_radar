@@ -90,17 +90,25 @@ The old `app.js` monolith is removed. An inline module bootstrap in
 ## Radar observation port and zoom
 
 The responsive map panel is an observation port, not a drawing-scale input.
-The drawing surface uses equal width and height and is locked after the initial
-desktop column layout settles. This keeps map imagery, player coordinates, and
-ring circles on one uniform scale.
+The drawing surface uses equal width and height. Its side is the larger initial
+observation-port dimension, so at 100% both map dimensions cover the port and
+the shorter observation axis is cropped instead of exposing empty space. The
+surface is then locked after the initial desktop column layout settles. This
+keeps map imagery, player coordinates, and ring circles on one uniform scale.
 Later window resizing or player-table visibility changes only alter the visible
 crop; they do not resize the map image, ring canvas, or player canvas.
 
-Radar zoom defaults to 100% and is strictly clamped to 100%–300%. The bottom-
-right minus/percentage/plus control, mouse wheel, and two-pointer pinch gesture
-all use the same bounded scale calculation. Free view keeps the map point under
-the gesture anchor stable. Fixed follow is the page-load default and always
-re-centers the selected player after zoom or observation-port resizing.
+Radar zoom is strictly clamped to 100%–300%. Fixed follow is the page-load
+default and starts at 150%; selecting free view resets to a centered 100%, while
+selecting fixed follow resets to 150% and re-centers the selected player. The
+bottom-right minus/percentage/plus control, mouse wheel, and two-pointer pinch
+gesture all use the same bounded scale calculation. Free view keeps the map
+point under the gesture anchor stable.
+
+The map `<img>` has no initial `src` and remains hidden while disconnected,
+while trying fallbacks, or after a missing asset. It becomes visible only after
+a CDN or local map image has loaded successfully, so no broken-image placeholder
+is shown.
 
 In the three-column desktop layout, the player-table panel expands toward its
 current intrinsic content width, but never beyond 25% of the page content width.

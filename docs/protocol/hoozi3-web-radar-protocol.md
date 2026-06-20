@@ -162,14 +162,19 @@ wide as it is tall. Content beyond the capped table panel scrolls horizontally.
 This allocation is repeated after table content, field visibility, table
 visibility, or page dimensions change.
 
-The responsive map stage is only an observation port. Its initial drawing
-surface uses one equal width/height side derived from the available port and is
-then retained when the browser width or player-table visibility changes. This
-prevents map images, circles, and player geometry from being stretched while
-responsive layout changes only crop or reveal content. User-controlled zoom is clamped to 100%–300% for
-buttons, wheel input, and two-pointer pinch input. Page load defaults to fixed
-follow, which re-centers the selected player after zoom and observation-port
-changes.
+The responsive map stage is only an observation port. Its initial square
+drawing-surface side is the larger observation-port dimension. At 100%, both
+map dimensions therefore cover the port and the shorter axis is cropped rather
+than exposing empty space. The surface is then retained when browser width or
+player-table visibility changes, preventing map images, circles, and player
+geometry from being stretched. User-controlled zoom is clamped to 100%–300%
+for buttons, wheel input, and two-pointer pinch input. Page load defaults to
+fixed follow at 150%. Selecting free view resets to a centered 100%; selecting
+fixed follow resets to 150% and re-centers the selected player.
+
+The map image has no initial `src` and stays hidden until a CDN or local asset
+loads successfully. Empty, loading, and missing-map states cannot expose a
+browser broken-image placeholder.
 
 ## Ring fields
 

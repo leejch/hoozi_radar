@@ -20,3 +20,9 @@ test('automatic connection and fixed follow have persistent default selection st
     assert.match(indexHtml, /id="viewModeFollow"[\s\S]{0,180}data-selected="true"/);
     assert.match(generatedCss, /\[data-selected="true"\]/);
 });
+
+test('the unloaded map image has no source and remains hidden', () => {
+    const mapImageTag = indexHtml.match(/<img id="mapImage"[^>]*>/)?.[0] || '';
+    assert.match(mapImageTag, /\shidden(?:\s|>)/);
+    assert.doesNotMatch(mapImageTag, /\ssrc=/);
+});

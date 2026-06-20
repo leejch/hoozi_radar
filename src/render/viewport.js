@@ -6,9 +6,21 @@ export function normalizeZoomScale(value) {
 
 export function squareSurfaceForObservation(observation) {
     if (![observation?.width, observation?.height].every(Number.isFinite)) return null;
-    const side = Math.min(observation.width, observation.height);
+    const side = Math.max(observation.width, observation.height);
     if (side <= 0) return null;
     return { width: side, height: side };
+}
+
+export function translationForCenteredSurface(surface, observation, scale) {
+    if (![surface?.width, surface?.height, observation?.width, observation?.height].every(Number.isFinite)) {
+        return null;
+    }
+    if (surface.width <= 0 || surface.height <= 0 || observation.width <= 0 || observation.height <= 0) return null;
+    const normalizedScale = normalizeZoomScale(scale);
+    return {
+        x: (observation.width - surface.width * normalizedScale) / 2,
+        y: (observation.height - surface.height * normalizedScale) / 2
+    };
 }
 
 export function mapPointAtObservationPoint(point, viewport) {
