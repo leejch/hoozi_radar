@@ -79,7 +79,7 @@ test('checked-in HOOZi 3.0 fixture is complete, importable, and legacy-free', as
     const normalized = parseHoozi3StateFile(fixtureText);
 
     assert.equal(raw.kind, 'state');
-    assert.equal(raw.map, 'mp_rr_arena_skygarden');
+    assert.equal(raw.map, 'mp_rr_divided_moon_mu1');
     assert.equal(raw.players.length, 12);
     assert.equal(normalized.players.length, raw.players.length);
     assert.equal(raw.players.filter((player) => player.self).length, 1);

@@ -32,7 +32,7 @@ Lua script, not a hypothetical server or the older HOOZi 2.0 transport.
 {
   "kind": "state",
   "ts": 123.456,
-  "map": "mp_rr_canyonlands_64k_x_64k",
+  "map": "mp_rr_divided_moon_mu1",
   "players": [
     {
       "id": "ix7",
@@ -101,9 +101,24 @@ No other browser command is implemented by `web_radar.lua`.
 | --- | --- | --- | --- | --- |
 | `kind` | string | — | Literal `"state"` in `snapshot()` | Selects the state parser. Other kinds are not treated as snapshots. |
 | `ts` | number | `time.now()` seconds | Snapshot wall-clock value from Lua | Stored for ordering, diagnostics, and interpolation cadence. |
-| `map` | string | runtime map identifier | `game.world.map_name` | Selects `<map>.png` through CDN-first asset loading and is shown verbatim in the map debug badge. No numeric legacy alias is invented. |
+| `map` | string | runtime map identifier | `game.world.map_name` | Classifies known maps by the first underscore-delimited token after `mp_rr_`, loads the verified numeric asset through CDN-first fallback, and shows the localized map name. The raw value remains in the badge title for debugging. Unknown names retain exact-name `.png` lookup. |
 | `players` | array | — | Plain-table snapshots of non-NPC `game.entities.players` | Replaces the complete player set atomically; non-dead entries determine the live-player badge. |
 | `ring` | object or absent | map pixels and game-time values | Active `game.world.ring`, converted by Lua | Drives a thin sky-blue boundary and a dark, warm-tinted map-only filter outside the boundary. The effect layer sits below every player overlay. |
+
+### Verified map identifiers and assets
+
+Later underscore-delimited suffixes are variants and do not change the base
+map. For example, `mp_rr_canyonlands_mu1` and `mp_rr_canyonlands_mu2` both use
+`1.png`.
+
+| First token after `mp_rr_` | Base runtime name | Asset | Simplified Chinese | Traditional Chinese | English |
+| --- | --- | --- | --- | --- | --- |
+| `canyonlands` | `mp_rr_canyonlands` | `1.png` | 诸王峡谷 | 王者峽谷 | Kings Canyon |
+| `desertlands` | `mp_rr_desertlands` | `2.png` | 世界尽头 | 世界邊緣 | World's Edge |
+| `olympus` | `mp_rr_olympus` | `3.png` | 奥林匹斯 | 奧林匹斯 | Olympus |
+| `divided` | `mp_rr_divided_moon` | `4.png` | 残月 | 殘月 | Broken Moon |
+| `tropic` | `mp_rr_tropic_island` | `5.png` | 风暴点 | 暴風點 | Storm Point |
+| `nemesis` | `mp_rr_nemesis` | `6.png` | 电气区 | 電流區 | E-District |
 
 ## Player fields
 
@@ -115,7 +130,7 @@ No other browser command is implemented by `web_radar.lua`.
 | `index` | number or absent | entity index | `p.index` | Independently selectable table/export metadata; `id` remains the primary browser key. |
 | `team` | number | game team number | `p.team_num`, fallback `0` | Team color, teammate connection lines, and independent table column. |
 | `squad` | number | game squad identifier | `p.squad_id`, fallback `0` | Independent table column; no extra semantics are inferred. |
-| `x`, `y` | number or absent | 0–1000 map pixels | Lua calls `math.WorldToMapPixel(worldX, worldY, 1000, 1000)` and applies a two-second sticky cache | Scaled independently onto the maximized map stage. Players without both values are retained in state but not plotted; coordinates are intentionally omitted from table controls. |
+| `x`, `y` | number or absent | 0–1000 map pixels | Lua calls `math.WorldToMapPixel(worldX, worldY, 1000, 1000)` and applies a two-second sticky cache | Uniformly mapped onto a square drawing surface inside the observation port. Players without both values are retained in state but not plotted; coordinates are intentionally omitted from table controls. |
 | `yaw` | number | not specified by the checked API | `p.yaw` forwarded unchanged after finite-value validation | Retained and shown numerically. It is not converted into a map heading because the reference does not define its unit/orientation contract. |
 | `hp` | number | health points | `p.health`, fallback `0` | Independently controlled health bar, focus value, and table column. |
 | `max_hp` | number | health points | Literal `100` in Lua | Health ratio denominator. |
@@ -148,9 +163,10 @@ This allocation is repeated after table content, field visibility, table
 visibility, or page dimensions change.
 
 The responsive map stage is only an observation port. Its initial drawing
-surface is retained when the browser width or player-table visibility changes,
-so responsive layout changes crop or reveal content instead of rescaling map,
-ring, and player geometry. User-controlled zoom is clamped to 100%–300% for
+surface uses one equal width/height side derived from the available port and is
+then retained when the browser width or player-table visibility changes. This
+prevents map images, circles, and player geometry from being stretched while
+responsive layout changes only crop or reveal content. User-controlled zoom is clamped to 100%–300% for
 buttons, wheel input, and two-pointer pinch input. Page load defaults to fixed
 follow, which re-centers the selected player after zoom and observation-port
 changes.
@@ -176,7 +192,7 @@ origin or radius conversion fails, the entire `ring` property is omitted.
 | `player.pos.x`, `player.pos.y` | Flat `player.x`, `player.y` | Normalize to a single internal `{x,y}` position. |
 | Local player identified by name `"<hoozi>"` | `player.self` | Selection and focus use `self` and stable `id`. |
 | Incoming coordinates interpreted inside a 1920×1080 frame with a 1015-pixel crop | Lua-produced 0–1000 square coordinates | Removed legacy offsets/crop; render directly against the square map. |
-| Numeric map IDs `1`–`6`, sentinel `-1`/`0` | `game.world.map_name` string, empty string outside a known map | Use the exact non-empty string. Empty map means no active map. Numeric local assets remain legacy files and are not assigned to raw map strings without a verified mapping. |
+| Numeric map IDs `1`–`6`, sentinel `-1`/`0` | `game.world.map_name` string, empty string outside a known map | Preserve the raw string, classify its verified first token, and select `1.png`–`6.png` using the table above. Empty map means no active map; unknown names keep exact-name lookup. |
 | `uidShort` plus XOR-derived `uidLong` | Exact `uid = p.platform_uid` | Removed the undocumented XOR conversion and duplicate UID columns. |
 | `pro`, `black`, `white`, `hostile` | No verified field | Removed tag/filter behavior. |
 | Threshold-generated “danger/high kills/low level” protocol semantics | `level` and `kills` are plain values | Values remain displayable; the migration does not claim protocol-level suspicion semantics. |
@@ -211,9 +227,11 @@ The player-information toolbar exports the latest complete raw `state` message
 as JSON. Imported files must use a `.json` filename and must parse as a `state`
 message through this same boundary; `pong`, unknown kinds, invalid JSON, and a
 non-array `players` value are rejected without changing frontend state. An
-accepted imported snapshot is display-only with respect to server ordering: it
-does not replace the last accepted live timestamp, and the next valid live
-snapshot resumes without interpolation from test data.
+accepted imported snapshot enters offline preview: active connection and retry
+timers are stopped, and no automatic reconnect occurs until the user explicitly
+uses a connection/reconnect control. It also remains display-only with respect
+to server ordering: it does not replace the last accepted live timestamp, and
+the next valid live snapshot resumes without interpolation from test data.
 
 ## Affected frontend modules
 
@@ -228,7 +246,7 @@ snapshot resumes without interpolation from test data.
 | `src/ui/layout.js` | Pure map-first desktop column and observation-port allocation |
 | `src/ui/player-data.js` | JSON import/export filename validation and creation |
 | `src/ui/controls.js` | Connection inputs, display settings, focus selector, and table |
-| `src/assets/maps.js` | Exact map-name asset lookup with CDN-first and local fallback |
+| `src/assets/maps.js` | Verified raw-map token mapping, localized labels, and CDN-first/local asset fallback |
 | `src/main.js` | WebSocket lifecycle and module wiring |
 
 ## Unconfirmed values and runtime checks
@@ -240,7 +258,3 @@ snapshot resumes without interpolation from test data.
   `rank_color` are not documented. They are preserved but not interpreted.
 - The semantic categories represented by numeric `roster` values are not
   documented. The value is not mapped to legacy roster tags.
-- The reference snapshot provides no verified mapping between raw
-  `game.world.map_name` values and legacy numeric `static/1.png`–`6.png`
-  assets. Exact-name CDN/local lookup is implemented; aliases require verified
-  runtime data or an authoritative map manifest.

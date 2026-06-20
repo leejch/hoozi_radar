@@ -1,9 +1,10 @@
 import { MAP_SIDE, teamColorFor } from '../config.js';
 
 function mapPoint(position, width, height) {
+    const mapScale = Math.min(width, height) / MAP_SIDE;
     return {
-        x: (position.x / MAP_SIDE) * width,
-        y: (position.y / MAP_SIDE) * height
+        x: position.x * mapScale,
+        y: position.y * mapScale
     };
 }
 

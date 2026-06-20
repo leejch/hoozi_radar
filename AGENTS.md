@@ -67,8 +67,10 @@ Important limits:
   protocol change.
 - `yaw` orientation/units, icon-key namespaces, `rank_color` format, and
   numeric `roster` semantics are not fully documented. Do not guess.
-- `game.world.map_name` is a raw string. Do not map it to legacy numeric local
-  assets without an authoritative manifest.
+- `game.world.map_name` is a raw string. The verified base-map mapping is the
+  first underscore-delimited token after `mp_rr_`: `canyonlands` → `1.png`,
+  `desertlands` → `2.png`, `olympus` → `3.png`, `divided` → `4.png`,
+  `tropic` → `5.png`, and `nemesis` → `6.png`. Ignore later variant suffixes.
 - HOOZi 2.0 `pro`, `black`, `white`, `hostile`, nested `pos`, numeric map
   sentinel, UID XOR conversion, 1920×1080 crop, port 2334, and `/ws` defaults
   are legacy-only behavior.
@@ -116,8 +118,8 @@ Module responsibilities:
 - `src/ui/controls.js`: DOM lookup, localized status/overlay updates, settings
   controls, player selector, focus metadata, validated JSON import/export, and
   player table.
-- `src/assets/maps.js`: CDN-first image loading with local fallback and exact
-  map asset naming.
+- `src/assets/maps.js`: verified raw-map token mapping, localized base-map
+  labels, and CDN-first image loading with local fallback.
 - `docs/protocol/hoozi3-web-radar-protocol.md`: implemented protocol, verified
   mappings, legacy removals, and uncertainties.
 - `static/`: local fallback assets.
@@ -133,9 +135,10 @@ The required source order is:
 1. `https://img.hoozi.net/static/`
 2. local `./static/`
 
-Do not reverse the order based on page protocol. Map lookup currently uses the
-exact `game.world.map_name` plus `.png`. Opaque legend/rank icon keys must not
-be turned into URLs until their namespace and file contract are documented.
+Do not reverse the order based on page protocol. Known raw map names use the
+verified first-token mapping above; unknown names retain exact-name `.png`
+lookup for forward compatibility. Opaque legend/rank icon keys must not be
+turned into URLs until their namespace and file contract are documented.
 
 ## Localization
 

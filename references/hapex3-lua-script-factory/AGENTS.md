@@ -69,6 +69,23 @@ for _ in pairs(game.entities.loots) do n = n + 1 end
 
 `game.entities.{players,loots,projectiles}` are userdata-backed tables. `pairs` works, `#` returns 0 / undefined.
 
+### Verified `game.world.map_name` identifiers
+
+The HOOZi 3.0 runtime returns raw map strings beginning with `mp_rr_`. For map
+classification, read only the first underscore-delimited token after
+`mp_rr_`; later suffixes are runtime variants and do not change the base map.
+For example, `mp_rr_canyonlands`, `mp_rr_canyonlands_mu1`, and
+`mp_rr_canyonlands_mu2` all identify Kings Canyon.
+
+| First token after `mp_rr_` | Base runtime name | Map |
+|---|---|---|
+| `canyonlands` | `mp_rr_canyonlands` | Kings Canyon |
+| `desertlands` | `mp_rr_desertlands` | World's Edge |
+| `olympus` | `mp_rr_olympus` | Olympus |
+| `divided` | `mp_rr_divided_moon` | Broken Moon |
+| `tropic` | `mp_rr_tropic_island` | Storm Point |
+| `nemesis` | `mp_rr_nemesis` | E-District |
+
 ### Resources are auto-cleaned on script unload
 
 Don't manually subscribe to `script_unloaded` for these — they release automatically:

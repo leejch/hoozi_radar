@@ -4,6 +4,13 @@ export function normalizeZoomScale(value) {
     return Math.round(clampScale(value) * 1000) / 1000;
 }
 
+export function squareSurfaceForObservation(observation) {
+    if (![observation?.width, observation?.height].every(Number.isFinite)) return null;
+    const side = Math.min(observation.width, observation.height);
+    if (side <= 0) return null;
+    return { width: side, height: side };
+}
+
 export function mapPointAtObservationPoint(point, viewport) {
     const scale = normalizeZoomScale(viewport.scale);
     if (!Number.isFinite(point?.x) || !Number.isFinite(point?.y)) return null;

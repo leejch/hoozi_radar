@@ -9,6 +9,7 @@ import { renderRingEffect } from './ring.js';
 import {
     mapPointAtObservationPoint,
     normalizeZoomScale,
+    squareSurfaceForObservation,
     translationAfterObservationResize,
     translationForAnchor,
     translationForFollow
@@ -49,12 +50,14 @@ export function createRadarRenderer({ refs, store, settings, t }) {
 
     function initializeSurface(width, height) {
         if (surface.width || !width || !height) return;
-        surface.width = width;
-        surface.height = height;
-        refs.mapViewport.style.width = `${width}px`;
-        refs.mapViewport.style.height = `${height}px`;
-        refs.mapViewport.dataset.surfaceWidth = String(Math.round(width));
-        refs.mapViewport.dataset.surfaceHeight = String(Math.round(height));
+        const squareSurface = squareSurfaceForObservation({ width, height });
+        if (!squareSurface) return;
+        surface.width = squareSurface.width;
+        surface.height = squareSurface.height;
+        refs.mapViewport.style.width = `${surface.width}px`;
+        refs.mapViewport.style.height = `${surface.height}px`;
+        refs.mapViewport.dataset.surfaceWidth = String(Math.round(surface.width));
+        refs.mapViewport.dataset.surfaceHeight = String(Math.round(surface.height));
         resizeCanvases();
     }
 

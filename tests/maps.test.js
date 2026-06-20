@@ -1,0 +1,47 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+
+import { mapAssetName, mapDefinition, mapDisplayName } from '../src/assets/maps.js';
+
+const i18nSource = await readFile(new URL('../src/i18n.js', import.meta.url), 'utf8');
+
+const knownMaps = [
+    ['mp_rr_canyonlands', '1.png', 'maps.kingsCanyon'],
+    ['mp_rr_desertlands', '2.png', 'maps.worldsEdge'],
+    ['mp_rr_olympus', '3.png', 'maps.olympus'],
+    ['mp_rr_divided_moon', '4.png', 'maps.brokenMoon'],
+    ['mp_rr_tropic_island', '5.png', 'maps.stormPoint'],
+    ['mp_rr_nemesis', '6.png', 'maps.eDistrict']
+];
+
+test('known HOOZi map tokens resolve to the six numeric radar assets', () => {
+    for (const [mapName, assetName, translationKey] of knownMaps) {
+        assert.equal(mapAssetName(mapName), assetName);
+        assert.equal(mapDefinition(mapName)?.translationKey, translationKey);
+    }
+});
+
+test('map matching uses the first token after mp_rr and accepts runtime suffixes', () => {
+    assert.equal(mapAssetName('mp_rr_canyonlands_mu1'), '1.png');
+    assert.equal(mapAssetName('mp_rr_canyonlands_mu2'), '1.png');
+    assert.equal(mapAssetName('mp_rr_divided_moon_mu1'), '4.png');
+    assert.equal(mapAssetName('mp_rr_tropic_island_mu2'), '5.png');
+});
+
+test('unknown raw map names keep exact-name loading and debug display', () => {
+    const t = (key) => `translated:${key}`;
+    assert.equal(mapAssetName('mp_rr_unknown_variant'), 'mp_rr_unknown_variant.png');
+    assert.equal(mapDisplayName('mp_rr_unknown_variant', t), 'mp_rr_unknown_variant');
+    assert.equal(mapDisplayName('mp_rr_nemesis_mu1', t), 'translated:maps.eDistrict');
+});
+
+test('all six map names are present in all three supported languages', () => {
+    for (const label of [
+        '诸王峡谷', '世界尽头', '奥林匹斯', '残月', '风暴点', '电气区',
+        '王者峽谷', '世界邊緣', '奧林匹斯', '殘月', '暴風點', '電流區',
+        'Kings Canyon', "World's Edge", 'Olympus', 'Broken Moon', 'Storm Point', 'E-District'
+    ]) {
+        assert.ok(i18nSource.includes(label), `missing localized map label: ${label}`);
+    }
+});

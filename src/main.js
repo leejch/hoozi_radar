@@ -1,4 +1,4 @@
-import { getConnectionTarget, loadSettings } from './config.js';
+import { createReconnectPolicy, getConnectionTarget, loadSettings } from './config.js';
 import { applyTranslations, t } from './i18n.js';
 import { createFallbackImageLoader, mapAssetName } from './assets/maps.js';
 import {
@@ -23,7 +23,7 @@ const settings = loadSettings();
 const store = createRadarStore(settings);
 let reconnectTimer = null;
 let pingTimer = null;
-let manualDisconnect = false;
+const reconnectPolicy = createReconnectPolicy();
 
 const radar = createRadarRenderer({ refs, store, settings, t });
 
@@ -57,6 +57,7 @@ const ui = createUiController({
     onViewModeChange: (mode) => radar.setViewMode(mode),
     onImportPlayerData: (raw) => {
         const message = parseHoozi3StateFile(raw);
+        pauseForImportedPreview();
         applyStateMessage(message, raw, { imported: true });
         return message.players.length;
     }
@@ -85,8 +86,16 @@ function detachSocket() {
     }
 }
 
+function pauseForImportedPreview() {
+    reconnectPolicy.suspend();
+    clearTimers();
+    detachSocket();
+    store.state.connection = 'preview';
+    setConnectionStatus(refs, 'waiting', t('status.importedPreview'));
+}
+
 function scheduleReconnect() {
-    if (manualDisconnect || settings.connectionMode !== 'auto' || reconnectTimer !== null) return;
+    if (!reconnectPolicy.canSchedule(settings.connectionMode, reconnectTimer !== null)) return;
     reconnectTimer = window.setTimeout(() => {
         reconnectTimer = null;
         connect();
@@ -125,7 +134,7 @@ function handleMessage(raw) {
 }
 
 function connect() {
-    manualDisconnect = false;
+    reconnectPolicy.resume();
     clearTimers();
     detachSocket();
     if (store.state.mapName && !store.state.mapLoaded) refs.mapImage.dataset.mapName = '';
@@ -177,7 +186,7 @@ function connect() {
 }
 
 window.addEventListener('beforeunload', () => {
-    manualDisconnect = true;
+    reconnectPolicy.suspend();
     clearTimers();
     detachSocket();
     radar.stop();

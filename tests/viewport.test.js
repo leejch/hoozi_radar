@@ -5,10 +5,22 @@ import { MAX_SCALE, MIN_SCALE } from '../src/config.js';
 import {
     mapPointAtObservationPoint,
     normalizeZoomScale,
+    squareSurfaceForObservation,
     translationAfterObservationResize,
     translationForAnchor,
     translationForFollow
 } from '../src/render/viewport.js';
+
+test('a rectangular observation port creates a square, non-stretched map surface', () => {
+    assert.deepEqual(squareSurfaceForObservation({ width: 1280, height: 720 }), {
+        width: 720,
+        height: 720
+    });
+    assert.deepEqual(squareSurfaceForObservation({ width: 540, height: 800 }), {
+        width: 540,
+        height: 540
+    });
+});
 
 test('all zoom inputs share the strict 100% to 300% range', () => {
     assert.equal(normalizeZoomScale(Number.NEGATIVE_INFINITY), MIN_SCALE);

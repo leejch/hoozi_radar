@@ -783,7 +783,21 @@ Per-`ProjectileEntity` fields:
 | Field | Type | Description |
 |---|---|---|
 | `ring` | table | `{origin=Vec3, radius_start=N, radius_end=N, time_start=N, time_end=N, is_active=bool}`; radius / origin are in game units (≈ inches), divide by 39.37 for meters |
-| `map_name` | string | Current map string |
+| `map_name` | string | Current raw map string. It begins with `mp_rr_`; classify the supported base map by the first underscore-delimited token after that prefix so runtime suffixes such as `_mu1` and `_mu2` do not change the map identity. |
+
+### Verified `map_name` base identifiers
+
+| First token after `mp_rr_` | Base runtime name | Simplified Chinese | Traditional Chinese | English |
+|---|---|---|---|---|
+| `canyonlands` | `mp_rr_canyonlands` | 诸王峡谷 | 王者峽谷 | Kings Canyon |
+| `desertlands` | `mp_rr_desertlands` | 世界尽头 | 世界邊緣 | World's Edge |
+| `olympus` | `mp_rr_olympus` | 奥林匹斯 | 奧林匹斯 | Olympus |
+| `divided` | `mp_rr_divided_moon` | 残月 | 殘月 | Broken Moon |
+| `tropic` | `mp_rr_tropic_island` | 风暴点 | 暴風點 | Storm Point |
+| `nemesis` | `mp_rr_nemesis` | 电气区 | 電流區 | E-District |
+
+Match only this first token. For example, `mp_rr_canyonlands_mu1` and
+`mp_rr_canyonlands_mu2` are both Kings Canyon.
 
 ---
 
@@ -799,7 +813,8 @@ for _, p in pairs(game.entities.players) do
     end
 end
 
-if game.world.map_name == "mp_rr_arena_skygarden" then
+local map_token = string.match(game.world.map_name or "", "^mp_rr_([^_]+)")
+if map_token == "canyonlands" then
     -- ...
 end
 ```

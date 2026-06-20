@@ -1,4 +1,5 @@
 import { VIEW_MODE_FOLLOW, VIEW_MODE_FREE, saveSetting, teamColorFor } from '../config.js';
+import { mapDisplayName } from '../assets/maps.js';
 import { formatPlayerStatus } from '../render/entities.js';
 import { allocateDesktopLayout } from './layout.js';
 import { currentPlayerExportFileName, isJsonFileName } from './player-data.js';
@@ -298,9 +299,9 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
 
     function updateSnapshot(snapshot) {
         const players = snapshot?.players || [];
-        const mapName = snapshot?.map || '—';
-        refs.mapName.textContent = mapName;
-        refs.mapName.title = mapName;
+        const rawMapName = snapshot?.map || '';
+        refs.mapName.textContent = mapDisplayName(rawMapName, t);
+        refs.mapName.title = rawMapName || '—';
         refs.aliveCount.textContent = String(players.filter((player) => !player.is_dead).length);
         populatePlayerSelect(players);
         updateFocus(players);

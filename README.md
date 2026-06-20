@@ -18,7 +18,7 @@ The HOOZi 3.0 version follows the checked-in Lua script instead:
 
 - local WebSocket endpoint: `ws://127.0.0.1:9001`
 - full `state` snapshots selected by `kind`
-- raw `game.world.map_name` strings
+- raw `game.world.map_name` strings with verified first-token aliases for the six numeric map assets
 - flat `x`/`y` coordinates in a 1000×1000 map domain
 - stable player `id` and explicit `self`
 - health, shield, down/dead state, legend, UID, level, kills, damage, rank,
@@ -29,7 +29,7 @@ The HOOZi 3.0 version follows the checked-in Lua script instead:
   it is tall
 - independent map-overlay switches and independent table columns for every
   verified non-coordinate player field
-- a fixed radar drawing surface behind a responsive observation port, with
+- a fixed square radar drawing surface behind a responsive observation port, with
   100%–300% button, wheel, and pinch zoom
 - validated JSON import and export of the current HOOZi `state` player data
 
@@ -90,7 +90,9 @@ The old `app.js` monolith is removed. An inline module bootstrap in
 ## Radar observation port and zoom
 
 The responsive map panel is an observation port, not a drawing-scale input.
-The drawing surface is locked after the initial desktop column layout settles.
+The drawing surface uses equal width and height and is locked after the initial
+desktop column layout settles. This keeps map imagery, player coordinates, and
+ring circles on one uniform scale.
 Later window resizing or player-table visibility changes only alter the visible
 crop; they do not resize the map image, ring canvas, or player canvas.
 
@@ -111,8 +113,10 @@ The player-information toolbar exports the latest complete `state` JSON as the
 current player data. The adjacent import control accepts `.json` files only and
 runs them through the same HOOZi 3.0 protocol validator before applying them.
 Invalid JSON, non-`state` messages, and malformed player arrays do not modify
-the current radar state. Imported test data does not alter live WebSocket
-timestamp ordering; the next valid live snapshot can take over normally.
+the current radar state. A valid import enters offline preview, stops the active
+socket and automatic retry timer, and remains stable until the user explicitly
+connects again. Imported test data does not alter live WebSocket timestamp
+ordering; the next valid live snapshot can take over normally.
 
 ## Running locally
 
@@ -165,10 +169,11 @@ Images are loaded in this order:
 1. `https://img.hoozi.net/static/`
 2. local `./static/`
 
-For a Lua map value such as `mp_rr_example`, the frontend requests
-`mp_rr_example.png`. The repository still contains legacy numeric local map
-files, but no numeric-to-runtime map alias is applied because the checked
-references do not define one.
+Known maps are classified by the first underscore-delimited token after
+`mp_rr_`; later runtime suffixes such as `_mu1` and `_mu2` are ignored. The
+verified asset order is `canyonlands` → `1.png`, `desertlands` → `2.png`,
+`olympus` → `3.png`, `divided` → `4.png`, `tropic` → `5.png`, and `nemesis` →
+`6.png`. Unknown raw names retain exact-name `<map>.png` lookup.
 
 Legend and rank icon keys are preserved in normalized state and exported
 snapshots. They are not converted into URLs until an authoritative asset-key
@@ -191,8 +196,7 @@ namespace is available.
 
 The checked-in Lua script does not send loot or projectile arrays, so the
 frontend cannot render them. It also does not document yaw orientation, the
-icon-key namespaces, the `rank_color` format, numeric roster categories, or a
-raw-map-name to legacy numeric-asset mapping. These values are retained or
-reported without invented interpretation; see the protocol document for the
-full uncertainty list.
+icon-key namespaces, the `rank_color` format, or numeric roster categories.
+These values are retained or reported without invented interpretation; see the
+protocol document for the full uncertainty list.
 
