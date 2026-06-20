@@ -207,6 +207,14 @@ The browser parser:
 - keeps a player in lists when coordinates are absent, but does not plot it;
 - treats an incomplete or non-finite ring as absent.
 
+The player-information toolbar exports the latest complete raw `state` message
+as JSON. Imported files must use a `.json` filename and must parse as a `state`
+message through this same boundary; `pong`, unknown kinds, invalid JSON, and a
+non-array `players` value are rejected without changing frontend state. An
+accepted imported snapshot is display-only with respect to server ordering: it
+does not replace the last accepted live timestamp, and the next valid live
+snapshot resumes without interpolation from test data.
+
 ## Affected frontend modules
 
 | Module | Responsibility |
@@ -218,6 +226,7 @@ The browser parser:
 | `src/render/viewport.js` | Pure zoom bounds, gesture anchors, observation-port resize, and fixed-follow transform math |
 | `src/render/radar.js` | Fixed drawing-surface sizing, observation-port clipping, coordinate transform, and pan/zoom/follow behavior |
 | `src/ui/layout.js` | Pure map-first desktop column and observation-port allocation |
+| `src/ui/player-data.js` | JSON import/export filename validation and creation |
 | `src/ui/controls.js` | Connection inputs, display settings, focus selector, and table |
 | `src/assets/maps.js` | Exact map-name asset lookup with CDN-first and local fallback |
 | `src/main.js` | WebSocket lifecycle and module wiring |

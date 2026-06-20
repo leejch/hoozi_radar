@@ -112,8 +112,10 @@ Module responsibilities:
   render loop, observation-port clipping, follow/free view, pan, pinch, and zoom.
 - `src/ui/layout.js`: pure desktop column allocation that gives width to the map
   before the horizontally scrollable player-table viewport.
+- `src/ui/player-data.js`: pure JSON filename checks and export filename creation.
 - `src/ui/controls.js`: DOM lookup, localized status/overlay updates, settings
-  controls, player selector, focus metadata, and player table.
+  controls, player selector, focus metadata, validated JSON import/export, and
+  player table.
 - `src/assets/maps.js`: CDN-first image loading with local fallback and exact
   map asset naming.
 - `docs/protocol/hoozi3-web-radar-protocol.md`: implemented protocol, verified

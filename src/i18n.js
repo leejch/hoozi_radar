@@ -8,7 +8,8 @@ const translations = {
             toggleName: '昵称', toggleLegend: '英雄', toggleHealth: '血量', toggleShield: '护盾',
             toggleLevel: '等级', toggleRank: '段位', toggleCombat: '战绩', toggleRoster: '名册',
             toggleTeamLinks: '同队连线', toggleRing: '安全区', filters: '玩家过滤', showDead: '显示死亡玩家',
-            showDown: '显示倒地玩家', fontSize: '字体大小', downloadLatest: '导出状态快照',
+            showDown: '显示倒地玩家', fontSize: '字体大小', importPlayerData: '导入玩家数据',
+            exportCurrentPlayers: '导出当前玩家信息',
             playerTable: '玩家信息列表', playerTableShow: '显示'
         },
         map: {
@@ -16,7 +17,9 @@ const translations = {
             focusHealth: '血量', focusShield: '护盾', focusKills: '击杀'
         },
         table: {
-            title: 'HOOZi 3.0 玩家信息', empty: '等待玩家数据',
+            title: '玩家信息列表', empty: '等待玩家数据', importJsonOnly: '仅允许导入 JSON 文件',
+            importInvalid: '导入失败：JSON 内容不符合 HOOZi state 数据格式',
+            importSuccess: '已导入 {count} 名玩家',
             columns: {
                 self: '本机', id: '稳定 ID', index: '索引', team: '队伍', squad: '小队', name: '昵称',
                 legend: '英雄', legendIconKey: '英雄图标 Key', uid: '平台 UID', hp: '血量', maxHp: '最大血量',
@@ -47,7 +50,8 @@ const translations = {
             toggleName: '暱稱', toggleLegend: '英雄', toggleHealth: '血量', toggleShield: '護盾',
             toggleLevel: '等級', toggleRank: '段位', toggleCombat: '戰績', toggleRoster: '名冊',
             toggleTeamLinks: '同隊連線', toggleRing: '安全區', filters: '玩家篩選', showDead: '顯示死亡玩家',
-            showDown: '顯示倒地玩家', fontSize: '字體大小', downloadLatest: '匯出狀態快照',
+            showDown: '顯示倒地玩家', fontSize: '字體大小', importPlayerData: '匯入玩家資料',
+            exportCurrentPlayers: '匯出目前玩家資訊',
             playerTable: '玩家資訊列表', playerTableShow: '顯示'
         },
         map: {
@@ -55,7 +59,9 @@ const translations = {
             focusHealth: '血量', focusShield: '護盾', focusKills: '擊殺'
         },
         table: {
-            title: 'HOOZi 3.0 玩家資訊', empty: '等待玩家資料',
+            title: '玩家資訊列表', empty: '等待玩家資料', importJsonOnly: '僅允許匯入 JSON 檔案',
+            importInvalid: '匯入失敗：JSON 內容不符合 HOOZi state 資料格式',
+            importSuccess: '已匯入 {count} 名玩家',
             columns: {
                 self: '本機', id: '穩定 ID', index: '索引', team: '隊伍', squad: '小隊', name: '暱稱',
                 legend: '英雄', legendIconKey: '英雄圖示 Key', uid: '平台 UID', hp: '血量', maxHp: '最大血量',
@@ -86,7 +92,8 @@ const translations = {
             toggleName: 'Name', toggleLegend: 'Legend', toggleHealth: 'Health', toggleShield: 'Shield',
             toggleLevel: 'Level', toggleRank: 'Rank', toggleCombat: 'Combat', toggleRoster: 'Roster',
             toggleTeamLinks: 'Team links', toggleRing: 'Ring', filters: 'Player filters', showDead: 'Show dead players',
-            showDown: 'Show downed players', fontSize: 'Font size', downloadLatest: 'Export state snapshot',
+            showDown: 'Show downed players', fontSize: 'Font size', importPlayerData: 'Import player data',
+            exportCurrentPlayers: 'Export current player data',
             playerTable: 'Player table fields', playerTableShow: 'Show'
         },
         map: {
@@ -94,7 +101,9 @@ const translations = {
             focusHealth: 'Health', focusShield: 'Shield', focusKills: 'Kills'
         },
         table: {
-            title: 'HOOZi 3.0 Player State', empty: 'Waiting for player data',
+            title: 'Player information', empty: 'Waiting for player data', importJsonOnly: 'Only JSON files can be imported',
+            importInvalid: 'Import failed: JSON does not match the HOOZi state data format',
+            importSuccess: 'Imported {count} players',
             columns: {
                 self: 'Local', id: 'Stable ID', index: 'Index', team: 'Team', squad: 'Squad', name: 'Name',
                 legend: 'Legend', legendIconKey: 'Legend icon key', uid: 'Platform UID', hp: 'Health', maxHp: 'Max health',

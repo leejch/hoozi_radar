@@ -1,7 +1,12 @@
 import { getConnectionTarget, loadSettings } from './config.js';
 import { applyTranslations, t } from './i18n.js';
 import { createFallbackImageLoader, mapAssetName } from './assets/maps.js';
-import { HooziProtocolError, createPingMessage, parseHoozi3Message } from './protocol/hoozi3.js';
+import {
+    HooziProtocolError,
+    createPingMessage,
+    parseHoozi3Message,
+    parseHoozi3StateFile
+} from './protocol/hoozi3.js';
 import { createRadarRenderer } from './render/radar.js';
 import { createRadarStore } from './state/store.js';
 import {
@@ -49,7 +54,12 @@ const ui = createUiController({
     settings,
     t,
     onReconnect: () => connect(),
-    onViewModeChange: (mode) => radar.setViewMode(mode)
+    onViewModeChange: (mode) => radar.setViewMode(mode),
+    onImportPlayerData: (raw) => {
+        const message = parseHoozi3StateFile(raw);
+        applyStateMessage(message, raw, { imported: true });
+        return message.players.length;
+    }
 });
 ui.updateSnapshot(null);
 
@@ -83,8 +93,8 @@ function scheduleReconnect() {
     }, 2000);
 }
 
-function applyStateMessage(message, raw) {
-    if (!store.applySnapshot(message, raw)) return;
+function applyStateMessage(message, raw, { imported = false } = {}) {
+    if (!store.applySnapshot(message, raw, { imported })) return;
     const mapChanged = refs.mapImage.dataset.mapName !== message.map;
     if (!message.map) {
         refs.mapImage.dataset.mapName = '';

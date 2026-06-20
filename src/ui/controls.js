@@ -1,6 +1,7 @@
 import { VIEW_MODE_FOLLOW, VIEW_MODE_FREE, saveSetting, teamColorFor } from '../config.js';
 import { formatPlayerStatus } from '../render/entities.js';
 import { allocateDesktopLayout } from './layout.js';
+import { currentPlayerExportFileName, isJsonFileName } from './player-data.js';
 
 const DESKTOP_QUERY = window.matchMedia('(min-width: 1024px)');
 const DESKTOP_CONFIG_WIDTH = 300;
@@ -41,7 +42,10 @@ export function collectDomReferences(root = document) {
         connectionModeAutoButton: byId('connectionModeAuto'),
         connectionModeManualButton: byId('connectionModeManual'),
         connectionManualFields: root.querySelector('[data-role="connection-manual-fields"]'),
-        downloadLatestButton: byId('downloadLatestButton'),
+        importPlayerDataButton: byId('importPlayerDataButton'),
+        importPlayerDataInput: byId('importPlayerDataInput'),
+        exportPlayerDataButton: byId('exportPlayerDataButton'),
+        playerDataMessage: byId('playerDataMessage'),
         playerTableSection: root.querySelector('[data-role="player-table-section"]'),
         playerTableShell: root.querySelector('[data-role="player-table-shell"]'),
         playerTableToolbar: root.querySelector('[data-role="player-table-toolbar"]'),
@@ -98,7 +102,7 @@ function displayStatus(player, t) {
     return `${formatPlayerStatus(player, t)} · ${player.distance.toFixed(1)}m · yaw ${player.yaw} · ${t('player.roster', { roster: player.roster })}`;
 }
 
-export function createUiController({ refs, store, settings, t, onReconnect, onViewModeChange }) {
+export function createUiController({ refs, store, settings, t, onReconnect, onViewModeChange, onImportPlayerData }) {
     let layoutFrame = 0;
 
     function layoutContentBox() {
@@ -175,21 +179,28 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
         layoutFrame = requestAnimationFrame(syncDesktopLayout);
     }
 
+    function setSegmentButtonState(button, selected) {
+        button.dataset.selected = selected ? 'true' : 'false';
+        button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+    }
+
+    function showPlayerDataMessage(kind, message) {
+        refs.playerDataMessage.hidden = false;
+        refs.playerDataMessage.className = `px-2 pb-1 text-xs font-medium ${kind === 'success' ? 'text-emerald-300' : 'text-rose-300'}`;
+        refs.playerDataMessage.textContent = message;
+    }
+
     function syncConnectionControls() {
         const manual = settings.connectionMode === 'manual';
         refs.connectionManualFields.classList.toggle('hidden', !manual);
-        refs.connectionModeAutoButton.classList.toggle('border-emerald-400', !manual);
-        refs.connectionModeAutoButton.classList.toggle('text-emerald-300', !manual);
-        refs.connectionModeManualButton.classList.toggle('border-emerald-400', manual);
-        refs.connectionModeManualButton.classList.toggle('text-emerald-300', manual);
+        setSegmentButtonState(refs.connectionModeAutoButton, !manual);
+        setSegmentButtonState(refs.connectionModeManualButton, manual);
     }
 
     function syncViewControls() {
         const free = store.state.viewMode === VIEW_MODE_FREE;
-        refs.viewModeFreeButton.classList.toggle('border-emerald-400', free);
-        refs.viewModeFreeButton.classList.toggle('text-emerald-300', free);
-        refs.viewModeFollowButton.classList.toggle('border-emerald-400', !free);
-        refs.viewModeFollowButton.classList.toggle('text-emerald-300', !free);
+        setSegmentButtonState(refs.viewModeFreeButton, free);
+        setSegmentButtonState(refs.viewModeFollowButton, !free);
     }
 
     function syncTableVisibility() {
@@ -294,18 +305,16 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
         populatePlayerSelect(players);
         updateFocus(players);
         renderTable(players);
-        refs.downloadLatestButton.disabled = !store.state.latestMessageText;
+        refs.exportPlayerDataButton.disabled = !store.state.latestMessageText;
     }
 
     refs.connectionModeAutoButton.addEventListener('click', () => {
         settings.connectionMode = 'auto';
-        saveSetting('connectionMode', 'auto');
         syncConnectionControls();
         onReconnect();
     });
     refs.connectionModeManualButton.addEventListener('click', () => {
         settings.connectionMode = 'manual';
-        saveSetting('connectionMode', 'manual');
         syncConnectionControls();
     });
     for (const [key, input] of [
@@ -354,12 +363,32 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
     });
     refs.reconnectButton.addEventListener('click', onReconnect);
     refs.configReconnectButton.addEventListener('click', onReconnect);
-    refs.downloadLatestButton.addEventListener('click', () => {
+    refs.importPlayerDataButton.addEventListener('click', () => {
+        refs.playerDataMessage.hidden = true;
+        refs.importPlayerDataInput.click();
+    });
+    refs.importPlayerDataInput.addEventListener('change', async () => {
+        const file = refs.importPlayerDataInput.files?.[0];
+        refs.importPlayerDataInput.value = '';
+        if (!file) return;
+        if (!isJsonFileName(file.name)) {
+            showPlayerDataMessage('error', t('table.importJsonOnly'));
+            return;
+        }
+        try {
+            const raw = await file.text();
+            const playerCount = await onImportPlayerData(raw);
+            showPlayerDataMessage('success', t('table.importSuccess', { count: playerCount }));
+        } catch {
+            showPlayerDataMessage('error', t('table.importInvalid'));
+        }
+    });
+    refs.exportPlayerDataButton.addEventListener('click', () => {
         if (!store.state.latestMessageText) return;
         const blob = new Blob([store.state.latestMessageText], { type: 'application/json;charset=utf-8' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
-        link.download = `hoozi3-state-${new Date().toISOString().replace(/[:]/g, '-')}.json`;
+        link.download = currentPlayerExportFileName();
         link.click();
         URL.revokeObjectURL(link.href);
     });

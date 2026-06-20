@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { HooziProtocolError, parseHoozi3Message } from '../src/protocol/hoozi3.js';
+import { HooziProtocolError, parseHoozi3Message, parseHoozi3StateFile } from '../src/protocol/hoozi3.js';
 import { createRadarStore } from '../src/state/store.js';
 
 const basePlayer = {
@@ -49,5 +49,30 @@ test('store orders snapshots and selects the explicit self player', () => {
     assert.equal(store.state.selectedPlayerId, 'ix7');
     assert.equal(store.applySnapshot(stale), false);
     assert.equal(store.state.mapName, 'map');
+});
+
+test('state-file import rejects non-state JSON messages', () => {
+    assert.throws(() => parseHoozi3StateFile('{"kind":"pong","ts":1}'), HooziProtocolError);
+    const state = parseHoozi3StateFile(JSON.stringify({
+        kind: 'state', ts: 1, map: 'map', players: [basePlayer]
+    }));
+    assert.equal(state.kind, 'state');
+    assert.equal(state.players.length, 1);
+});
+
+test('an imported snapshot does not corrupt live server timestamp ordering', () => {
+    const store = createRadarStore({ selectedPlayerId: '', viewMode: 'follow' });
+    const live = parseHoozi3Message({ kind: 'state', ts: 5, map: 'map', players: [basePlayer] });
+    const imported = parseHoozi3Message({ kind: 'state', ts: 1, map: 'map', players: [basePlayer] });
+    const staleLive = parseHoozi3Message({ kind: 'state', ts: 4, map: 'map', players: [basePlayer] });
+    const nextLive = parseHoozi3Message({ kind: 'state', ts: 6, map: 'map', players: [basePlayer] });
+
+    assert.equal(store.applySnapshot(live), true);
+    assert.equal(store.applySnapshot(imported, '{}', { imported: true }), true);
+    assert.equal(store.state.currentSnapshotImported, true);
+    assert.equal(store.applySnapshot(staleLive), false);
+    assert.equal(store.applySnapshot(nextLive), true);
+    assert.equal(store.state.currentSnapshotImported, false);
+    assert.equal(store.state.previousSnapshot, null);
 });
 

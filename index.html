@@ -321,10 +321,12 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
             <div class="flex w-full flex-nowrap items-end gap-2 overflow-x-auto sm:w-auto sm:justify-end">
                 <div class="flex shrink-0 items-center gap-1 rounded-2xl border border-slate-800/70 bg-slate-950/60 p-1.5 shadow-inner shadow-black/10">
                     <button id="viewModeFree" type="button"
-                            class="rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-1 text-xs font-semibold text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60"
+                            aria-pressed="false" data-selected="false"
+                            class="rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-1 text-xs font-semibold text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60 data-[selected=true]:border-emerald-400 data-[selected=true]:bg-emerald-500/10 data-[selected=true]:text-emerald-300"
                             data-i18n="header.viewModeFree">自由视角</button>
                     <button id="viewModeFollow" type="button"
-                            class="rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-1 text-xs font-semibold text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60"
+                            aria-pressed="true" data-selected="true"
+                            class="rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-1 text-xs font-semibold text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60 data-[selected=true]:border-emerald-400 data-[selected=true]:bg-emerald-500/10 data-[selected=true]:text-emerald-300"
                             data-i18n="header.viewModeFollow">固定跟随</button>
                 </div>
                 <div class="flex w-[160px] shrink-0">
@@ -347,10 +349,12 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
                         <div class="flex flex-wrap items-center gap-2">
                             <div class="flex shrink-0 items-center gap-1 rounded-2xl border border-slate-800/70 bg-slate-950/60 p-1.5 shadow-inner shadow-black/10">
                                 <button id="connectionModeAuto" type="button"
-                                        class="rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-1 text-xs font-semibold text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60"
+                                        aria-pressed="true" data-selected="true"
+                                        class="rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-1 text-xs font-semibold text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60 data-[selected=true]:border-emerald-400 data-[selected=true]:bg-emerald-500/10 data-[selected=true]:text-emerald-300"
                                         data-i18n="config.connectionAuto">自动</button>
                                 <button id="connectionModeManual" type="button"
-                                        class="rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-1 text-xs font-semibold text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60"
+                                        aria-pressed="false" data-selected="false"
+                                        class="rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-1 text-xs font-semibold text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60 data-[selected=true]:border-emerald-400 data-[selected=true]:bg-emerald-500/10 data-[selected=true]:text-emerald-300"
                                         data-i18n="config.connectionManual">手动</button>
                             </div>
                             <button id="configReconnectButton" type="button"
@@ -582,11 +586,18 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
         <section class="hidden min-w-0 lg:flex lg:h-full lg:flex-shrink-0" data-role="player-table-section">
             <div class="player-table-shell glass-panel flex h-full w-full flex-col rounded-3xl p-2" data-role="player-table-shell">
                 <div class="flex items-center justify-between gap-3 overflow-x-auto pb-1" data-role="player-table-toolbar">
-                    <h2 class="shrink-0 pl-2 text-sm font-semibold uppercase text-slate-300" data-i18n="table.title">HOOZi 3.0 玩家信息</h2>
-                    <button id="downloadLatestButton" type="button" disabled
-                            class="shrink-0 rounded-full border border-slate-700/70 bg-slate-900/60 px-3 py-1 text-[0.7rem] font-semibold text-slate-300 transition hover:border-slate-500/60 hover:text-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-500/30 disabled:cursor-not-allowed disabled:opacity-50"
-                            data-i18n="config.downloadLatest">导出玩家列表</button>
+                    <h2 class="shrink-0 pl-2 text-sm font-semibold uppercase text-slate-300" data-i18n="table.title">玩家信息列表</h2>
+                    <div class="flex shrink-0 items-center gap-1.5">
+                        <input id="importPlayerDataInput" type="file" accept=".json,application/json" class="hidden">
+                        <button id="importPlayerDataButton" type="button"
+                                class="shrink-0 rounded-full border border-slate-700/70 bg-slate-900/60 px-3 py-1 text-[0.7rem] font-semibold text-slate-300 transition hover:border-emerald-400/60 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                                data-i18n="config.importPlayerData">导入玩家数据</button>
+                        <button id="exportPlayerDataButton" type="button" disabled
+                                class="shrink-0 rounded-full border border-slate-700/70 bg-slate-900/60 px-3 py-1 text-[0.7rem] font-semibold text-slate-300 transition hover:border-slate-500/60 hover:text-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-500/30 disabled:cursor-not-allowed disabled:opacity-50"
+                                data-i18n="config.exportCurrentPlayers">导出当前玩家信息</button>
+                    </div>
                 </div>
+                <p id="playerDataMessage" hidden role="status" aria-live="polite"></p>
                 <div class="player-table-wrapper mt-3 flex-1 overflow-hidden rounded-2xl" data-role="player-table-wrapper">
                     <div class="h-full overflow-auto" data-role="player-table-scroll">
                         <table class="player-table w-full text-sm text-slate-200">

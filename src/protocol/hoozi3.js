@@ -122,6 +122,14 @@ export function parseHoozi3Message(raw) {
     });
 }
 
+export function parseHoozi3StateFile(raw) {
+    const message = parseHoozi3Message(raw);
+    if (message.kind !== 'state') {
+        throw new HooziProtocolError('Imported JSON must contain a state message');
+    }
+    return message;
+}
+
 export function createPingMessage() {
     return JSON.stringify({ kind: 'ping' });
 }

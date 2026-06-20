@@ -118,7 +118,9 @@ export function loadSettings() {
         }
         localStorage.setItem(`${STORAGE_PREFIX}schemaVersion`, SETTINGS_SCHEMA_VERSION);
     }
-    settings.connectionMode = settings.connectionMode === 'manual' ? 'manual' : 'auto';
+    // Every page load starts in automatic local-bridge mode. Manual endpoint
+    // fields remain persisted, but selecting Manual is intentionally session-only.
+    settings.connectionMode = 'auto';
     settings.manualProtocol = settings.manualProtocol === 'wss' ? 'wss' : 'ws';
     settings.manualHost = String(settings.manualHost || DEFAULT_SETTINGS.manualHost).trim();
     settings.manualPort = String(settings.manualPort || '').trim();

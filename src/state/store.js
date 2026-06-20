@@ -44,6 +44,7 @@ export function createRadarStore(settings) {
         previousSnapshot: null,
         currentSnapshot: null,
         latestServerTimestamp: Number.NEGATIVE_INFINITY,
+        currentSnapshotImported: false,
         currentReceivedAt: 0,
         snapshotIntervalMs: 30,
         selectedPlayerId: settings.selectedPlayerId || '',
@@ -58,19 +59,24 @@ export function createRadarStore(settings) {
 
     return {
         state,
-        applySnapshot(snapshot, rawText = '') {
-            if (snapshot.ts < state.latestServerTimestamp) return false;
+        applySnapshot(snapshot, rawText = '', { imported = false } = {}) {
+            if (!imported && snapshot.ts < state.latestServerTimestamp) return false;
             const now = performance.now();
-            if (state.currentReceivedAt > 0) {
+            if (!imported && !state.currentSnapshotImported && state.currentReceivedAt > 0) {
                 const interval = now - state.currentReceivedAt;
                 if (Number.isFinite(interval) && interval >= 8 && interval <= 1000) {
                     state.snapshotIntervalMs = interval;
                 }
             }
-            state.previousSnapshot = state.currentSnapshot?.map === snapshot.map ? state.currentSnapshot : null;
+            state.previousSnapshot = !imported
+                && !state.currentSnapshotImported
+                && state.currentSnapshot?.map === snapshot.map
+                ? state.currentSnapshot
+                : null;
             state.currentSnapshot = snapshot;
+            state.currentSnapshotImported = imported;
             state.currentReceivedAt = now;
-            state.latestServerTimestamp = snapshot.ts;
+            if (!imported) state.latestServerTimestamp = snapshot.ts;
             state.mapName = snapshot.map;
             state.latestMessageText = rawText || JSON.stringify(snapshot, null, 2);
             const selectedExists = snapshot.players.some((player) => player.id === state.selectedPlayerId);
@@ -86,6 +92,7 @@ export function createRadarStore(settings) {
             state.mapName = '';
             state.previousSnapshot = null;
             state.currentSnapshot = null;
+            state.currentSnapshotImported = false;
             state.latestServerTimestamp = Number.NEGATIVE_INFINITY;
             state.currentReceivedAt = 0;
         },

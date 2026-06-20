@@ -31,6 +31,7 @@ The HOOZi 3.0 version follows the checked-in Lua script instead:
   verified non-coordinate player field
 - a fixed radar drawing surface behind a responsive observation port, with
   100%–300% button, wheel, and pinch zoom
+- validated JSON import and export of the current HOOZi `state` player data
 
 Player positions and ring geometry are interpolated between Lua snapshots for
 the browser render loop. Unsupported HOOZi 2.0 fields are not synthesized.
@@ -74,6 +75,7 @@ hoozi_radar/
 │   ├── render/viewport.js        Pure zoom, anchor, resize, and follow math
 │   ├── render/radar.js           Render loop, sizing, follow, pan, and zoom
 │   ├── ui/layout.js              Map-first desktop column allocation
+│   ├── ui/player-data.js         JSON import/export filename rules
 │   ├── ui/controls.js            Controls, focus UI, and player table
 │   └── assets/maps.js            CDN-first image fallback
 ├── static/                       Local fallback images
@@ -104,6 +106,13 @@ The map first receives enough width to remain at least as wide as it is tall.
 If the table still cannot fit within its capped panel, its intrinsic columns
 scroll horizontally. The same allocation runs after window resizing, table
 field changes, snapshot content changes, and player-table visibility changes.
+
+The player-information toolbar exports the latest complete `state` JSON as the
+current player data. The adjacent import control accepts `.json` files only and
+runs them through the same HOOZi 3.0 protocol validator before applying them.
+Invalid JSON, non-`state` messages, and malformed player arrays do not modify
+the current radar state. Imported test data does not alter live WebSocket
+timestamp ordering; the next valid live snapshot can take over normally.
 
 ## Running locally
 
