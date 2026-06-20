@@ -84,6 +84,12 @@ test('checked-in HOOZi 3.0 fixture is complete, importable, and legacy-free', as
     assert.equal(normalized.players.length, raw.players.length);
     assert.equal(raw.players.filter((player) => player.self).length, 1);
     assert.equal(new Set(raw.players.map((player) => player.id)).size, raw.players.length);
+    assert.deepEqual(
+        [...new Set(raw.players.map((player) => player.max_shield))].sort((a, b) => a - b),
+        [0, 50, 75, 100, 125]
+    );
+    assert.ok(new Set(raw.players.map((player) => player.hp)).size >= 6);
+    assert.ok(raw.players.every((player) => player.shield <= player.max_shield));
 
     for (const player of raw.players) {
         for (const field of requiredPlayerFields) {

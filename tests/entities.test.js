@@ -41,7 +41,7 @@ function recordingContext() {
             records.fills.push({ style: this.fillStyle, x, y, width, height });
         },
         strokeText(text, x, y) {
-            records.outlinedText.push({ text, x, y, width: this.lineWidth });
+            records.outlinedText.push({ text, x, y, width: this.lineWidth, baseline: this.textBaseline });
         },
         fillText() {}
     };
@@ -71,6 +71,8 @@ test('player markers and text use the reduced geometry', () => {
     assert.deepEqual(records.arcs, [{ x: 500, y: 500, radius: 4 }]);
     assert.deepEqual(records.strokes[0], { style: 'rgb(255, 0, 0)', width: 1 });
     assert.equal(records.outlinedText[0].width, 1);
+    assert.equal(records.outlinedText[0].y, 506);
+    assert.equal(records.outlinedText[0].baseline, 'top');
     assert.equal(DEFAULT_SETTINGS.fontSize, 10);
 });
 
@@ -102,6 +104,7 @@ test('shield is above white health with one shared boundary and thinner borders'
     assert.equal(shieldBorder.x, healthBorder.x);
     assert.equal(shieldBorder.width, 21);
     assert.equal(shieldBorder.y + shieldBorder.height, healthBorder.y);
+    assert.equal(healthBorder.y + healthBorder.height, 495);
     assert.equal(shieldFill.x - shieldBorder.x, 0.5);
     assert.equal(healthFill.x - healthBorder.x, 0.5);
     assert.equal(shieldFill.width, shieldBorder.width - 1);
@@ -139,6 +142,6 @@ test('zero maximum shield omits the shield bar without moving the health bar', (
     renderEntities(ctx, { players: [player] }, settings, null, { width: 1000, height: 1000 }, (key) => key);
 
     assert.equal(records.fills.length, 2);
-    assert.equal(records.fills[0].y, 507);
+    assert.equal(records.fills[0].y, 491);
     assert.equal(records.fills[1].style, '#FFFFFF');
 });

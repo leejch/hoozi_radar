@@ -7,6 +7,8 @@ const BAR_WIDTH = 28;
 const BAR_HEIGHT = 4;
 const BAR_BORDER_WIDTH = 0.5;
 const TEXT_OUTLINE_WIDTH = 1;
+const PLAYER_DECORATION_GAP = 1;
+const LABEL_GAP = 2;
 const SHIELD_TIERS = Object.freeze({
     50: Object.freeze({ widthScale: 0.5, color: 'rgb(224, 224, 224)' }),
     75: Object.freeze({ widthScale: 0.75, color: 'rgb(50, 133, 205)' }),
@@ -110,8 +112,9 @@ export function renderEntities(ctx, snapshot, settings, selectedPlayer, dimensio
             ctx.stroke();
         }
 
-        let barY = point.y + 7;
         const shieldStyle = settings.showShield ? shieldBarStyle(player.max_shield) : null;
+        const visibleBarCount = Number(Boolean(shieldStyle)) + Number(Boolean(settings.showHealth));
+        let barY = point.y - PLAYER_RADIUS - PLAYER_DECORATION_GAP - visibleBarCount * BAR_HEIGHT;
         if (shieldStyle) {
             drawBar(
                 ctx,
@@ -143,10 +146,10 @@ export function renderEntities(ctx, snapshot, settings, selectedPlayer, dimensio
     ctx.save();
     ctx.font = `600 ${settings.fontSize}px "Microsoft YaHei", Inter, sans-serif`;
     ctx.textAlign = 'center';
-    ctx.textBaseline = 'bottom';
+    ctx.textBaseline = 'top';
     for (const label of labels) {
         ctx.globalAlpha = label.alpha;
-        const y = label.point.y - 9;
+        const y = label.point.y + PLAYER_RADIUS + LABEL_GAP;
         ctx.strokeStyle = 'rgba(2, 6, 23, 0.92)';
         ctx.lineWidth = TEXT_OUTLINE_WIDTH;
         ctx.strokeText(label.text.slice(0, 72), label.point.x, y);

@@ -165,7 +165,9 @@ visibility, or page dimensions change.
 Player markers use the same four-pixel radius for local and remote players.
 Normal marker outlines are one-pixel dark lines; the selected marker uses a
 one-pixel `rgb(255, 0, 0)` outline. The shield bar is drawn directly above the
-health bar with a shared edge, and both use a 0.5-pixel dark border. Shield bar
+health bar with a shared edge; the stacked bars sit immediately above the
+player marker. Entity labels are placed immediately below the marker. Both
+bars use a 0.5-pixel dark border. Shield bar
 width is 50%, 75%, 100%, or 125% of the health-bar width for maximum shield
 values 50, 75, 100, or 125. Their fill colors are respectively
 `rgb(224, 224, 224)`, `rgb(50, 133, 205)`, `rgb(135, 65, 177)`, and
