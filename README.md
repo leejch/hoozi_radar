@@ -98,12 +98,12 @@ all use the same bounded scale calculation. Free view keeps the map point under
 the gesture anchor stable. Fixed follow is the page-load default and always
 re-centers the selected player after zoom or observation-port resizing.
 
-In the three-column desktop layout, the player-table panel is limited to a
-controlled 180–320px viewport and its intrinsic columns scroll horizontally.
-The map receives all remaining width. If that width cannot accommodate the full
-available height, the observation-port height is reduced until `width >= height`.
-The same allocation runs after window resizing, table field changes, snapshot
-content changes, and player-table visibility changes.
+In the three-column desktop layout, the player-table panel expands toward its
+current intrinsic content width, but never beyond 25% of the page content width.
+The map first receives enough width to remain at least as wide as it is tall.
+If the table still cannot fit within its capped panel, its intrinsic columns
+scroll horizontally. The same allocation runs after window resizing, table
+field changes, snapshot content changes, and player-table visibility changes.
 
 ## Running locally
 

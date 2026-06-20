@@ -1,7 +1,7 @@
 const DEFAULT_CONFIG_WIDTH = 300;
 const DEFAULT_COLUMN_GAP = 5;
 const DEFAULT_TABLE_MIN_WIDTH = 180;
-const DEFAULT_TABLE_PREFERRED_WIDTH = 320;
+const DEFAULT_TABLE_MAX_RATIO = 0.25;
 
 function finiteNonNegative(value) {
     return Number.isFinite(value) ? Math.max(0, value) : 0;
@@ -15,10 +15,11 @@ export function allocateDesktopLayout({
     width,
     height,
     tableVisible,
+    tableContentWidth = DEFAULT_TABLE_MIN_WIDTH,
     configWidth = DEFAULT_CONFIG_WIDTH,
     columnGap = DEFAULT_COLUMN_GAP,
     tableMinWidth = DEFAULT_TABLE_MIN_WIDTH,
-    tablePreferredWidth = DEFAULT_TABLE_PREFERRED_WIDTH
+    tableMaxRatio = DEFAULT_TABLE_MAX_RATIO
 }) {
     const contentWidth = finiteNonNegative(width);
     const contentHeight = finiteNonNegative(height);
@@ -37,17 +38,22 @@ export function allocateDesktopLayout({
         };
     }
 
-    const maximumTableWidth = Math.max(0, mapAndTableWidth - 1);
+    const ratio = clamp(finiteNonNegative(tableMaxRatio), 0, 1);
+    const maximumTableWidth = Math.max(0, Math.min(
+        mapAndTableWidth - 1,
+        contentWidth * ratio
+    ));
     const minimumTableWidth = Math.min(finiteNonNegative(tableMinWidth), maximumTableWidth);
-    const preferredTableWidth = Math.max(
-        minimumTableWidth,
-        Math.min(finiteNonNegative(tablePreferredWidth), maximumTableWidth)
-    );
+    const requestedTableWidth = Math.max(minimumTableWidth, finiteNonNegative(tableContentWidth));
     const tableCapacityAtFullMapHeight = mapAndTableWidth - contentHeight;
-    const tableWidth = Math.floor(clamp(
-        tableCapacityAtFullMapHeight,
+    const maximumTableWidthAtFullMapHeight = Math.max(
         minimumTableWidth,
-        preferredTableWidth
+        Math.min(maximumTableWidth, tableCapacityAtFullMapHeight)
+    );
+    const tableWidth = Math.floor(clamp(
+        requestedTableWidth,
+        minimumTableWidth,
+        maximumTableWidthAtFullMapHeight
     ));
     const mapWidth = mapAndTableWidth - tableWidth;
     const mapHeight = Math.floor(Math.min(contentHeight, mapWidth));

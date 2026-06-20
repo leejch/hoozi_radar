@@ -140,12 +140,12 @@ therefore has no NPC category to render.
 
 All verified non-coordinate player fields have independent table visibility
 controls and default to visible. The table itself uses intrinsic, non-shrinking
-column widths inside a horizontally scrollable viewport. Its desktop panel is
-limited to a controlled 180–320px allocation so table content cannot consume
-newly available page width. The map receives the remaining width, and its
-observation-port height is capped when necessary so map width is never less
-than map height. This allocation is repeated after table content, field
-visibility, table visibility, or page dimensions change.
+column widths inside a horizontally scrollable viewport. Its desktop panel
+expands toward the current intrinsic content width but is capped at 25% of the
+page content width. The map first receives enough width to remain at least as
+wide as it is tall. Content beyond the capped table panel scrolls horizontally.
+This allocation is repeated after table content, field visibility, table
+visibility, or page dimensions change.
 
 The responsive map stage is only an observation port. Its initial drawing
 surface is retained when the browser width or player-table visibility changes,

@@ -5,7 +5,7 @@ import { allocateDesktopLayout } from './layout.js';
 const DESKTOP_QUERY = window.matchMedia('(min-width: 1024px)');
 const DESKTOP_CONFIG_WIDTH = 300;
 const DESKTOP_TABLE_MIN_WIDTH = 180;
-const DESKTOP_TABLE_PREFERRED_WIDTH = 320;
+const DESKTOP_TABLE_MAX_RATIO = 0.25;
 
 export function collectDomReferences(root = document) {
     const byId = (id) => root.getElementById(id);
@@ -43,6 +43,10 @@ export function collectDomReferences(root = document) {
         connectionManualFields: root.querySelector('[data-role="connection-manual-fields"]'),
         downloadLatestButton: byId('downloadLatestButton'),
         playerTableSection: root.querySelector('[data-role="player-table-section"]'),
+        playerTableShell: root.querySelector('[data-role="player-table-shell"]'),
+        playerTableToolbar: root.querySelector('[data-role="player-table-toolbar"]'),
+        playerTableScroll: root.querySelector('[data-role="player-table-scroll"]'),
+        playerTableElement: root.querySelector('.player-table'),
         playerTableHeader: root.querySelector('[data-role="player-table-header"]'),
         playerTableBody: root.querySelector('[data-role="player-table-body"]'),
         settingInputs: [...root.querySelectorAll('input[data-setting]')],
@@ -108,6 +112,33 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
         };
     }
 
+    function horizontalBoxOverhead(element) {
+        const style = window.getComputedStyle(element);
+        return ['paddingLeft', 'paddingRight', 'borderLeftWidth', 'borderRightWidth']
+            .reduce((total, property) => total + (parseFloat(style[property]) || 0), 0);
+    }
+
+    function intrinsicWidth(element) {
+        const previousWidth = element.style.width;
+        const previousMinWidth = element.style.minWidth;
+        element.style.width = 'max-content';
+        element.style.minWidth = 'max-content';
+        const width = element.getBoundingClientRect().width;
+        element.style.width = previousWidth;
+        element.style.minWidth = previousMinWidth;
+        return width;
+    }
+
+    function requiredTablePanelWidth() {
+        if (!settings.tableVisible) return DESKTOP_TABLE_MIN_WIDTH;
+        const shellOverhead = horizontalBoxOverhead(refs.playerTableShell);
+        const wrapperOverhead = horizontalBoxOverhead(refs.playerTableScroll.parentElement);
+        return Math.ceil(Math.max(
+            intrinsicWidth(refs.playerTableElement) + shellOverhead + wrapperOverhead,
+            intrinsicWidth(refs.playerTableToolbar) + shellOverhead
+        ));
+    }
+
     function syncDesktopLayout() {
         layoutFrame = 0;
         if (!DESKTOP_QUERY.matches) {
@@ -124,10 +155,11 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
             width: content.width,
             height: content.height,
             tableVisible: settings.tableVisible,
+            tableContentWidth: requiredTablePanelWidth(),
             configWidth: DESKTOP_CONFIG_WIDTH,
             columnGap: content.columnGap,
             tableMinWidth: DESKTOP_TABLE_MIN_WIDTH,
-            tablePreferredWidth: DESKTOP_TABLE_PREFERRED_WIDTH
+            tableMaxRatio: DESKTOP_TABLE_MAX_RATIO
         });
         refs.layout.style.gridTemplateColumns = settings.tableVisible
             ? `${allocation.configWidth}px minmax(0, 1fr) ${allocation.tableWidth}px`
