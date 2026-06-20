@@ -163,10 +163,15 @@ This allocation is repeated after table content, field visibility, table
 visibility, or page dimensions change.
 
 Player markers use the same four-pixel radius for local and remote players.
-Normal marker outlines are one pixel and the selected outline is 1.5 pixels.
-The blue shield bar is drawn directly above the health bar with a shared edge;
-health fill is white and both bars use a 0.75-pixel dark border. Entity labels
-default to a 10-pixel font with a two-pixel dark outline.
+Normal marker outlines are one-pixel dark lines; the selected marker uses a
+one-pixel `rgb(255, 0, 0)` outline. The shield bar is drawn directly above the
+health bar with a shared edge, and both use a 0.5-pixel dark border. Shield bar
+width is 50%, 75%, 100%, or 125% of the health-bar width for maximum shield
+values 50, 75, 100, or 125. Their fill colors are respectively
+`rgb(224, 224, 224)`, `rgb(50, 133, 205)`, `rgb(135, 65, 177)`, and
+`rgb(209, 17, 15)`. Missing or zero maximum shield omits the bar, and actual
+shield fill is capped at its maximum. Health fill is white. Entity labels
+default to a 10-pixel font with a one-pixel dark outline.
 
 The responsive map stage is only an observation port. Its initial square
 drawing-surface side is the smaller observation-port dimension. At 100%, one

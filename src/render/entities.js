@@ -2,11 +2,17 @@ import { MAP_SIDE, teamColorFor } from '../config.js';
 
 const PLAYER_RADIUS = 4;
 const PLAYER_BORDER_WIDTH = 1;
-const SELECTED_BORDER_WIDTH = 1.5;
+const SELECTED_BORDER_COLOR = 'rgb(255, 0, 0)';
 const BAR_WIDTH = 28;
 const BAR_HEIGHT = 4;
-const BAR_BORDER_WIDTH = 0.75;
-const TEXT_OUTLINE_WIDTH = 2;
+const BAR_BORDER_WIDTH = 0.5;
+const TEXT_OUTLINE_WIDTH = 1;
+const SHIELD_TIERS = Object.freeze({
+    50: Object.freeze({ widthScale: 0.5, color: 'rgb(224, 224, 224)' }),
+    75: Object.freeze({ widthScale: 0.75, color: 'rgb(50, 133, 205)' }),
+    100: Object.freeze({ widthScale: 1, color: 'rgb(135, 65, 177)' }),
+    125: Object.freeze({ widthScale: 1.25, color: 'rgb(209, 17, 15)' })
+});
 
 function mapPoint(position, width, height) {
     const mapScale = Math.min(width, height) / MAP_SIDE;
@@ -33,6 +39,13 @@ function drawBar(ctx, x, y, width, height, value, maximum, color) {
         Math.max(0, (width - BAR_BORDER_WIDTH * 2) * ratio),
         Math.max(0, height - BAR_BORDER_WIDTH * 2)
     );
+}
+
+export function shieldBarStyle(maxShield) {
+    const numericMaximum = Number(maxShield);
+    if (!Number.isFinite(numericMaximum) || numericMaximum <= 0) return null;
+    const tier = SHIELD_TIERS[numericMaximum];
+    return tier ? { width: BAR_WIDTH * tier.widthScale, color: tier.color } : null;
 }
 
 export function renderEntities(ctx, snapshot, settings, selectedPlayer, dimensions, t) {
@@ -72,8 +85,8 @@ export function renderEntities(ctx, snapshot, settings, selectedPlayer, dimensio
         ctx.save();
         ctx.globalAlpha = alpha;
         ctx.fillStyle = player.self ? '#FFFFFF' : teamColor;
-        ctx.strokeStyle = selected ? '#FFFFFF' : 'rgba(2, 6, 23, 0.95)';
-        ctx.lineWidth = selected ? SELECTED_BORDER_WIDTH : PLAYER_BORDER_WIDTH;
+        ctx.strokeStyle = selected ? SELECTED_BORDER_COLOR : 'rgba(2, 6, 23, 0.95)';
+        ctx.lineWidth = PLAYER_BORDER_WIDTH;
         ctx.beginPath();
         ctx.arc(point.x, point.y, PLAYER_RADIUS, 0, Math.PI * 2);
         ctx.fill();
@@ -98,8 +111,18 @@ export function renderEntities(ctx, snapshot, settings, selectedPlayer, dimensio
         }
 
         let barY = point.y + 7;
-        if (settings.showShield) {
-            drawBar(ctx, point.x - BAR_WIDTH / 2, barY, BAR_WIDTH, BAR_HEIGHT, player.shield, player.max_shield, '#60A5FA');
+        const shieldStyle = settings.showShield ? shieldBarStyle(player.max_shield) : null;
+        if (shieldStyle) {
+            drawBar(
+                ctx,
+                point.x - BAR_WIDTH / 2,
+                barY,
+                shieldStyle.width,
+                BAR_HEIGHT,
+                player.shield,
+                Number(player.max_shield),
+                shieldStyle.color
+            );
             barY += BAR_HEIGHT;
         }
         if (settings.showHealth) {
