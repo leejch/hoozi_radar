@@ -3,17 +3,27 @@ const translations = {
         title: 'HOOZi 3.0 网页雷达',
         header: { title: 'HOOZi 3.0 网页雷达', connectionStatusLabel: '连接状态', viewModeFree: '自由视角', viewModeFollow: '固定跟随' },
         config: {
-            connection: '连接配置', connectionAuto: '本机自动', connectionManual: '手动', protocol: '协议',
+            connection: '连接配置', connectionAuto: '自动', connectionManual: '手动', protocol: '协议',
             host: 'IP 地址 / 域名', port: '端口', path: '路径（可选）', toggles: '地图绘制信息',
-            toggleName: '昵称', toggleLegend: '英雄', toggleVitals: '生命护盾', toggleStats: '等级战绩',
-            toggleTeamLinks: '同队连线', toggleRing: '安全区', filters: '实体显示', showDead: '显示死亡玩家',
+            toggleName: '昵称', toggleLegend: '英雄', toggleHealth: '血量', toggleShield: '护盾',
+            toggleLevel: '等级', toggleRank: '段位', toggleCombat: '战绩', toggleRoster: '名册',
+            toggleTeamLinks: '同队连线', toggleRing: '安全区', filters: '玩家过滤', showDead: '显示死亡玩家',
             showDown: '显示倒地玩家', fontSize: '字体大小', downloadLatest: '导出状态快照',
             playerTable: '玩家信息列表', playerTableShow: '显示'
         },
-        map: { reconnect: '重连', playerCountLabel: '玩家', zoomReset: '重置', focusLabel: '焦点', ringRemaining: '安全区 {seconds}s' },
+        map: {
+            reconnect: '重连', mapLabel: '地图', aliveLabel: '存活', zoomReset: '重置', focusLabel: '焦点',
+            focusHealth: '血量', focusShield: '护盾', focusKills: '击杀'
+        },
         table: {
             title: 'HOOZi 3.0 玩家信息', empty: '等待玩家数据',
-            columns: { team: '队伍 / 小队', name: '昵称', legend: '英雄', uid: '平台 UID', vitals: '生命 / 护盾', rank: '等级 / 段位', combat: '击杀 / 伤害', status: '状态 / 距离' }
+            columns: {
+                self: '本机', id: '稳定 ID', index: '索引', team: '队伍', squad: '小队', name: '昵称',
+                legend: '英雄', legendIconKey: '英雄图标 Key', uid: '平台 UID', hp: '血量', maxHp: '最大血量',
+                shield: '护盾', maxShield: '最大护盾', distance: '距离', yaw: '朝向值', dead: '死亡', down: '倒地',
+                level: '等级', rank: '段位', rankIconKey: '段位图标 Key', rankColor: '段位颜色', kills: '击杀',
+                damage: '伤害', roster: '名册'
+            }
         },
         status: { waiting: '等待连接', connecting: '正在连接', connected: '已连接', disconnected: '未连接', protocolError: '协议错误' },
         overlay: {
@@ -25,24 +35,34 @@ const translations = {
             mapMissingTitle: '地图资源缺失', mapMissingSubtitle: '找不到 {map} 对应的地图文件',
             protocolTitle: '数据协议错误', protocolSubtitle: '{message}'
         },
-        player: { self: '本机', alive: '存活', down: '倒地', dead: '死亡', team: '队伍 {team}', squad: '小队 {squad}', roster: '名册 {roster}', unknown: '未知' },
+        player: { self: '本机', alive: '存活', down: '倒地', dead: '死亡', yes: '是', no: '否', team: '队伍 {team}', squad: '小队 {squad}', roster: '名册 {roster}', unknown: '未知' },
         footer: { copyright: 'Copyright © hoozi.net 版权所有', disclaimer: 'HOOZi 3.0 Lua 数据流网页雷达' }
     },
     'zh-Hant': {
         title: 'HOOZi 3.0 網頁雷達',
         header: { title: 'HOOZi 3.0 網頁雷達', connectionStatusLabel: '連線狀態', viewModeFree: '自由視角', viewModeFollow: '固定跟隨' },
         config: {
-            connection: '連線設定', connectionAuto: '本機自動', connectionManual: '手動', protocol: '協議',
+            connection: '連線設定', connectionAuto: '自動', connectionManual: '手動', protocol: '協議',
             host: 'IP 位址 / 網域', port: '連接埠', path: '路徑（可選）', toggles: '地圖繪製資訊',
-            toggleName: '暱稱', toggleLegend: '英雄', toggleVitals: '生命護盾', toggleStats: '等級戰績',
-            toggleTeamLinks: '同隊連線', toggleRing: '安全區', filters: '實體顯示', showDead: '顯示死亡玩家',
+            toggleName: '暱稱', toggleLegend: '英雄', toggleHealth: '血量', toggleShield: '護盾',
+            toggleLevel: '等級', toggleRank: '段位', toggleCombat: '戰績', toggleRoster: '名冊',
+            toggleTeamLinks: '同隊連線', toggleRing: '安全區', filters: '玩家篩選', showDead: '顯示死亡玩家',
             showDown: '顯示倒地玩家', fontSize: '字體大小', downloadLatest: '匯出狀態快照',
             playerTable: '玩家資訊列表', playerTableShow: '顯示'
         },
-        map: { reconnect: '重新連線', playerCountLabel: '玩家', zoomReset: '重設', focusLabel: '焦點', ringRemaining: '安全區 {seconds}s' },
+        map: {
+            reconnect: '重新連線', mapLabel: '地圖', aliveLabel: '存活', zoomReset: '重設', focusLabel: '焦點',
+            focusHealth: '血量', focusShield: '護盾', focusKills: '擊殺'
+        },
         table: {
             title: 'HOOZi 3.0 玩家資訊', empty: '等待玩家資料',
-            columns: { team: '隊伍 / 小隊', name: '暱稱', legend: '英雄', uid: '平台 UID', vitals: '生命 / 護盾', rank: '等級 / 段位', combat: '擊殺 / 傷害', status: '狀態 / 距離' }
+            columns: {
+                self: '本機', id: '穩定 ID', index: '索引', team: '隊伍', squad: '小隊', name: '暱稱',
+                legend: '英雄', legendIconKey: '英雄圖示 Key', uid: '平台 UID', hp: '血量', maxHp: '最大血量',
+                shield: '護盾', maxShield: '最大護盾', distance: '距離', yaw: '朝向值', dead: '死亡', down: '倒地',
+                level: '等級', rank: '段位', rankIconKey: '段位圖示 Key', rankColor: '段位顏色', kills: '擊殺',
+                damage: '傷害', roster: '名冊'
+            }
         },
         status: { waiting: '等待連線', connecting: '正在連線', connected: '已連線', disconnected: '未連線', protocolError: '協議錯誤' },
         overlay: {
@@ -54,24 +74,34 @@ const translations = {
             mapMissingTitle: '地圖資源缺失', mapMissingSubtitle: '找不到 {map} 對應的地圖檔案',
             protocolTitle: '資料協議錯誤', protocolSubtitle: '{message}'
         },
-        player: { self: '本機', alive: '存活', down: '倒地', dead: '死亡', team: '隊伍 {team}', squad: '小隊 {squad}', roster: '名冊 {roster}', unknown: '未知' },
+        player: { self: '本機', alive: '存活', down: '倒地', dead: '死亡', yes: '是', no: '否', team: '隊伍 {team}', squad: '小隊 {squad}', roster: '名冊 {roster}', unknown: '未知' },
         footer: { copyright: 'Copyright © hoozi.net 版權所有', disclaimer: 'HOOZi 3.0 Lua 資料流網頁雷達' }
     },
     en: {
         title: 'HOOZi 3.0 Web Radar',
         header: { title: 'HOOZi 3.0 Web Radar', connectionStatusLabel: 'Connection', viewModeFree: 'Free', viewModeFollow: 'Follow' },
         config: {
-            connection: 'Connection', connectionAuto: 'Local auto', connectionManual: 'Manual', protocol: 'Protocol',
+            connection: 'Connection', connectionAuto: 'Auto', connectionManual: 'Manual', protocol: 'Protocol',
             host: 'IP address / domain', port: 'Port', path: 'Path (optional)', toggles: 'Map overlays',
-            toggleName: 'Name', toggleLegend: 'Legend', toggleVitals: 'Health / shield', toggleStats: 'Level / combat',
-            toggleTeamLinks: 'Team links', toggleRing: 'Ring', filters: 'Entity visibility', showDead: 'Show dead players',
+            toggleName: 'Name', toggleLegend: 'Legend', toggleHealth: 'Health', toggleShield: 'Shield',
+            toggleLevel: 'Level', toggleRank: 'Rank', toggleCombat: 'Combat', toggleRoster: 'Roster',
+            toggleTeamLinks: 'Team links', toggleRing: 'Ring', filters: 'Player filters', showDead: 'Show dead players',
             showDown: 'Show downed players', fontSize: 'Font size', downloadLatest: 'Export state snapshot',
             playerTable: 'Player table fields', playerTableShow: 'Show'
         },
-        map: { reconnect: 'Reconnect', playerCountLabel: 'Players', zoomReset: 'Reset', focusLabel: 'Focus', ringRemaining: 'Ring {seconds}s' },
+        map: {
+            reconnect: 'Reconnect', mapLabel: 'Map', aliveLabel: 'Alive', zoomReset: 'Reset', focusLabel: 'Focus',
+            focusHealth: 'Health', focusShield: 'Shield', focusKills: 'Kills'
+        },
         table: {
             title: 'HOOZi 3.0 Player State', empty: 'Waiting for player data',
-            columns: { team: 'Team / squad', name: 'Name', legend: 'Legend', uid: 'Platform UID', vitals: 'Health / shield', rank: 'Level / rank', combat: 'Kills / damage', status: 'Status / distance' }
+            columns: {
+                self: 'Local', id: 'Stable ID', index: 'Index', team: 'Team', squad: 'Squad', name: 'Name',
+                legend: 'Legend', legendIconKey: 'Legend icon key', uid: 'Platform UID', hp: 'Health', maxHp: 'Max health',
+                shield: 'Shield', maxShield: 'Max shield', distance: 'Distance', yaw: 'Yaw value', dead: 'Dead', down: 'Down',
+                level: 'Level', rank: 'Rank', rankIconKey: 'Rank icon key', rankColor: 'Rank color', kills: 'Kills',
+                damage: 'Damage', roster: 'Roster'
+            }
         },
         status: { waiting: 'Waiting', connecting: 'Connecting', connected: 'Connected', disconnected: 'Disconnected', protocolError: 'Protocol error' },
         overlay: {
@@ -83,7 +113,7 @@ const translations = {
             mapMissingTitle: 'Map asset missing', mapMissingSubtitle: 'No map file was found for {map}',
             protocolTitle: 'Protocol error', protocolSubtitle: '{message}'
         },
-        player: { self: 'Local', alive: 'Alive', down: 'Down', dead: 'Dead', team: 'Team {team}', squad: 'Squad {squad}', roster: 'Roster {roster}', unknown: 'Unknown' },
+        player: { self: 'Local', alive: 'Alive', down: 'Down', dead: 'Dead', yes: 'Yes', no: 'No', team: 'Team {team}', squad: 'Squad {squad}', roster: 'Roster {roster}', unknown: 'Unknown' },
         footer: { copyright: 'Copyright © hoozi.net. All rights reserved.', disclaimer: 'Web radar for the HOOZi 3.0 Lua data stream' }
     }
 };

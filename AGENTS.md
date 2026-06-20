@@ -102,7 +102,10 @@ Module responsibilities:
   normalization. It must not manipulate DOM or canvas state.
 - `src/state/store.js`: atomic snapshots, timestamp ordering, selection, and
   render-frame interpolation. It must remain independent of DOM APIs.
-- `src/render/entities.js`: pure canvas drawing for ring and player entities.
+- `src/render/ring.js`: the map-only outside-ring filter and thin boundary on a
+  canvas between the map image and player overlays.
+- `src/render/entities.js`: pure canvas drawing for player entities above the
+  ring effect so map filters never alter player information.
 - `src/render/radar.js`: canvas sizing, the 1000×1000 transform, render loop,
   follow/free view, pan, pinch, and zoom.
 - `src/ui/controls.js`: DOM lookup, localized status/overlay updates, settings

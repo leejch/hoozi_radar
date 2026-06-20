@@ -1,6 +1,12 @@
 import { VIEW_MODE_FOLLOW, VIEW_MODE_FREE, saveSetting, teamColorFor } from '../config.js';
 import { formatPlayerStatus } from '../render/entities.js';
 
+const DESKTOP_QUERY = window.matchMedia('(min-width: 1024px)');
+const DESKTOP_CONFIG_WIDTH = 300;
+const DESKTOP_TABLE_MIN_WIDTH = 320;
+const DESKTOP_MAP_MIN_WIDTH = 320;
+const DESKTOP_COLUMN_GAPS = 10;
+
 export function collectDomReferences(root = document) {
     const byId = (id) => root.getElementById(id);
     return {
@@ -14,11 +20,13 @@ export function collectDomReferences(root = document) {
         mapStage: byId('mapStage'),
         mapViewport: byId('mapViewport'),
         mapImage: byId('mapImage'),
+        mapZoneCanvas: byId('mapZoneCanvas'),
         mapCanvas: byId('mapCanvas'),
         mapOverlay: byId('mapOverlay'),
         overlayTitle: byId('overlayTitle'),
         overlaySubtitle: byId('overlaySubtitle'),
-        playerCount: byId('playerCount'),
+        mapName: byId('mapName'),
+        aliveCount: byId('aliveCount'),
         focusName: byId('focusPlayerName'),
         focusTeamBadge: byId('focusTeamBadge'),
         focusMeta: byId('focusMeta'),
@@ -31,17 +39,19 @@ export function collectDomReferences(root = document) {
         connectionManualFields: root.querySelector('[data-role="connection-manual-fields"]'),
         downloadLatestButton: byId('downloadLatestButton'),
         playerTableSection: root.querySelector('[data-role="player-table-section"]'),
+        playerTableShell: root.querySelector('[data-role="player-table-shell"]'),
+        playerTableToolbar: root.querySelector('[data-role="player-table-toolbar"]'),
+        playerTableScroll: root.querySelector('[data-role="player-table-scroll"]'),
+        playerTableElement: root.querySelector('.player-table'),
         playerTableHeader: root.querySelector('[data-role="player-table-header"]'),
         playerTableBody: root.querySelector('[data-role="player-table-body"]'),
-        playerTableToggleLabel: root.querySelector('[data-role="player-table-toggle-label"]'),
+        settingInputs: [...root.querySelectorAll('input[data-setting]')],
         inputs: {
-            protocol: byId('conf_protocol'), host: byId('conf_host'), port: byId('conf_port'), path: byId('conf_path'),
-            fontSize: byId('conf_fontsize'), showName: byId('conf_showname'), showLegend: byId('conf_showlegend'),
-            showVitals: byId('conf_showvitals'), showStats: byId('conf_showstats'), showTeamLinks: byId('conf_showteamlinks'),
-            showRing: byId('conf_showring'), showDead: byId('conf_showdead'), showDown: byId('conf_showdown'),
-            tableVisible: byId('conf_table_visible'), tableTeam: byId('conf_table_team'), tableName: byId('conf_table_name'),
-            tableLegend: byId('conf_table_legend'), tableUid: byId('conf_table_uid'), tableVitals: byId('conf_table_vitals'),
-            tableRank: byId('conf_table_rank'), tableCombat: byId('conf_table_combat'), tableStatus: byId('conf_table_status')
+            protocol: byId('conf_protocol'),
+            host: byId('conf_host'),
+            port: byId('conf_port'),
+            path: byId('conf_path'),
+            fontSize: byId('conf_fontsize')
         }
     };
 }
@@ -57,8 +67,10 @@ export function setConnectionStatus(refs, state, label) {
     refs.statusText.textContent = label;
     refs.statusIndicator.className = 'size-2.5 rounded-full shadow-inner shadow-black/50 transition';
     const classNames = {
-        connected: ['bg-emerald-400'], connecting: ['bg-amber-300', 'animate-pulse'],
-        error: ['bg-rose-500'], waiting: ['bg-slate-500']
+        connected: ['bg-emerald-400'],
+        connecting: ['bg-amber-300', 'animate-pulse'],
+        error: ['bg-rose-500'],
+        waiting: ['bg-slate-500']
     };
     refs.statusIndicator.classList.add(...(classNames[state] || classNames.waiting));
 }
@@ -70,19 +82,53 @@ function cell(text, className = '') {
     return element;
 }
 
+function displayValue(value) {
+    return value === null || value === undefined || value === '' ? '—' : String(value);
+}
+
+function displayBoolean(value, t) {
+    return value ? t('player.yes') : t('player.no');
+}
+
 function displayStatus(player, t) {
     return `${formatPlayerStatus(player, t)} · ${player.distance.toFixed(1)}m · yaw ${player.yaw} · ${t('player.roster', { roster: player.roster })}`;
 }
 
 export function createUiController({ refs, store, settings, t, onReconnect, onViewModeChange }) {
-    const checkboxBindings = [
-        ['showName', refs.inputs.showName], ['showLegend', refs.inputs.showLegend], ['showVitals', refs.inputs.showVitals],
-        ['showStats', refs.inputs.showStats], ['showTeamLinks', refs.inputs.showTeamLinks], ['showRing', refs.inputs.showRing],
-        ['showDead', refs.inputs.showDead], ['showDown', refs.inputs.showDown], ['tableVisible', refs.inputs.tableVisible],
-        ['tableTeam', refs.inputs.tableTeam], ['tableName', refs.inputs.tableName], ['tableLegend', refs.inputs.tableLegend],
-        ['tableUid', refs.inputs.tableUid], ['tableVitals', refs.inputs.tableVitals], ['tableRank', refs.inputs.tableRank],
-        ['tableCombat', refs.inputs.tableCombat], ['tableStatus', refs.inputs.tableStatus]
-    ];
+    let layoutFrame = 0;
+
+    function minimumTableViewportWidth() {
+        const toolbarWidth = refs.playerTableToolbar?.scrollWidth || 0;
+        const shellOverhead = refs.playerTableShell && refs.playerTableScroll
+            ? Math.max(0, refs.playerTableShell.offsetWidth - refs.playerTableScroll.clientWidth)
+            : 0;
+        return Math.max(DESKTOP_TABLE_MIN_WIDTH, Math.ceil(toolbarWidth + shellOverhead));
+    }
+
+    function syncDesktopLayout() {
+        layoutFrame = 0;
+        if (!DESKTOP_QUERY.matches) {
+            refs.layout.style.removeProperty('grid-template-columns');
+            return;
+        }
+        if (!settings.tableVisible) {
+            refs.layout.style.gridTemplateColumns = `${DESKTOP_CONFIG_WIDTH}px minmax(0, 1fr)`;
+            return;
+        }
+
+        const availableWidth = refs.layout.clientWidth;
+        const maximumTableWidth = Math.max(
+            DESKTOP_TABLE_MIN_WIDTH,
+            availableWidth - DESKTOP_CONFIG_WIDTH - DESKTOP_MAP_MIN_WIDTH - DESKTOP_COLUMN_GAPS
+        );
+        const tableWidth = Math.min(minimumTableViewportWidth(), maximumTableWidth);
+        refs.layout.style.gridTemplateColumns = `${DESKTOP_CONFIG_WIDTH}px minmax(0, 1fr) ${Math.round(tableWidth)}px`;
+    }
+
+    function scheduleLayoutSync() {
+        if (layoutFrame) cancelAnimationFrame(layoutFrame);
+        layoutFrame = requestAnimationFrame(syncDesktopLayout);
+    }
 
     function syncConnectionControls() {
         const manual = settings.connectionMode === 'manual';
@@ -105,6 +151,7 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
         refs.playerTableSection.classList.toggle('lg:flex', settings.tableVisible);
         refs.playerTableSection.classList.toggle('lg:hidden', !settings.tableVisible);
         refs.layout.classList.toggle('player-table-hidden', !settings.tableVisible);
+        scheduleLayoutSync();
     }
 
     function populatePlayerSelect(players) {
@@ -126,25 +173,41 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
         if (!player) {
             refs.focusName.textContent = '—';
             refs.focusTeamBadge.style.backgroundColor = '#64748B';
-            refs.focusMeta.textContent = '—';
+            refs.focusMeta.textContent = `${t('map.focusHealth')} — · ${t('map.focusShield')} — · ${t('map.focusKills')} —`;
             return;
         }
         refs.focusName.textContent = `${player.self ? '★ ' : ''}${player.name}`;
         refs.focusName.style.color = teamColorFor(player.team);
         refs.focusTeamBadge.style.backgroundColor = teamColorFor(player.team);
-        refs.focusMeta.textContent = `${player.legend || t('player.unknown')} · HP ${player.hp}/${player.max_hp} · S ${player.shield}/${player.max_shield} · K ${player.kills}`;
+        refs.focusMeta.textContent = `${t('map.focusHealth')} ${player.hp}/${player.max_hp} · ${t('map.focusShield')} ${player.shield}/${player.max_shield} · ${t('map.focusKills')} ${player.kills}`;
         refs.focusName.title = `${t('player.team', { team: player.team })} · ${t('player.squad', { squad: player.squad })} · ${displayStatus(player, t)}`;
     }
 
     const columns = [
-        ['tableTeam', 'table.columns.team', (p) => cell(`${p.team} / ${p.squad}`, 'font-semibold')],
-        ['tableName', 'table.columns.name', (p) => cell(`${p.self ? '★ ' : ''}${p.name}`)],
-        ['tableLegend', 'table.columns.legend', (p) => cell(p.legend || '—')],
-        ['tableUid', 'table.columns.uid', (p) => cell(p.uid || '—', 'font-mono')],
-        ['tableVitals', 'table.columns.vitals', (p) => cell(`${p.hp}/${p.max_hp} · ${p.shield}/${p.max_shield}`)],
-        ['tableRank', 'table.columns.rank', (p) => cell(`Lv ${p.level} · ${p.rank || '—'}`)],
-        ['tableCombat', 'table.columns.combat', (p) => cell(`${p.kills} · ${p.damage}`)],
-        ['tableStatus', 'table.columns.status', (p) => cell(displayStatus(p, t))]
+        ['tableSelf', 'table.columns.self', (p) => cell(displayBoolean(p.self, t))],
+        ['tableId', 'table.columns.id', (p) => cell(displayValue(p.id), 'font-mono')],
+        ['tableIndex', 'table.columns.index', (p) => cell(displayValue(p.index))],
+        ['tableTeam', 'table.columns.team', (p) => cell(displayValue(p.team), 'font-semibold')],
+        ['tableSquad', 'table.columns.squad', (p) => cell(displayValue(p.squad))],
+        ['tableName', 'table.columns.name', (p) => cell(displayValue(p.name))],
+        ['tableLegend', 'table.columns.legend', (p) => cell(displayValue(p.legend))],
+        ['tableLegendIconKey', 'table.columns.legendIconKey', (p) => cell(displayValue(p.legend_icon_key), 'font-mono')],
+        ['tableUid', 'table.columns.uid', (p) => cell(displayValue(p.uid), 'font-mono')],
+        ['tableHp', 'table.columns.hp', (p) => cell(displayValue(p.hp))],
+        ['tableMaxHp', 'table.columns.maxHp', (p) => cell(displayValue(p.max_hp))],
+        ['tableShield', 'table.columns.shield', (p) => cell(displayValue(p.shield))],
+        ['tableMaxShield', 'table.columns.maxShield', (p) => cell(displayValue(p.max_shield))],
+        ['tableDistance', 'table.columns.distance', (p) => cell(`${p.distance.toFixed(1)} m`)],
+        ['tableYaw', 'table.columns.yaw', (p) => cell(displayValue(p.yaw))],
+        ['tableDead', 'table.columns.dead', (p) => cell(displayBoolean(p.is_dead, t))],
+        ['tableDown', 'table.columns.down', (p) => cell(displayBoolean(p.is_down, t))],
+        ['tableLevel', 'table.columns.level', (p) => cell(displayValue(p.level))],
+        ['tableRank', 'table.columns.rank', (p) => cell(displayValue(p.rank))],
+        ['tableRankIconKey', 'table.columns.rankIconKey', (p) => cell(displayValue(p.rank_icon_key), 'font-mono')],
+        ['tableRankColor', 'table.columns.rankColor', (p) => cell(displayValue(p.rank_color), 'font-mono')],
+        ['tableKills', 'table.columns.kills', (p) => cell(displayValue(p.kills))],
+        ['tableDamage', 'table.columns.damage', (p) => cell(displayValue(p.damage))],
+        ['tableRoster', 'table.columns.roster', (p) => cell(displayValue(p.roster))]
     ];
 
     function renderTable(players) {
@@ -162,6 +225,7 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
             empty.className = 'px-2.5 py-5 text-center text-xs text-slate-500';
             row.appendChild(empty);
             refs.playerTableBody.replaceChildren(row);
+            scheduleLayoutSync();
             return;
         }
         const rows = [...players]
@@ -173,11 +237,15 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
                 return row;
             });
         refs.playerTableBody.replaceChildren(...rows);
+        scheduleLayoutSync();
     }
 
     function updateSnapshot(snapshot) {
         const players = snapshot?.players || [];
-        refs.playerCount.textContent = String(players.length);
+        const mapName = snapshot?.map || '—';
+        refs.mapName.textContent = mapName;
+        refs.mapName.title = mapName;
+        refs.aliveCount.textContent = String(players.filter((player) => !player.is_dead).length);
         populatePlayerSelect(players);
         updateFocus(players);
         renderTable(players);
@@ -185,26 +253,45 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
     }
 
     refs.connectionModeAutoButton.addEventListener('click', () => {
-        settings.connectionMode = 'auto'; saveSetting('connectionMode', 'auto'); syncConnectionControls(); onReconnect();
+        settings.connectionMode = 'auto';
+        saveSetting('connectionMode', 'auto');
+        syncConnectionControls();
+        onReconnect();
     });
     refs.connectionModeManualButton.addEventListener('click', () => {
-        settings.connectionMode = 'manual'; saveSetting('connectionMode', 'manual'); syncConnectionControls();
+        settings.connectionMode = 'manual';
+        saveSetting('connectionMode', 'manual');
+        syncConnectionControls();
     });
-    for (const [key, input] of [['manualProtocol', refs.inputs.protocol], ['manualHost', refs.inputs.host], ['manualPort', refs.inputs.port], ['manualPath', refs.inputs.path]]) {
+    for (const [key, input] of [
+        ['manualProtocol', refs.inputs.protocol],
+        ['manualHost', refs.inputs.host],
+        ['manualPort', refs.inputs.port],
+        ['manualPath', refs.inputs.path]
+    ]) {
         input.value = settings[key];
-        input.addEventListener('change', () => { settings[key] = input.value.trim(); saveSetting(key, settings[key]); });
+        input.addEventListener('change', () => {
+            settings[key] = input.value.trim();
+            saveSetting(key, settings[key]);
+        });
     }
-    for (const [key, input] of checkboxBindings) {
+    for (const input of refs.settingInputs) {
+        const key = input.dataset.setting;
         input.checked = Boolean(settings[key]);
         input.addEventListener('change', () => {
-            settings[key] = input.checked; saveSetting(key, settings[key]);
-            if (key.startsWith('table')) { syncTableVisibility(); renderTable(store.state.currentSnapshot?.players || []); }
+            settings[key] = input.checked;
+            saveSetting(key, settings[key]);
+            if (key.startsWith('table')) {
+                syncTableVisibility();
+                renderTable(store.state.currentSnapshot?.players || []);
+            }
         });
     }
     refs.inputs.fontSize.value = String(settings.fontSize);
     refs.inputs.fontSize.addEventListener('change', () => {
         settings.fontSize = Math.min(32, Math.max(7, Number(refs.inputs.fontSize.value) || 11));
-        refs.inputs.fontSize.value = String(settings.fontSize); saveSetting('fontSize', settings.fontSize);
+        refs.inputs.fontSize.value = String(settings.fontSize);
+        saveSetting('fontSize', settings.fontSize);
     });
     refs.playerSelect.addEventListener('change', () => {
         store.selectPlayer(refs.playerSelect.value);
@@ -212,8 +299,14 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
         saveSetting('selectedPlayerId', settings.selectedPlayerId);
         updateFocus(store.state.currentSnapshot?.players || []);
     });
-    refs.viewModeFreeButton.addEventListener('click', () => { onViewModeChange(VIEW_MODE_FREE); syncViewControls(); });
-    refs.viewModeFollowButton.addEventListener('click', () => { onViewModeChange(VIEW_MODE_FOLLOW); syncViewControls(); });
+    refs.viewModeFreeButton.addEventListener('click', () => {
+        onViewModeChange(VIEW_MODE_FREE);
+        syncViewControls();
+    });
+    refs.viewModeFollowButton.addEventListener('click', () => {
+        onViewModeChange(VIEW_MODE_FOLLOW);
+        syncViewControls();
+    });
     refs.reconnectButton.addEventListener('click', onReconnect);
     refs.configReconnectButton.addEventListener('click', onReconnect);
     refs.downloadLatestButton.addEventListener('click', () => {
@@ -226,9 +319,13 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
         URL.revokeObjectURL(link.href);
     });
 
+    window.addEventListener('resize', scheduleLayoutSync);
+    if (typeof DESKTOP_QUERY.addEventListener === 'function') DESKTOP_QUERY.addEventListener('change', scheduleLayoutSync);
+    document.fonts?.ready.then(scheduleLayoutSync);
+
     syncConnectionControls();
     syncViewControls();
     syncTableVisibility();
 
-    return { updateSnapshot, updateFocus, renderTable, syncViewControls };
+    return { updateSnapshot, updateFocus, renderTable, syncViewControls, syncDesktopLayout };
 }

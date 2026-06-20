@@ -30,26 +30,47 @@ export const DEFAULT_SETTINGS = Object.freeze({
     fontSize: 11,
     showName: true,
     showLegend: true,
-    showVitals: true,
-    showStats: false,
+    showHealth: true,
+    showShield: true,
+    showLevel: true,
+    showRank: true,
+    showCombat: true,
+    showRoster: true,
     showTeamLinks: true,
     showRing: true,
     showDead: true,
     showDown: true,
     tableVisible: true,
+    tableSelf: true,
+    tableId: true,
+    tableIndex: true,
     tableTeam: true,
+    tableSquad: true,
     tableName: true,
     tableLegend: true,
-    tableUid: false,
-    tableVitals: true,
+    tableLegendIconKey: true,
+    tableUid: true,
+    tableHp: true,
+    tableMaxHp: true,
+    tableShield: true,
+    tableMaxShield: true,
+    tableDistance: true,
+    tableYaw: true,
+    tableDead: true,
+    tableDown: true,
+    tableLevel: true,
     tableRank: true,
-    tableCombat: true,
-    tableStatus: true,
+    tableRankIconKey: true,
+    tableRankColor: true,
+    tableKills: true,
+    tableDamage: true,
+    tableRoster: true,
     selectedPlayerId: '',
     viewMode: VIEW_MODE_FOLLOW
 });
 
 const STORAGE_PREFIX = 'hoozi3_radar_';
+const SETTINGS_SCHEMA_VERSION = '2';
 
 export function clamp(value, min, max) {
     return Math.min(max, Math.max(min, value));
@@ -88,6 +109,14 @@ export function loadSettings() {
     const settings = {};
     for (const [key, fallback] of Object.entries(DEFAULT_SETTINGS)) {
         settings[key] = readStoredValue(key, fallback);
+    }
+    if (localStorage.getItem(`${STORAGE_PREFIX}schemaVersion`) !== SETTINGS_SCHEMA_VERSION) {
+        for (const key of Object.keys(DEFAULT_SETTINGS)) {
+            if (!key.startsWith('table') || key === 'tableVisible') continue;
+            settings[key] = true;
+            localStorage.setItem(`${STORAGE_PREFIX}${key}`, 'true');
+        }
+        localStorage.setItem(`${STORAGE_PREFIX}schemaVersion`, SETTINGS_SCHEMA_VERSION);
     }
     settings.connectionMode = settings.connectionMode === 'manual' ? 'manual' : 'auto';
     settings.manualProtocol = settings.manualProtocol === 'wss' ? 'wss' : 'ws';

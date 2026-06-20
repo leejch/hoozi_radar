@@ -24,6 +24,10 @@ The HOOZi 3.0 version follows the checked-in Lua script instead:
 - health, shield, down/dead state, legend, UID, level, kills, damage, rank,
   squad/team, roster metadata, and an optional ring
 - optional browser `ping` and Lua `pong`
+- a desktop layout that keeps table columns intrinsic and scrollable while the
+  map consumes the remaining width and height
+- independent map-overlay switches and independent table columns for every
+  verified non-coordinate player field
 
 Player positions and ring geometry are interpolated between Lua snapshots for
 the browser render loop. Unsupported HOOZi 2.0 fields are not synthesized.
@@ -62,7 +66,8 @@ hoozi_radar/
 │   ├── i18n.js                   zh-Hans, zh-Hant, and English strings
 │   ├── protocol/hoozi3.js        Protocol validation and normalization
 │   ├── state/store.js            Snapshots, selection, and interpolation
-│   ├── render/entities.js        Ring and player canvas rendering
+│   ├── render/ring.js            Map-only outside-ring filter and boundary
+│   ├── render/entities.js        Player canvas rendering above map effects
 │   ├── render/radar.js           Render loop, sizing, follow, pan, and zoom
 │   ├── ui/controls.js            Controls, focus UI, and player table
 │   └── assets/maps.js            CDN-first image fallback

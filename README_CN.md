@@ -22,6 +22,8 @@ HOOZi 3.0 版本改为严格遵循仓库中的 Lua 脚本：
 - 生命、护盾、倒地/死亡状态、英雄、UID、等级、击杀、伤害、段位、
   队伍/小队、名册元数据和可选安全区
 - 可选的浏览器 `ping` 与 Lua `pong`
+- 桌面布局保持表格列的固有宽度和横向滚动，并让地图占用剩余的宽度与高度
+- 地图绘制字段使用独立开关，所有可验证的非坐标玩家字段均可独立控制表格列
 
 浏览器渲染循环会在相邻 Lua 快照之间插值玩家位置和安全区几何数据。前端
 不会伪造已经不受支持的 HOOZi 2.0 字段。
@@ -60,7 +62,8 @@ hoozi_radar/
 │   ├── i18n.js                   简中、繁中和英文文本
 │   ├── protocol/hoozi3.js        协议验证与归一化
 │   ├── state/store.js            快照、选择与插值
-│   ├── render/entities.js        安全区和玩家 Canvas 渲染
+│   ├── render/ring.js            仅作用于地图的圈外滤镜和安全区边界
+│   ├── render/entities.js        位于地图效果上方的玩家 Canvas 渲染
 │   ├── render/radar.js           渲染循环、尺寸、跟随、拖动与缩放
 │   ├── ui/controls.js            控制项、焦点 UI 和玩家表格
 │   └── assets/maps.js            CDN 优先的图片回退

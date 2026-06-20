@@ -21,38 +21,10 @@ function drawBar(ctx, x, y, width, height, value, maximum, color) {
     ctx.fillRect(x + 1, y + 1, Math.max(0, (width - 2) * ratio), Math.max(0, height - 2));
 }
 
-function drawRing(ctx, ring, width, height, t) {
-    const center = mapPoint(ring, width, height);
-    const radius = ring.radius / MAP_SIDE * Math.min(width, height);
-    ctx.save();
-    ctx.strokeStyle = 'rgba(125, 211, 252, 0.95)';
-    ctx.fillStyle = 'rgba(56, 189, 248, 0.06)';
-    ctx.lineWidth = 2;
-    ctx.setLineDash([8, 5]);
-    ctx.beginPath();
-    ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-    ctx.setLineDash([]);
-    const seconds = Math.max(0, ring.t_end - ring.t_now);
-    const label = t('map.ringRemaining', { seconds: seconds.toFixed(1) });
-    ctx.font = '600 11px "Microsoft YaHei", Inter, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'bottom';
-    ctx.strokeStyle = 'rgba(2, 6, 23, 0.9)';
-    ctx.lineWidth = 3;
-    ctx.strokeText(label, center.x, Math.max(14, center.y - radius - 4));
-    ctx.fillStyle = '#BAE6FD';
-    ctx.fillText(label, center.x, Math.max(14, center.y - radius - 4));
-    ctx.restore();
-}
-
 export function renderEntities(ctx, snapshot, settings, selectedPlayer, dimensions, t) {
     const { width, height } = dimensions;
     ctx.clearRect(0, 0, width, height);
     if (!snapshot) return;
-
-    if (settings.showRing && snapshot.ring) drawRing(ctx, snapshot.ring, width, height, t);
 
     const visiblePlayers = snapshot.players.filter((player) => {
         if (!player.position) return false;
@@ -111,15 +83,22 @@ export function renderEntities(ctx, snapshot, settings, selectedPlayer, dimensio
             ctx.stroke();
         }
 
-        if (settings.showVitals) {
-            drawBar(ctx, point.x - 14, point.y + 8, 28, 4, player.hp, player.max_hp, '#4ADE80');
-            drawBar(ctx, point.x - 14, point.y + 13, 28, 4, player.shield, player.max_shield, '#60A5FA');
+        let barY = point.y + 8;
+        if (settings.showHealth) {
+            drawBar(ctx, point.x - 14, barY, 28, 4, player.hp, player.max_hp, '#4ADE80');
+            barY += 5;
+        }
+        if (settings.showShield) {
+            drawBar(ctx, point.x - 14, barY, 28, 4, player.shield, player.max_shield, '#60A5FA');
         }
 
         const parts = [];
         if (settings.showName) parts.push(player.name);
         if (settings.showLegend && player.legend) parts.push(player.legend);
-        if (settings.showStats) parts.push(`Lv ${player.level} · K ${player.kills} · Dmg ${player.damage}`);
+        if (settings.showLevel) parts.push(`${t('table.columns.level')} ${player.level}`);
+        if (settings.showRank && player.rank) parts.push(`${t('table.columns.rank')} ${player.rank}`);
+        if (settings.showCombat) parts.push(`${t('table.columns.kills')} ${player.kills} · ${t('table.columns.damage')} ${player.damage}`);
+        if (settings.showRoster) parts.push(`${t('table.columns.roster')} ${player.roster}`);
         if (parts.length) labels.push({ point, color: player.self ? '#FFFFFF' : teamColor, text: parts.join(' · '), alpha, player });
         ctx.restore();
     }

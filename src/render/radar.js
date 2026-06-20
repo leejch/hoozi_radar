@@ -7,9 +7,11 @@ import {
     saveSetting
 } from '../config.js';
 import { renderEntities } from './entities.js';
+import { renderRingEffect } from './ring.js';
 
 export function createRadarRenderer({ refs, store, settings, t }) {
     const ctx = refs.mapCanvas.getContext('2d');
+    const zoneCtx = refs.mapZoneCanvas.getContext('2d');
     const pointers = new Map();
     let pan = null;
     let pinch = null;
@@ -25,8 +27,10 @@ export function createRadarRenderer({ refs, store, settings, t }) {
         pixelRatio = Math.max(1, window.devicePixelRatio || 1);
         const width = Math.round(cssWidth * pixelRatio);
         const height = Math.round(cssHeight * pixelRatio);
-        if (refs.mapCanvas.width !== width) refs.mapCanvas.width = width;
-        if (refs.mapCanvas.height !== height) refs.mapCanvas.height = height;
+        for (const canvas of [refs.mapZoneCanvas, refs.mapCanvas]) {
+            if (canvas.width !== width) canvas.width = width;
+            if (canvas.height !== height) canvas.height = height;
+        }
     }
 
     function applyTransform() {
@@ -81,6 +85,8 @@ export function createRadarRenderer({ refs, store, settings, t }) {
         const snapshot = store.getRenderSnapshot(now);
         const selected = store.getSelectedPlayer(snapshot?.players);
         if (store.state.viewMode === VIEW_MODE_FOLLOW && selected?.position) centerOn(selected.position);
+        zoneCtx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+        renderRingEffect(zoneCtx, snapshot?.ring, settings, { width: cssWidth, height: cssHeight });
         ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
         renderEntities(ctx, snapshot, settings, selected, { width: cssWidth, height: cssHeight }, t);
         animationFrame = requestAnimationFrame(renderFrame);

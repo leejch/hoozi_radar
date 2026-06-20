@@ -48,6 +48,7 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
             cursor: grab;
             max-width: 100%;
             max-height: 100%;
+            aspect-ratio: 1 / 1;
         }
 
         #mapStage.dragging {
@@ -69,16 +70,24 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
         #mapViewport img {
             width: 100%;
             height: 100%;
-            object-fit: contain;
+            object-fit: fill;
             user-select: none;
             pointer-events: none;
+            z-index: 0;
         }
 
         #mapViewport canvas {
             width: 100%;
             height: 100%;
             pointer-events: none;
+        }
+
+        #mapZoneCanvas {
             z-index: 1;
+        }
+
+        #mapCanvas {
+            z-index: 2;
         }
 
         #mapOverlay {
@@ -143,10 +152,11 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
 
             .three-column-layout {
                 display: grid;
-                grid-template-columns: 320px auto minmax(320px, 1fr);
+                grid-template-columns: 300px minmax(0, 1fr) 320px;
                 column-gap: 5px;
                 row-gap: 5px;
                 align-items: stretch;
+                height: 100%;
             }
 
             .three-column-layout.player-table-hidden {
@@ -161,7 +171,7 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
                 display: flex;
                 flex-direction: column;
                 min-height: 0;
-                max-height: 100vh;
+                height: 100%;
             }
 
             .config-stack {
@@ -173,23 +183,36 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
 
             .map-shell {
                 display: flex;
-                align-items: flex-start;
-                justify-content: center;
+                align-items: stretch;
+                justify-content: stretch;
+                width: 100%;
+                height: 100%;
                 min-height: 0;
+                overflow: hidden;
             }
 
             .map-stage-container {
                 position: relative;
                 display: flex;
                 flex-direction: column;
-                align-items: center;
+                align-items: stretch;
                 gap: 0;
+                width: 100%;
+                height: 100%;
+                min-height: 0;
+            }
+
+            #mapStage {
+                width: 100%;
+                height: 100%;
+                min-height: 0;
+                aspect-ratio: auto;
             }
 
             .player-table-shell {
                 height: 100%;
+                min-width: 0;
                 overflow: hidden;
-                max-height: 100vh;
             }
 
             .player-table-wrapper {
@@ -205,17 +228,19 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
             }
 
             .map-controls-outlet {
-                margin-top: 0;
-            }
-
-            #mapStage #mapControls {
                 position: absolute;
                 left: 1rem;
                 bottom: 1rem;
-                margin: 0;
+                margin-top: 0;
+                width: auto;
                 max-width: calc(100% - 2rem);
-                transform: none;
                 z-index: 2;
+            }
+
+            .map-controls-outlet #mapControls {
+                margin: 0;
+                max-width: 100%;
+                transform: none;
             }
         }
 
@@ -238,6 +263,11 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
         .player-table-wrapper {
             background-color: rgba(15, 23, 42, 0.55);
             border: 1px solid rgba(71, 85, 105, 0.55);
+        }
+
+        .player-table {
+            width: max-content;
+            min-width: 100%;
         }
 
         .player-table thead th {
@@ -363,36 +393,56 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
                 <section class="glass-panel rounded-3xl py-2 px-4">
                     <h2 class="text-sm font-semibold uppercase text-slate-300" data-i18n="config.toggles">信息开关</h2>
                     <div class="mt-3 space-y-2">
-                        <div class="grid grid-cols-3 gap-1.5 text-sm text-slate-200">
+                        <div class="grid grid-cols-2 gap-1.5 text-sm text-slate-200">
                             <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
-                                <input id="conf_showname" type="checkbox"
+                                <input id="conf_showname" type="checkbox" data-setting="showName"
                                        class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
                                 <span data-i18n="config.toggleName">昵称</span>
                             </label>
                             <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
-                                <input id="conf_showlegend" type="checkbox"
+                                <input id="conf_showlegend" type="checkbox" data-setting="showLegend"
                                        class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
                                 <span data-i18n="config.toggleLegend">英雄</span>
                             </label>
                             <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
-                                <input id="conf_showvitals" type="checkbox"
+                                <input id="conf_showhealth" type="checkbox" data-setting="showHealth"
                                        class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                                <span data-i18n="config.toggleVitals">生命护盾</span>
+                                <span data-i18n="config.toggleHealth">血量</span>
+                            </label>
+                            <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
+                                <input id="conf_showshield" type="checkbox" data-setting="showShield"
+                                       class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
+                                <span data-i18n="config.toggleShield">护盾</span>
+                            </label>
+                            <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
+                                <input id="conf_showlevel" type="checkbox" data-setting="showLevel"
+                                       class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
+                                <span data-i18n="config.toggleLevel">等级</span>
                             </label>
                         </div>
-                        <div class="grid grid-cols-3 gap-1.5 text-sm text-slate-200">
+                        <div class="grid grid-cols-2 gap-1.5 text-sm text-slate-200">
                             <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
-                                <input id="conf_showstats" type="checkbox"
+                                <input id="conf_showrank" type="checkbox" data-setting="showRank"
                                        class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                                <span data-i18n="config.toggleStats">等级战绩</span>
+                                <span data-i18n="config.toggleRank">段位</span>
                             </label>
                             <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
-                                <input id="conf_showteamlinks" type="checkbox"
+                                <input id="conf_showcombat" type="checkbox" data-setting="showCombat"
+                                       class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
+                                <span data-i18n="config.toggleCombat">战绩</span>
+                            </label>
+                            <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
+                                <input id="conf_showroster" type="checkbox" data-setting="showRoster"
+                                       class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
+                                <span data-i18n="config.toggleRoster">名册</span>
+                            </label>
+                            <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
+                                <input id="conf_showteamlinks" type="checkbox" data-setting="showTeamLinks"
                                        class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
                                 <span data-i18n="config.toggleTeamLinks">同队连线</span>
                             </label>
                             <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
-                                <input id="conf_showring" type="checkbox"
+                                <input id="conf_showring" type="checkbox" data-setting="showRing"
                                        class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
                                 <span data-i18n="config.toggleRing">安全区</span>
                             </label>
@@ -400,15 +450,15 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
                     </div>
                 </section>
                 <section class="glass-panel rounded-3xl py-2 px-4">
-                    <h2 class="text-sm font-semibold uppercase text-slate-300" data-i18n="config.filters">实体显示</h2>
+                    <h2 class="text-sm font-semibold uppercase text-slate-300" data-i18n="config.filters">玩家过滤</h2>
                     <div class="mt-3 space-y-2.5">
                         <label class="flex items-center gap-3 rounded-2xl border border-slate-800/70 bg-slate-950/40 px-3 py-1.5 text-sm transition hover:border-emerald-400/60">
-                            <input id="conf_showdead" type="checkbox"
+                            <input id="conf_showdead" type="checkbox" data-setting="showDead"
                                    class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
                             <span class="text-slate-200" data-i18n="config.showDead">显示死亡玩家</span>
                         </label>
                         <label class="flex items-center gap-3 rounded-2xl border border-slate-800/70 bg-slate-950/40 px-3 py-1.5 text-sm transition hover:border-emerald-400/60">
-                            <input id="conf_showdown" type="checkbox"
+                            <input id="conf_showdown" type="checkbox" data-setting="showDown"
                                    class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
                             <span class="text-slate-200" data-i18n="config.showDown">显示倒地玩家</span>
                         </label>
@@ -425,56 +475,36 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
                     <div class="flex items-center justify-between gap-3">
                         <span class="text-sm font-semibold uppercase text-slate-300" data-i18n="config.playerTable">玩家信息列表</span>
                         <label class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-slate-400">
-                            <input id="conf_table_visible" type="checkbox"
+                            <input id="conf_table_visible" type="checkbox" data-setting="tableVisible"
                                    class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
                             <span data-role="player-table-toggle-label" data-i18n="config.playerTableShow">显示</span>
                         </label>
                     </div>
-                    <div class="mt-3 space-y-2 text-sm text-slate-200">
-                        <div class="grid grid-cols-3 gap-1.5">
-                            <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
-                                <input id="conf_table_team" type="checkbox"
-                                       class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                                <span data-i18n="table.columns.team">队伍</span>
-                            </label>
-                            <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
-                                <input id="conf_table_name" type="checkbox"
-                                       class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                                <span data-i18n="table.columns.name">昵称</span>
-                            </label>
-                            <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
-                                <input id="conf_table_legend" type="checkbox"
-                                       class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                                <span data-i18n="table.columns.legend">英雄</span>
-                            </label>
-                            <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
-                                <input id="conf_table_vitals" type="checkbox"
-                                       class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                                <span data-i18n="table.columns.vitals">生命 / 护盾</span>
-                            </label>
-                            <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
-                                <input id="conf_table_rank" type="checkbox"
-                                       class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                                <span data-i18n="table.columns.rank">等级 / 段位</span>
-                            </label>
-                            <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
-                                <input id="conf_table_combat" type="checkbox"
-                                       class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                                <span data-i18n="table.columns.combat">击杀 / 伤害</span>
-                            </label>
-                        </div>
-                        <div class="grid grid-cols-2 gap-1.5">
-                            <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
-                                <input id="conf_table_uid" type="checkbox"
-                                       class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                                <span data-i18n="table.columns.uid">平台 UID</span>
-                            </label>
-                            <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
-                                <input id="conf_table_status" type="checkbox"
-                                       class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                                <span data-i18n="table.columns.status">状态 / 距离</span>
-                            </label>
-                        </div>
+                    <div class="mt-3 grid grid-cols-2 gap-1.5 text-xs text-slate-200">
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableSelf" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.self">本机</span></label>
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableId" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.id">稳定 ID</span></label>
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableIndex" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.index">索引</span></label>
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableTeam" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.team">队伍</span></label>
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableSquad" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.squad">小队</span></label>
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableName" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.name">昵称</span></label>
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableLegend" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.legend">英雄</span></label>
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableLegendIconKey" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.legendIconKey">英雄图标 Key</span></label>
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableUid" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.uid">平台 UID</span></label>
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableHp" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.hp">血量</span></label>
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableMaxHp" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.maxHp">最大血量</span></label>
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableShield" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.shield">护盾</span></label>
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableMaxShield" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.maxShield">最大护盾</span></label>
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableDistance" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.distance">距离</span></label>
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableYaw" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.yaw">朝向值</span></label>
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableDead" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.dead">死亡</span></label>
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableDown" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.down">倒地</span></label>
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableLevel" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.level">等级</span></label>
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableRank" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.rank">段位</span></label>
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableRankIconKey" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.rankIconKey">段位图标 Key</span></label>
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableRankColor" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.rankColor">段位颜色</span></label>
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableKills" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.kills">击杀</span></label>
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableDamage" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.damage">伤害</span></label>
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableRoster" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.roster">名册</span></label>
                     </div>
                 </section>
             </div>
@@ -482,9 +512,10 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
         <section class="map-shell">
             <div class="map-stage-container relative flex flex-1 flex-col">
                 <div id="mapStage"
-                     class="glass-panel relative aspect-square w-full overflow-hidden rounded-[1.75rem] border border-slate-800/80">
+                     class="glass-panel relative w-full overflow-hidden rounded-[1.75rem] border border-slate-800/80">
                     <div id="mapViewport" class="absolute inset-0">
                         <img id="mapImage" src="" alt="" draggable="false" referrerpolicy="origin">
+                        <canvas id="mapZoneCanvas" aria-hidden="true"></canvas>
                         <canvas id="mapCanvas"></canvas>
                     </div>
                     <div id="mapOverlay" data-state="loading" data-reconnect="false"
@@ -502,10 +533,15 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
                             <p id="overlaySubtitle" class="text-sm text-slate-400" data-i18n="overlay.waitingSubtitle">正在尝试与服务器建立通信</p>
                         </div>
                     </div>
-                    <div
-                            class="absolute top-3 right-3 flex items-center gap-1.5 rounded-full border border-slate-700 bg-slate-950/70 px-2 py-0.5 text-[0.7rem] uppercase text-slate-300">
-                        <span data-i18n="map.playerCountLabel">玩家</span>
-                        <span id="playerCount" class="text-sm font-semibold text-white">0</span>
+                    <div class="absolute top-3 right-3 flex max-w-[calc(100%_-_1.5rem)] items-center gap-2">
+                        <div class="flex min-w-0 items-center gap-1.5 rounded-full border border-slate-700 bg-slate-950/70 px-2 py-0.5 text-[0.7rem] uppercase text-slate-300">
+                            <span data-i18n="map.mapLabel">地图</span>
+                            <span id="mapName" class="max-w-52 truncate text-sm font-semibold normal-case text-white" title="—">—</span>
+                        </div>
+                        <div class="flex shrink-0 items-center gap-1.5 rounded-full border border-slate-700 bg-slate-950/70 px-2 py-0.5 text-[0.7rem] uppercase text-slate-300">
+                            <span data-i18n="map.aliveLabel">存活</span>
+                            <span id="aliveCount" class="text-sm font-semibold text-white">0</span>
+                        </div>
                     </div>
                 </div>
                 <div class="map-controls-outlet" data-role="map-controls-outlet">
@@ -523,16 +559,16 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
                             <span id="focusPlayerName" class="max-w-[140px] truncate text-sm font-semibold text-white sm:max-w-[240px]">—</span>
                             <span id="focusMeta"
                                   class="rounded-full border border-slate-700/70 bg-slate-900/70 px-2 py-0.5 text-[0.65rem] font-medium text-slate-200">
-                                    Lv — · K —
+                                    血量 — · 护盾 — · 击杀 —
                                 </span>
                         </div>
                     </div>
                 </div>
             </div>
         </section>
-        <section class="hidden lg:flex lg:h-full lg:flex-shrink-0" data-role="player-table-section">
+        <section class="hidden min-w-0 lg:flex lg:h-full lg:flex-shrink-0" data-role="player-table-section">
             <div class="player-table-shell glass-panel flex h-full w-full flex-col rounded-3xl p-2" data-role="player-table-shell">
-                <div class="flex items-center justify-between">
+                <div class="flex items-center justify-between gap-3" data-role="player-table-toolbar">
                     <h2 class="pl-2 text-sm font-semibold uppercase text-slate-300" data-i18n="table.title">HOOZi 3.0 玩家信息</h2>
                     <button id="downloadLatestButton" type="button" disabled
                             class="rounded-full border border-slate-700/70 bg-slate-900/60 px-3 py-1 text-[0.7rem] font-semibold text-slate-300 transition hover:border-slate-500/60 hover:text-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-500/30 disabled:cursor-not-allowed disabled:opacity-50"
