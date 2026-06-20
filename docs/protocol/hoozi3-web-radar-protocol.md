@@ -13,7 +13,10 @@ Lua script, not a hypothetical server or the older HOOZi 2.0 transport.
 ## Message flow
 
 1. `web_radar.lua` listens on `127.0.0.1:9001` with `net.ws_server`.
-2. A browser connects to `ws://127.0.0.1:9001` (no required path).
+2. After the page `load` event, the browser attempts
+   `ws://127.0.0.1:9001` once (no required path). Failure or later closure does
+   not schedule another attempt on either HTTP or HTTPS pages; further attempts
+   require an explicit connection/reconnect action.
 3. On each configured broadcast interval, the script snapshots the current
    game state, JSON-encodes it, and broadcasts it to every connected client.
    The menu interval is 16–500 ms and defaults to 30 ms.
@@ -246,9 +249,9 @@ The player-information toolbar exports the latest complete raw `state` message
 as JSON. Imported files must use a `.json` filename and must parse as a `state`
 message through this same boundary; `pong`, unknown kinds, invalid JSON, and a
 non-array `players` value are rejected without changing frontend state. An
-accepted imported snapshot enters offline preview: active connection and retry
-timers are stopped, and no automatic reconnect occurs until the user explicitly
-uses a connection/reconnect control. It also remains display-only with respect
+accepted imported snapshot enters offline preview: the active connection and
+ping timer are stopped, and a pending initial connection attempt is cancelled
+until the user explicitly uses a connection/reconnect control. It also remains display-only with respect
 to server ordering: it does not replace the last accepted live timestamp, and
 the next valid live snapshot resumes without interpolation from test data.
 

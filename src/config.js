@@ -158,20 +158,19 @@ export function getConnectionTarget(settings) {
         : DEFAULT_LOCAL_WS_TARGET;
 }
 
-export function createReconnectPolicy() {
-    let suspended = false;
+export function createInitialConnectionGate() {
+    let pending = true;
     return {
-        suspend() {
-            suspended = true;
+        cancel() {
+            pending = false;
         },
-        resume() {
-            suspended = false;
+        take() {
+            if (!pending) return false;
+            pending = false;
+            return true;
         },
-        canSchedule(connectionMode, timerPending = false) {
-            return !suspended && connectionMode === 'auto' && !timerPending;
-        },
-        get suspended() {
-            return suspended;
+        get pending() {
+            return pending;
         }
     };
 }

@@ -1,4 +1,4 @@
-import { createReconnectPolicy, getConnectionTarget, loadSettings } from './config.js';
+import { createInitialConnectionGate, getConnectionTarget, loadSettings } from './config.js';
 import { applyTranslations, t } from './i18n.js';
 import { createFallbackImageLoader, mapAssetName } from './assets/maps.js';
 import {
@@ -21,9 +21,8 @@ applyTranslations();
 const refs = collectDomReferences();
 const settings = loadSettings();
 const store = createRadarStore(settings);
-let reconnectTimer = null;
 let pingTimer = null;
-const reconnectPolicy = createReconnectPolicy();
+const initialConnectionGate = createInitialConnectionGate();
 
 const radar = createRadarRenderer({ refs, store, settings, t });
 
@@ -53,7 +52,7 @@ const ui = createUiController({
     store,
     settings,
     t,
-    onReconnect: () => connect(),
+    onReconnect: () => connectManually(),
     onViewModeChange: (mode) => radar.setViewMode(mode),
     onImportPlayerData: (raw) => {
         const message = parseHoozi3StateFile(raw);
@@ -65,9 +64,7 @@ const ui = createUiController({
 ui.updateSnapshot(null);
 
 function clearTimers() {
-    if (reconnectTimer !== null) window.clearTimeout(reconnectTimer);
     if (pingTimer !== null) window.clearInterval(pingTimer);
-    reconnectTimer = null;
     pingTimer = null;
 }
 
@@ -87,19 +84,11 @@ function detachSocket() {
 }
 
 function pauseForImportedPreview() {
-    reconnectPolicy.suspend();
+    initialConnectionGate.cancel();
     clearTimers();
     detachSocket();
     store.state.connection = 'preview';
     setConnectionStatus(refs, 'waiting', t('status.importedPreview'));
-}
-
-function scheduleReconnect() {
-    if (!reconnectPolicy.canSchedule(settings.connectionMode, reconnectTimer !== null)) return;
-    reconnectTimer = window.setTimeout(() => {
-        reconnectTimer = null;
-        connect();
-    }, 2000);
 }
 
 function applyStateMessage(message, raw, { imported = false } = {}) {
@@ -133,8 +122,12 @@ function handleMessage(raw) {
     }
 }
 
+function connectManually() {
+    initialConnectionGate.cancel();
+    connect();
+}
+
 function connect() {
-    reconnectPolicy.resume();
     clearTimers();
     detachSocket();
     if (store.state.mapName && !store.state.mapLoaded) refs.mapImage.dataset.mapName = '';
@@ -156,7 +149,6 @@ function connect() {
         console.error('Unable to create WebSocket', error);
         setConnectionStatus(refs, 'error', t('status.disconnected'));
         setOverlay(refs, 'info', t('overlay.instructionsTitle'), t('overlay.instructionsSubtitle'), true);
-        scheduleReconnect();
         return;
     }
 
@@ -181,12 +173,15 @@ function connect() {
         store.state.connection = 'disconnected';
         setConnectionStatus(refs, 'error', t('status.disconnected'));
         setOverlay(refs, 'info', t('overlay.instructionsTitle'), t('overlay.instructionsSubtitle'), true);
-        scheduleReconnect();
     };
 }
 
+function attemptInitialConnection() {
+    if (initialConnectionGate.take()) connect();
+}
+
 window.addEventListener('beforeunload', () => {
-    reconnectPolicy.suspend();
+    initialConnectionGate.cancel();
     clearTimers();
     detachSocket();
     radar.stop();
@@ -195,4 +190,8 @@ window.addEventListener('beforeunload', () => {
 setConnectionStatus(refs, 'waiting', t('status.waiting'));
 setOverlay(refs, 'loading', t('overlay.waitingTitle'), t('overlay.waitingSubtitle'));
 radar.start();
-connect();
+if (document.readyState === 'complete') {
+    window.setTimeout(attemptInitialConnection, 0);
+} else {
+    window.addEventListener('load', attemptInitialConnection, { once: true });
+}

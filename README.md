@@ -123,9 +123,9 @@ current player data. The adjacent import control accepts `.json` files only and
 runs them through the same HOOZi 3.0 protocol validator before applying them.
 Invalid JSON, non-`state` messages, and malformed player arrays do not modify
 the current radar state. A valid import enters offline preview, stops the active
-socket and automatic retry timer, and remains stable until the user explicitly
-connects again. Imported test data does not alter live WebSocket timestamp
-ordering; the next valid live snapshot can take over normally.
+socket, cancels a not-yet-run initial attempt, and remains stable until the user
+explicitly connects again. Imported test data does not alter live WebSocket
+timestamp ordering; the next valid live snapshot can take over normally.
 
 ## Running locally
 
@@ -148,8 +148,10 @@ python -m http.server 8080
 ```
 
 Open `http://127.0.0.1:8080/` and ensure HOOZi 3.0 has loaded
-`web_radar.lua` with its server enabled. Local auto mode connects to
-`ws://127.0.0.1:9001`.
+`web_radar.lua` with its server enabled. After the page `load` event, local auto
+mode attempts `ws://127.0.0.1:9001` exactly once. A failed or later-closed
+connection is not retried automatically on HTTP or HTTPS pages; use the
+connection/reconnect control for another attempt.
 
 When the page itself is hosted over HTTPS, browsers normally block a plain
 `ws://` connection as mixed content. Use Manual mode with the authorized
