@@ -77,7 +77,7 @@ Important limits:
 
 ## Active frontend structure
 
-The page uses one native ES-module application entry. Its small inline module
+Development uses one native ES-module application entry. Its small inline module
 bootstrap prevents an unsupported `file://` launch from attempting imports and
 shows the local-server command instead. Under HTTP it imports:
 
@@ -85,16 +85,24 @@ shows the local-server command instead. Under HTTP it imports:
 import('./src/main.js')
 ```
 
-Do not add a bundler or unordered classic script tags without explicit user
-approval. `app.js` was the HOOZi 2.0 monolith and is no longer part of the
-active project.
+The user has explicitly approved the production-only esbuild and
+javascript-obfuscator pipeline. `npm run build` may replace the marked inline
+bootstrap in `dist/index.html` with the generated content-hashed
+`dist/assets/app.*.js` IIFE, but
+development source must remain the native module graph. `app.js` was the HOOZi
+2.0 monolith and is no longer part of the source project.
 
 Module responsibilities:
 
 - `scripts/dev-server.mjs`: dependency-free local HTTP server used by
-  `npm start` / `npm run serve`; it must serve `.js`/`.mjs` with JavaScript MIME
-  types and `nosniff`.
-- `src/main.js`: application bootstrap, WebSocket lifecycle, ping/reconnect, and module
+  `npm start`, `npm run serve`, and production preview; it must serve
+  `.js`/`.mjs` with JavaScript MIME types and `nosniff`.
+- `scripts/build.mjs`: cleans `dist`, builds minified CSS, bundles the module
+  graph, performs final obfuscation, replaces the marked HTML bootstrap, and
+  copies static assets.
+- `obfuscator.config.mjs`: balanced, browser-no-eval production obfuscation;
+  keep source maps, property renaming, and debugger-freezing protection off.
+- `src/main.js`: application bootstrap, WebSocket lifecycle, ping, and module
   wiring. Keep parsing and DOM details out of this file.
 - `src/config.js`: constants, defaults, persisted settings, connection target
   construction, team colors, and shared numeric helpers.
@@ -202,6 +210,7 @@ least:
 npm install
 npx @tailwindcss/cli -i ./input.css -o ./styles.css
 Get-ChildItem -Recurse -Filter *.js src | ForEach-Object { node --check $_.FullName }
+npm run build
 ```
 
 Also verify in a browser served over HTTP (`file://` cannot load this native
@@ -210,6 +219,9 @@ module graph):
 - `index.html` reports the `npm start` instruction under `file://` and imports
   only `src/main.js` as the application entry under HTTP;
 - every module import returns successfully;
+- the production `dist/index.html` loads only one content-hashed
+  `dist/assets/app.*.js`, the bundle
+  has no source-map reference, and `npm run preview` starts without console errors;
 - the default WebSocket target is `ws://127.0.0.1:9001`;
 - a valid `state` fixture updates map/player/ring UI;
 - malformed and unknown messages fail without applying partial state;

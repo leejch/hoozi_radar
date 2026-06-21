@@ -134,7 +134,7 @@ python -m http.server 8080
 如果页面本身使用 HTTPS，浏览器通常会把普通 `ws://` 连接视为混合内容并
 阻止。此时请在手动模式中使用部署环境提供的、经过授权的 `wss://` 中继。
 
-## 安装工具与构建 CSS
+## 安装、开发样式与生产构建
 
 安装锁定的开发依赖：
 
@@ -148,7 +148,35 @@ npm install
 npx @tailwindcss/cli -i ./input.css -o ./styles.css
 ```
 
-项目无需 bundling，所有 JavaScript 文件都以原生 ES Modules 提供。
+开发模式仍不打包：`npm start` 直接提供原生 ES Modules。发布公网前，使用以下命令生成
+完整的混淆生产站点：
+
+```powershell
+npm run build
+```
+
+该命令会重新生成压缩后的 Tailwind CSS，使用 esbuild 将应用打包为单一、压缩的浏览器
+IIFE，再应用 `obfuscator.config.mjs` 中的平衡型混淆配置，最终把可部署的 `index.html`、
+`styles.css`、`assets/app.<内容哈希>.js` 和 `static/` 写入 `dist/`。构建不会生成
+source map。可以使用 `npm run preview` 本地验证生产包。
+
+默认配置使用不依赖 `eval` 的浏览器目标、RC4 字符串数组、适度控制流平坦化、低比例死代码
+和自防御输出。属性/全局名称重命名以及会冻结开发者工具的反调试功能保持关闭，因为这些选项
+会带来不成比例的兼容性和性能风险。构建完成后不要再次格式化或压缩生成的
+`dist/assets/app.*.js`，自防御代码会有意检测后续改写。HTTP gzip/Brotli 传输压缩是安全的，
+但应关闭 CDN 针对该资源的 JavaScript 自动压缩、脚本改写和注入功能。内容哈希允许配置长期
+不可变缓存，同时避免用户加载旧代码。
+
+如需提高直接复制到其他站点运行的难度，可以在构建时设置一个或多个域名（前导点包含所有
+子域名）：
+
+```powershell
+$env:HOOZI_DOMAIN_LOCK='.example.com,www.example.net'
+npm run build
+```
+
+只有在最终生产域名确定后才应启用；未列入的预览或测试域名将无法运行。混淆只能提高复制和
+逆向成本，浏览器收到的代码原则上仍可恢复，因此绝不能在前端保存私钥、中继密钥或信任判断。
 
 ## 地图与静态资源
 

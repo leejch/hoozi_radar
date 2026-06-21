@@ -4,7 +4,15 @@ import { createServer } from 'node:http';
 import { extname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const projectRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
+const repositoryRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
+const rootArgumentIndex = process.argv.indexOf('--root');
+const rootArgument = rootArgumentIndex >= 0 ? process.argv[rootArgumentIndex + 1] : '.';
+if (!rootArgument || rootArgument.startsWith('-')) throw new Error('--root requires a directory path');
+const projectRoot = resolve(repositoryRoot, rootArgument);
+const repositoryPrefix = repositoryRoot.endsWith(sep) ? repositoryRoot : `${repositoryRoot}${sep}`;
+if (projectRoot !== repositoryRoot && !projectRoot.startsWith(repositoryPrefix)) {
+    throw new Error('Server root must remain inside the repository');
+}
 const host = process.env.HOST || '127.0.0.1';
 const port = Number(process.env.PORT || 8080);
 const shouldOpen = process.argv.includes('--open');
@@ -73,6 +81,7 @@ server.on('error', (error) => {
 server.listen(port, host, () => {
     const url = `http://${host}:${port}/`;
     console.log(`HOOZi radar: ${url}`);
+    console.log(`Serving: ${projectRoot}`);
     console.log('Press Ctrl+C to stop the server.');
     if (shouldOpen) openBrowser(url);
 });

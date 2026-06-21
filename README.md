@@ -157,7 +157,7 @@ When the page itself is hosted over HTTPS, browsers normally block a plain
 `ws://` connection as mixed content. Use Manual mode with the authorized
 `wss://` relay provided by the surrounding deployment.
 
-## Installing tools and building CSS
+## Installing, development CSS, and production build
 
 Install the pinned development dependencies:
 
@@ -171,7 +171,41 @@ Regenerate Tailwind CSS after changing utility classes in `index.html` or JavaSc
 npx @tailwindcss/cli -i ./input.css -o ./styles.css
 ```
 
-No bundling step is required. JavaScript files are served as native ES modules.
+Development remains unbundled: `npm start` serves the native ES-module graph.
+For public deployment, build the complete obfuscated site with:
+
+```powershell
+npm run build
+```
+
+The command regenerates minified Tailwind CSS, bundles the application into one
+minified browser IIFE with esbuild, applies the balanced profile in
+`obfuscator.config.mjs`, and writes deployable `index.html`, `styles.css`,
+`assets/app.<content-hash>.js`, and `static/` files to `dist/`. It deliberately
+emits no source map. Verify the production output locally with `npm run preview`.
+
+The default profile uses a no-`eval` browser target, RC4-encoded string arrays,
+moderate control-flow flattening, low-ratio dead code, and self-defending output.
+Property/global renaming and DevTools-freezing debug protection stay disabled
+because they create disproportionate compatibility and performance risks. Do
+not run another formatter or minifier over the generated `dist/assets/app.*.js`
+after this build; self-defending output is intentionally sensitive to later
+rewriting. HTTP gzip/Brotli compression is safe, but CDN JavaScript auto-minify,
+script rewriting, and injection features should be disabled for this asset. The
+content hash supports long-lived immutable caching without serving stale code.
+
+Optional domain locking makes direct redeployment harder. Supply one or more
+comma-separated hosts at build time (a leading dot includes subdomains):
+
+```powershell
+$env:HOOZI_DOMAIN_LOCK='.example.com,www.example.net'
+npm run build
+```
+
+Only enable this after the final production hosts are known; a locked bundle
+will not run on omitted preview or staging hosts. Obfuscation raises the cost of
+copying and reverse engineering, but browser-delivered code remains recoverable
+in principle. Never put private keys, relay secrets, or trust decisions in it.
 
 ## Map and static assets
 

@@ -3,10 +3,17 @@
   "scripts": {
     "start": "node ./scripts/dev-server.mjs --open",
     "serve": "node ./scripts/dev-server.mjs",
+    "build": "node ./scripts/build.mjs",
+    "preview": "node ./scripts/dev-server.mjs --root dist --open",
+    "serve:dist": "node ./scripts/dev-server.mjs --root dist",
     "test": "node --test --test-isolation=none"
   },
   "dependencies": {
     "@tailwindcss/cli": "^4.1.15",
     "tailwindcss": "^4.1.15"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.1",
+    "javascript-obfuscator": "^5.4.3"
   }
 }
