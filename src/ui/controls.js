@@ -2,7 +2,7 @@ import { VIEW_MODE_FOLLOW, VIEW_MODE_FREE, saveSetting, teamColorFor } from '../
 import { mapDisplayName } from '../assets/maps.js';
 import { formatPlayerStatus } from '../render/entities.js';
 import { allocateDesktopLayout } from './layout.js';
-import { currentPlayerExportFileName, isJsonFileName } from './player-data.js';
+import { currentPlayerExportFileName, formatPlayerExportJson, isJsonFileName } from './player-data.js';
 
 const DESKTOP_QUERY = window.matchMedia('(min-width: 1024px)');
 const DESKTOP_CONFIG_WIDTH = 300;
@@ -386,7 +386,8 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
     });
     refs.exportPlayerDataButton.addEventListener('click', () => {
         if (!store.state.latestMessageText) return;
-        const blob = new Blob([store.state.latestMessageText], { type: 'application/json;charset=utf-8' });
+        const json = formatPlayerExportJson(store.state.latestMessageText);
+        const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
         link.download = currentPlayerExportFileName();

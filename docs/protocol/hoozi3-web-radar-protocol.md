@@ -246,7 +246,10 @@ The browser parser:
 - treats an incomplete or non-finite ring as absent.
 
 The player-information toolbar exports the latest complete raw `state` message
-as JSON. Imported files must use a `.json` filename and must parse as a `state`
+as JSON. The export recursively orders object keys by dictionary order, uses
+four spaces per indentation level, and orders players by ascending numeric
+`team` followed by dictionary-ordered `name`. Imported files must use a `.json`
+filename and must parse as a `state`
 message through this same boundary; `pong`, unknown kinds, invalid JSON, and a
 non-array `players` value are rejected without changing frontend state. An
 accepted imported snapshot enters offline preview: the active connection and
@@ -266,7 +269,7 @@ the next valid live snapshot resumes without interpolation from test data.
 | `src/render/viewport.js` | Pure zoom bounds, gesture anchors, observation-port resize, and fixed-follow transform math |
 | `src/render/radar.js` | Fixed drawing-surface sizing, observation-port clipping, coordinate transform, and pan/zoom/follow behavior |
 | `src/ui/layout.js` | Pure map-first desktop column and observation-port allocation |
-| `src/ui/player-data.js` | JSON import/export filename validation and creation |
+| `src/ui/player-data.js` | JSON import/export filename validation, creation, formatting, and deterministic ordering |
 | `src/ui/controls.js` | Connection inputs, display settings, focus selector, and table |
 | `src/assets/maps.js` | Verified raw-map token mapping, localized labels, and CDN-first/local asset fallback |
 | `src/main.js` | WebSocket lifecycle and module wiring |

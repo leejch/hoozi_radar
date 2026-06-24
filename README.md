@@ -119,7 +119,9 @@ scroll horizontally. The same allocation runs after window resizing, table
 field changes, snapshot content changes, and player-table visibility changes.
 
 The player-information toolbar exports the latest complete `state` JSON as the
-current player data. The adjacent import control accepts `.json` files only and
+current player data. Exported object keys use dictionary order with four-space
+indentation; players are ordered by ascending team number and then nickname.
+The adjacent import control accepts `.json` files only and
 runs them through the same HOOZi 3.0 protocol validator before applying them.
 Invalid JSON, non-`state` messages, and malformed player arrays do not modify
 the current radar state. A valid import enters offline preview, stops the active
