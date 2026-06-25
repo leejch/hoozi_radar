@@ -45,6 +45,7 @@ test('player data export uses four-space indentation and dictionary-ordered keys
 test('player data export sorts players by team and then nickname', () => {
     const json = formatPlayerExportJson(JSON.stringify({
         players: [
+            { name: 'No Team', id: '4' },
             { team: 2, name: 'Beta', id: '3' },
             { team: 1, name: 'Zulu', id: '2' },
             { team: 1, name: 'Alpha', id: '1' }
@@ -53,6 +54,6 @@ test('player data export sorts players by team and then nickname', () => {
     }));
 
     const payload = JSON.parse(json);
-    assert.deepEqual(payload.players.map(({ id }) => id), ['1', '2', '3']);
+    assert.deepEqual(payload.players.map(({ id }) => id), ['1', '2', '3', '4']);
     assert.ok(json.includes('            "id": "1",\n            "name": "Alpha",\n            "team": 1'));
 });

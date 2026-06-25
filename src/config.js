@@ -41,36 +41,41 @@ export const DEFAULT_SETTINGS = Object.freeze({
     showDead: true,
     showDown: true,
     tableVisible: true,
-    tableSelf: true,
-    tableId: true,
-    tableIndex: true,
     tableTeam: true,
-    tableSquad: true,
     tableName: true,
+    tableLevel: true,
     tableLegend: true,
     tableLegendIconKey: true,
-    tableUid: true,
-    tableHp: true,
-    tableMaxHp: true,
-    tableShield: true,
+    tableRank: true,
+    tableRankColor: true,
+    tableRankIconKey: true,
+    tableKills: true,
+    tableRoster: true,
     tableMaxShield: true,
-    tableDistance: true,
-    tableYaw: true,
+    tableShield: true,
+    tableHp: true,
     tableDead: true,
     tableDown: true,
-    tableLevel: true,
-    tableRank: true,
-    tableRankIconKey: true,
-    tableRankColor: true,
-    tableKills: true,
     tableDamage: true,
-    tableRoster: true,
+    tableDistance: true,
+    tableUid: true,
+    tableUidLong: true,
+    // Removed from the visible table controls by request. Exported JSON still
+    // preserves these raw backend fields when they are present.
+    // tableId: true,
+    // tableIndex: true,
+    // tableSelf: true,
+    // tableSquad: true,
+    // tableX: true,
+    // tableY: true,
+    // tableYaw: true,
+    // tableMaxHp: true,
     selectedPlayerId: '',
     viewMode: VIEW_MODE_FOLLOW
 });
 
 const STORAGE_PREFIX = 'hoozi3_radar_';
-const SETTINGS_SCHEMA_VERSION = '2';
+const SETTINGS_SCHEMA_VERSION = '3';
 
 export function clamp(value, min, max) {
     return Math.min(max, Math.max(min, value));

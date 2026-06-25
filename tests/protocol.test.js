@@ -2,7 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-import { HooziProtocolError, parseHoozi3Message, parseHoozi3StateFile } from '../src/protocol/hoozi3.js';
+import {
+    HooziProtocolError,
+    computeLongUidFromShort,
+    parseHoozi3Message,
+    parseHoozi3StateFile
+} from '../src/protocol/hoozi3.js';
 import { createRadarStore } from '../src/state/store.js';
 
 const basePlayer = {
@@ -32,8 +37,16 @@ test('normalizes the checked-in state payload without legacy field synthesis', (
     assert.equal(message.map, 'mp_rr_test');
     assert.deepEqual(message.players[0].position, { x: 500, y: 400 });
     assert.equal(message.players[0].uid, '123');
+    assert.equal(message.players[0].uid_long, '16045690981555499126');
     assert.equal(Object.hasOwn(message.players[0], 'uidLong'), false);
     assert.equal(message.ring.radius, 250);
+});
+
+test('derives the long UID from the short UID with the approved 64-bit mask', () => {
+    assert.equal(computeLongUidFromShort('123'), '16045690981555499126');
+    assert.equal(computeLongUidFromShort('1000365359555'), '16045689988710527438');
+    assert.equal(computeLongUidFromShort(''), '');
+    assert.equal(computeLongUidFromShort('not-a-number'), '');
 });
 
 test('retains a self player with unavailable map coordinates', () => {

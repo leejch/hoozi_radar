@@ -80,7 +80,8 @@ async function main() {
 
     await Promise.all([
         buildCss(),
-        cp(join(repositoryRoot, 'static'), join(outputRoot, 'static'), { recursive: true })
+        cp(join(repositoryRoot, 'static'), join(outputRoot, 'static'), { recursive: true }),
+        cp(join(repositoryRoot, 'res'), join(outputRoot, 'res'), { recursive: true })
     ]);
     const bundleSizes = await buildJavaScript();
     await buildHtml(bundleSizes.fileName);
@@ -89,7 +90,7 @@ async function main() {
     console.log(`Built ${relative(repositoryRoot, outputRoot)} for production`);
     console.log(`JavaScript: ${bundleSizes.inputBytes} bundled bytes -> ${bundleSizes.outputBytes} obfuscated bytes`);
     console.log(`Entry: assets/${bundleSizes.fileName}`);
-    console.log(`HTML: ${indexSize} bytes; CSS and static assets copied`);
+    console.log(`HTML: ${indexSize} bytes; CSS, static assets, and res icons copied`);
 }
 
 main().catch((error) => {

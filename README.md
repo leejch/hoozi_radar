@@ -23,12 +23,15 @@ The HOOZi 3.0 version follows the checked-in Lua script instead:
 - stable player `id` and explicit `self`
 - health, shield, down/dead state, legend, UID, level, kills, damage, rank,
   squad/team, roster metadata, and an optional ring
+- a display-only long UID derived from the backend short UID with the approved
+  unsigned 64-bit XOR mask
 - optional browser `ping` and Lua `pong`
 - a desktop layout that keeps table columns intrinsically sized and horizontally
   scrollable while guaranteeing that the map viewport is never narrower than
   it is tall
-- independent map-overlay switches and independent table columns for every
-  verified non-coordinate player field
+- independent map-overlay switches and player-table columns in the current
+  HOOZi 3.0 display order, with raw-only fields retained for exports but hidden
+  from the controls
 - a fixed square radar drawing surface behind a responsive observation port, with
   50%–300% button, wheel, and pinch zoom
 - validated JSON import and export of the current HOOZi `state` player data
@@ -79,6 +82,7 @@ hoozi_radar/
 │   ├── ui/controls.js            Controls, focus UI, and player table
 │   └── assets/maps.js            CDN-first image fallback
 ├── static/                       Local fallback images
+├── res/                          Local legend, rank, and item icon assets
 ├── docs/protocol/                Project-owned protocol documentation
 └── references/                   Read-only HOOZi 3.0 Lua reference snapshot
 ```
@@ -105,6 +109,10 @@ selecting fixed follow resets to 150% and re-centers the selected player. The
 bottom-right minus/percentage/plus control, mouse wheel, and two-pointer pinch
 gesture all use the same bounded scale calculation. Free view keeps the map
 point under the gesture anchor stable.
+
+The selected focus player is marked with full-map white crosshair lines and a
+white ring outside the player dot. The local-player red marker outline remains
+independent of selection.
 
 The map `<img>` has no initial `src` and remains hidden while disconnected,
 while trying fallbacks, or after a missing asset. It becomes visible only after
@@ -183,7 +191,7 @@ npm run build
 The command regenerates minified Tailwind CSS, bundles the application into one
 minified browser IIFE with esbuild, applies the balanced profile in
 `obfuscator.config.mjs`, and writes deployable `index.html`, `styles.css`,
-`assets/app.<content-hash>.js`, and `static/` files to `dist/`. It deliberately
+`assets/app.<content-hash>.js`, `static/`, and `res/` files to `dist/`. It deliberately
 emits no source map. Verify the production output locally with `npm run preview`.
 
 The default profile uses a no-`eval` browser target, RC4-encoded string arrays,
@@ -223,8 +231,10 @@ verified asset order is `canyonlands` → `1.png`, `desertlands` → `2.png`,
 `6.png`. Unknown raw names retain exact-name `<map>.png` lookup.
 
 Legend and rank icon keys are preserved in normalized state and exported
-snapshots. They are not converted into URLs until an authoritative asset-key
-namespace is available.
+snapshots. Non-empty keys are displayed in the player table by resolving
+`./res/<key>.png`, for example `icon_rank/rookie1` becomes
+`./res/icon_rank/rookie1.png`. `rank_color` is used only when it is a valid CSS
+hex color; otherwise the raw value is preserved but not styled.
 
 ## Development rules
 
@@ -242,8 +252,8 @@ namespace is available.
 ## Known protocol limits
 
 The checked-in Lua script does not send loot or projectile arrays, so the
-frontend cannot render them. It also does not document yaw orientation, the
-icon-key namespaces, the `rank_color` format, or numeric roster categories.
-These values are retained or reported without invented interpretation; see the
-protocol document for the full uncertainty list.
+frontend cannot render them. It also does not document yaw orientation or
+numeric roster categories. These values are retained or reported without
+invented interpretation; see the protocol document for the full uncertainty
+list.
 

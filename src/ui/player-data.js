@@ -17,8 +17,8 @@ function compareDictionaryOrder(left, right) {
 function comparePlayers(left, right) {
     const leftTeam = Number(left?.team);
     const rightTeam = Number(right?.team);
-    const normalizedLeftTeam = Number.isFinite(leftTeam) ? leftTeam : 0;
-    const normalizedRightTeam = Number.isFinite(rightTeam) ? rightTeam : 0;
+    const normalizedLeftTeam = Number.isFinite(leftTeam) ? leftTeam : Number.POSITIVE_INFINITY;
+    const normalizedRightTeam = Number.isFinite(rightTeam) ? rightTeam : Number.POSITIVE_INFINITY;
     if (normalizedLeftTeam !== normalizedRightTeam) return normalizedLeftTeam - normalizedRightTeam;
     return compareDictionaryOrder(left?.name, right?.name);
 }

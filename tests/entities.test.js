@@ -68,8 +68,13 @@ test('player markers and text use the reduced geometry', () => {
 
     renderEntities(ctx, { players: [player] }, settings, player, { width: 1000, height: 1000 }, (key) => key);
 
-    assert.deepEqual(records.arcs, [{ x: 500, y: 500, radius: 4 }]);
-    assert.deepEqual(records.strokes[0], { style: 'rgb(255, 0, 0)', width: 1 });
+    assert.deepEqual(records.arcs, [
+        { x: 500, y: 500, radius: 4 },
+        { x: 500, y: 500, radius: 6 }
+    ]);
+    assert.deepEqual(records.strokes[0], { style: 'rgba(255, 255, 255, 0.58)', width: 1 });
+    assert.deepEqual(records.strokes[1], { style: 'rgb(255, 0, 0)', width: 1 });
+    assert.deepEqual(records.strokes[2], { style: 'rgb(255, 255, 255)', width: 1 });
     assert.equal(records.outlinedText[0].width, 1);
     assert.equal(records.outlinedText[0].y, 506);
     assert.equal(records.outlinedText[0].baseline, 'top');

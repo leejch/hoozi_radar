@@ -2,7 +2,10 @@ import { MAP_SIDE, teamColorFor } from '../config.js';
 
 const PLAYER_RADIUS = 4;
 const PLAYER_BORDER_WIDTH = 1;
-const SELECTED_BORDER_COLOR = 'rgb(255, 0, 0)';
+const LOCAL_BORDER_COLOR = 'rgb(255, 0, 0)';
+const SELECTED_RING_COLOR = 'rgb(255, 255, 255)';
+const SELECTED_RING_GAP = 1;
+const SELECTED_RING_WIDTH = 1;
 const BAR_WIDTH = 28;
 const BAR_HEIGHT = 4;
 const BAR_BORDER_WIDTH = 0.5;
@@ -78,6 +81,20 @@ export function renderEntities(ctx, snapshot, settings, selectedPlayer, dimensio
         ctx.restore();
     }
 
+    if (selectedPlayer?.position) {
+        const selectedPoint = mapPoint(selectedPlayer.position, width, height);
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.58)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(selectedPoint.x, 0);
+        ctx.lineTo(selectedPoint.x, height);
+        ctx.moveTo(0, selectedPoint.y);
+        ctx.lineTo(width, selectedPoint.y);
+        ctx.stroke();
+        ctx.restore();
+    }
+
     const labels = [];
     for (const player of visiblePlayers) {
         const point = mapPoint(player.position, width, height);
@@ -87,12 +104,26 @@ export function renderEntities(ctx, snapshot, settings, selectedPlayer, dimensio
         ctx.save();
         ctx.globalAlpha = alpha;
         ctx.fillStyle = player.self ? '#FFFFFF' : teamColor;
-        ctx.strokeStyle = selected ? SELECTED_BORDER_COLOR : 'rgba(2, 6, 23, 0.95)';
+        ctx.strokeStyle = player.self ? LOCAL_BORDER_COLOR : 'rgba(2, 6, 23, 0.95)';
         ctx.lineWidth = PLAYER_BORDER_WIDTH;
         ctx.beginPath();
         ctx.arc(point.x, point.y, PLAYER_RADIUS, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
+
+        if (selected) {
+            ctx.strokeStyle = SELECTED_RING_COLOR;
+            ctx.lineWidth = SELECTED_RING_WIDTH;
+            ctx.beginPath();
+            ctx.arc(
+                point.x,
+                point.y,
+                PLAYER_RADIUS + PLAYER_BORDER_WIDTH / 2 + SELECTED_RING_GAP + SELECTED_RING_WIDTH / 2,
+                0,
+                Math.PI * 2
+            );
+            ctx.stroke();
+        }
 
         if (player.is_down) {
             ctx.strokeStyle = '#FBBF24';

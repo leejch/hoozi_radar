@@ -1,6 +1,6 @@
 import { VIEW_MODE_FOLLOW, VIEW_MODE_FREE, saveSetting, teamColorFor } from '../config.js';
 import { mapDisplayName } from '../assets/maps.js';
-import { formatPlayerStatus } from '../render/entities.js';
+import { formatPlayerStatus, shieldBarStyle } from '../render/entities.js';
 import { allocateDesktopLayout } from './layout.js';
 import { currentPlayerExportFileName, formatPlayerExportJson, isJsonFileName } from './player-data.js';
 
@@ -91,16 +91,114 @@ function cell(text, className = '') {
     return element;
 }
 
+function nodeCell(content, className = '') {
+    const element = document.createElement('td');
+    element.className = `whitespace-nowrap px-2.5 py-1.5 text-sm text-slate-200 ${className}`;
+    element.append(content);
+    return element;
+}
+
 function displayValue(value) {
     return value === null || value === undefined || value === '' ? '—' : String(value);
 }
 
-function displayBoolean(value, t) {
-    return value ? t('player.yes') : t('player.no');
+function displayDistance(value) {
+    const distance = Number(value);
+    if (!Number.isFinite(distance)) return displayValue(value);
+    return `${Number.isInteger(distance) ? distance : distance.toFixed(1)} m`;
 }
 
 function displayStatus(player, t) {
-    return `${formatPlayerStatus(player, t)} · ${player.distance.toFixed(1)}m · yaw ${player.yaw} · ${t('player.roster', { roster: player.roster })}`;
+    return `${formatPlayerStatus(player, t)} · ${displayDistance(player.distance)} · ${t('player.roster', { roster: player.roster })}`;
+}
+
+function teamSortValue(team) {
+    const value = Number(team);
+    return Number.isFinite(value) ? value : Number.POSITIVE_INFINITY;
+}
+
+function comparePlayersByTeam(left, right) {
+    const teamDelta = teamSortValue(left?.team) - teamSortValue(right?.team);
+    if (teamDelta !== 0) return teamDelta;
+    return String(left?.name ?? '').localeCompare(String(right?.name ?? ''));
+}
+
+function isCssHexColor(value) {
+    return typeof value === 'string' && /^#[\da-f]{6}(?:[\da-f]{2})?$/i.test(value.trim());
+}
+
+function resIconSource(iconKey) {
+    const key = String(iconKey || '').trim();
+    if (!key || key.includes('..') || key.includes('\\') || key.startsWith('/') || /^[a-z]+:/i.test(key)) return '';
+    return `./res/${key.split('/').map((part) => encodeURIComponent(part)).join('/')}.png`;
+}
+
+function teamCell(player) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'flex items-center gap-2';
+    const dot = document.createElement('span');
+    dot.className = 'inline-flex size-2.5 shrink-0 rounded-full';
+    dot.style.backgroundColor = teamColorFor(player.team);
+    const text = document.createElement('span');
+    text.className = 'font-semibold text-slate-100';
+    text.textContent = displayValue(player.team);
+    wrapper.append(dot, text);
+    return nodeCell(wrapper);
+}
+
+function iconCell(iconKey, altText) {
+    const source = resIconSource(iconKey);
+    if (!source) return cell('—', 'text-slate-500');
+    const wrapper = document.createElement('div');
+    wrapper.className = 'flex items-center justify-center';
+    const image = document.createElement('img');
+    image.src = source;
+    image.alt = altText || '';
+    image.loading = 'lazy';
+    image.decoding = 'async';
+    image.className = 'size-6 rounded border border-black bg-slate-950/60 object-contain';
+    image.title = iconKey;
+    wrapper.appendChild(image);
+    return nodeCell(wrapper);
+}
+
+function rankCell(player) {
+    const element = cell(displayValue(player.rank));
+    if (isCssHexColor(player.rank_color)) element.style.color = player.rank_color.trim();
+    return element;
+}
+
+function rankColorCell(player) {
+    const color = isCssHexColor(player.rank_color) ? player.rank_color.trim() : '';
+    if (!color) return cell('—', 'font-mono text-slate-500');
+    const wrapper = document.createElement('div');
+    wrapper.className = 'flex items-center gap-2 font-mono';
+    const swatch = document.createElement('span');
+    swatch.className = 'inline-flex size-3 shrink-0 rounded-sm border border-black';
+    swatch.style.backgroundColor = color;
+    const text = document.createElement('span');
+    text.textContent = color;
+    wrapper.append(swatch, text);
+    return nodeCell(wrapper);
+}
+
+function shieldQualityCell(player) {
+    const maximum = Number(player.max_shield);
+    if (!Number.isFinite(maximum)) return cell('—', 'text-slate-500');
+    const shieldStyle = shieldBarStyle(player.max_shield);
+    const square = document.createElement('span');
+    square.className = 'inline-flex size-3.5 border border-black align-middle';
+    square.style.backgroundColor = shieldStyle?.color || 'rgba(15, 23, 42, 0.85)';
+    square.title = String(player.max_shield);
+    return nodeCell(square, 'text-center');
+}
+
+function deadCell(player, t) {
+    return cell(player.is_dead ? t('player.dead') : '', player.is_dead ? 'font-semibold text-orange-200' : 'text-slate-500');
+}
+
+function downCell(player, t) {
+    return cell(player.is_down ? t('player.down') : '', player.is_down ? 'font-semibold text-slate-300' : 'text-slate-500');
 }
 
 export function createUiController({ refs, store, settings, t, onReconnect, onViewModeChange, onImportPlayerData }) {
@@ -214,7 +312,7 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
     function populatePlayerSelect(players) {
         const selectedId = store.state.selectedPlayerId;
         const fragment = document.createDocumentFragment();
-        for (const player of [...players].sort((a, b) => a.team - b.team || a.name.localeCompare(b.name))) {
+        for (const player of [...players].sort(comparePlayersByTeam)) {
             const option = document.createElement('option');
             option.value = player.id;
             option.textContent = `${player.self ? '★ ' : ''}${player.name} · T${player.team}`;
@@ -237,34 +335,40 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
         refs.focusName.style.color = teamColorFor(player.team);
         refs.focusTeamBadge.style.backgroundColor = teamColorFor(player.team);
         refs.focusMeta.textContent = `${t('map.focusHealth')} ${player.hp}/${player.max_hp} · ${t('map.focusShield')} ${player.shield}/${player.max_shield} · ${t('map.focusKills')} ${player.kills}`;
-        refs.focusName.title = `${t('player.team', { team: player.team })} · ${t('player.squad', { squad: player.squad })} · ${displayStatus(player, t)}`;
+        refs.focusName.title = `${t('player.team', { team: player.team })} · ${displayStatus(player, t)}`;
     }
 
     const columns = [
-        ['tableSelf', 'table.columns.self', (p) => cell(displayBoolean(p.self, t))],
-        ['tableId', 'table.columns.id', (p) => cell(displayValue(p.id), 'font-mono')],
-        ['tableIndex', 'table.columns.index', (p) => cell(displayValue(p.index))],
-        ['tableTeam', 'table.columns.team', (p) => cell(displayValue(p.team), 'font-semibold')],
-        ['tableSquad', 'table.columns.squad', (p) => cell(displayValue(p.squad))],
+        ['tableTeam', 'table.columns.team', (p) => teamCell(p)],
         ['tableName', 'table.columns.name', (p) => cell(displayValue(p.name))],
-        ['tableLegend', 'table.columns.legend', (p) => cell(displayValue(p.legend))],
-        ['tableLegendIconKey', 'table.columns.legendIconKey', (p) => cell(displayValue(p.legend_icon_key), 'font-mono')],
-        ['tableUid', 'table.columns.uid', (p) => cell(displayValue(p.uid), 'font-mono')],
-        ['tableHp', 'table.columns.hp', (p) => cell(displayValue(p.hp))],
-        ['tableMaxHp', 'table.columns.maxHp', (p) => cell(displayValue(p.max_hp))],
-        ['tableShield', 'table.columns.shield', (p) => cell(displayValue(p.shield))],
-        ['tableMaxShield', 'table.columns.maxShield', (p) => cell(displayValue(p.max_shield))],
-        ['tableDistance', 'table.columns.distance', (p) => cell(`${p.distance.toFixed(1)} m`)],
-        ['tableYaw', 'table.columns.yaw', (p) => cell(displayValue(p.yaw))],
-        ['tableDead', 'table.columns.dead', (p) => cell(displayBoolean(p.is_dead, t))],
-        ['tableDown', 'table.columns.down', (p) => cell(displayBoolean(p.is_down, t))],
         ['tableLevel', 'table.columns.level', (p) => cell(displayValue(p.level))],
-        ['tableRank', 'table.columns.rank', (p) => cell(displayValue(p.rank))],
-        ['tableRankIconKey', 'table.columns.rankIconKey', (p) => cell(displayValue(p.rank_icon_key), 'font-mono')],
-        ['tableRankColor', 'table.columns.rankColor', (p) => cell(displayValue(p.rank_color), 'font-mono')],
+        ['tableLegend', 'table.columns.legend', (p) => cell(displayValue(p.legend))],
+        ['tableLegendIconKey', 'table.columns.legendIconKey', (p) => iconCell(p.legend_icon_key, p.legend)],
+        ['tableRank', 'table.columns.rank', (p) => rankCell(p)],
+        ['tableRankColor', 'table.columns.rankColor', (p) => rankColorCell(p)],
+        ['tableRankIconKey', 'table.columns.rankIconKey', (p) => iconCell(p.rank_icon_key, p.rank)],
         ['tableKills', 'table.columns.kills', (p) => cell(displayValue(p.kills))],
+        ['tableRoster', 'table.columns.roster', (p) => cell(displayValue(p.roster))],
+        ['tableMaxShield', 'table.columns.maxShield', (p) => shieldQualityCell(p)],
+        ['tableShield', 'table.columns.shield', (p) => cell(displayValue(p.shield))],
+        ['tableHp', 'table.columns.hp', (p) => cell(displayValue(p.hp))],
+        ['tableDead', 'table.columns.dead', (p) => deadCell(p, t)],
+        ['tableDown', 'table.columns.down', (p) => downCell(p, t)],
         ['tableDamage', 'table.columns.damage', (p) => cell(displayValue(p.damage))],
-        ['tableRoster', 'table.columns.roster', (p) => cell(displayValue(p.roster))]
+        ['tableDistance', 'table.columns.distance', (p) => cell(displayDistance(p.distance))],
+        ['tableUid', 'table.columns.uid', (p) => cell(displayValue(p.uid), 'font-mono')],
+        ['tableUidLong', 'table.columns.uidLong', (p) => cell(displayValue(p.uid_long), 'font-mono')]
+
+        // Removed from the visible table by request. The raw state/export
+        // payload still keeps these fields when the backend sends them.
+        // ['tableId', 'table.columns.id', (p) => cell(displayValue(p.id), 'font-mono')],
+        // ['tableIndex', 'table.columns.index', (p) => cell(displayValue(p.index))],
+        // ['tableSelf', 'table.columns.self', (p) => cell(p.self ? t('player.yes') : t('player.no'))],
+        // ['tableSquad', 'table.columns.squad', (p) => cell(displayValue(p.squad))],
+        // ['tableX', 'table.columns.x', (p) => cell(displayValue(p.x))],
+        // ['tableY', 'table.columns.y', (p) => cell(displayValue(p.y))],
+        // ['tableYaw', 'table.columns.yaw', (p) => cell(displayValue(p.yaw))],
+        // ['tableMaxHp', 'table.columns.maxHp', (p) => cell(displayValue(p.max_hp))]
     ];
 
     function renderTable(players) {
@@ -285,11 +389,21 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
             scheduleLayoutSync();
             return;
         }
+        let currentTeam = null;
+        let bandIndex = 0;
         const rows = [...players]
-            .sort((a, b) => a.team - b.team || a.name.localeCompare(b.name))
+            .sort(comparePlayersByTeam)
             .map((player, index) => {
+                const team = teamSortValue(player.team);
+                if (index === 0) currentTeam = team;
+                else if (team !== currentTeam) {
+                    bandIndex = bandIndex === 0 ? 1 : 0;
+                    currentTeam = team;
+                }
                 const row = document.createElement('tr');
-                row.className = `player-table-row player-table-row-band-${index % 2}`;
+                row.className = `player-table-row player-table-row-band-${bandIndex}`;
+                if (player.is_dead) row.classList.add('player-table-row-dead');
+                else if (player.is_down) row.classList.add('player-table-row-down');
                 row.append(...activeColumns.map(([, , render]) => render(player)));
                 return row;
             });

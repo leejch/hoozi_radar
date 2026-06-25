@@ -7,6 +7,8 @@ const PLAYER_NUMBER_FIELDS = Object.freeze([
     'distance', 'level', 'kills', 'damage', 'roster'
 ]);
 
+const UID_MASK = BigInt('0xDEADBEEF1B4DF00D');
+
 export class HooziProtocolError extends Error {
     constructor(message, cause) {
         super(message, cause ? { cause } : undefined);
@@ -39,6 +41,24 @@ function stringValue(value, fallback = '') {
     return fallback;
 }
 
+function extractUidString(raw) {
+    if (raw === null || raw === undefined) return '';
+    if (typeof raw === 'string') return raw.trim();
+    if (typeof raw === 'number') return Number.isFinite(raw) ? Math.trunc(raw).toString() : '';
+    if (typeof raw === 'bigint') return raw.toString();
+    return '';
+}
+
+export function computeLongUidFromShort(shortUid) {
+    const uid = extractUidString(shortUid);
+    if (!uid) return '';
+    try {
+        return BigInt.asUintN(64, BigInt(uid) ^ UID_MASK).toString();
+    } catch {
+        return '';
+    }
+}
+
 function normalizePlayer(rawPlayer, position) {
     if (!isRecord(rawPlayer)) {
         throw new HooziProtocolError(`players[${position}] must be an object`);
@@ -50,6 +70,8 @@ function normalizePlayer(rawPlayer, position) {
 
     normalized.id = normalized.id || `snapshot-${position}`;
     normalized.name = normalized.name || '?';
+    normalized.uid = extractUidString(rawPlayer.uid);
+    normalized.uid_long = computeLongUidFromShort(normalized.uid);
     normalized.self = rawPlayer.self === true;
     normalized.team = normalized.team ?? 0;
     normalized.squad = normalized.squad ?? 0;
