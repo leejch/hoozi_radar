@@ -17,8 +17,22 @@ test('player toolbar exposes JSON import before current-player export', () => {
 
 test('automatic connection and fixed follow have persistent default selection styling', () => {
     assert.match(indexHtml, /id="connectionModeAuto"[\s\S]{0,180}data-selected="true"/);
+    assert.match(indexHtml, /id="layoutOrientationLandscape"[\s\S]{0,180}data-selected="true"/);
+    assert.match(indexHtml, /id="menuVisibleToggle"[\s\S]{0,180}data-selected="true"/);
+    assert.match(indexHtml, /id="playerTableVisibleToggle"[\s\S]{0,180}data-selected="true"/);
     assert.match(indexHtml, /id="viewModeFollow"[\s\S]{0,180}data-selected="true"/);
     assert.match(generatedCss, /\[data-selected="true"\]/);
+});
+
+test('player list visibility moved from menu checkbox to top controls', () => {
+    assert.doesNotMatch(indexHtml, /id="conf_table_visible"/);
+    assert.match(indexHtml, /id="playerTableVisibleToggle"/);
+});
+
+test('portrait layout keeps a wide map and avoids an inner vertical player-list scroller', () => {
+    assert.match(indexHtml, /data-layout-orientation="portrait"[\s\S]{0,120}#mapStage[\s\S]{0,120}aspect-ratio:\s*1\s*\/\s*1\.12/);
+    assert.match(indexHtml, /data-layout-orientation="portrait"\] \[data-role="player-table-scroll"\]\s*\{[\s\S]{0,120}overflow-y:\s*hidden/);
+    assert.match(indexHtml, /data-layout-orientation="portrait"\]\[data-menu-visible="false"\]\[data-table-visible="false"\]/);
 });
 
 test('the unloaded map image has no source and remains hidden', () => {

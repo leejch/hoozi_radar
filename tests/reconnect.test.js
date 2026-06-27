@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-import { createInitialConnectionGate } from '../src/config.js';
+import { DEFAULT_LOCAL_WS_TARGET, createInitialConnectionGate, getConnectionTarget } from '../src/config.js';
 
 const mainSource = await readFile(new URL('../src/main.js', import.meta.url), 'utf8');
 
@@ -13,6 +13,11 @@ test('the initial connection gate can be consumed only once', () => {
     assert.equal(gate.take(), true);
     assert.equal(gate.pending, false);
     assert.equal(gate.take(), false);
+});
+
+test('automatic connection uses the local /ws path', () => {
+    assert.equal(DEFAULT_LOCAL_WS_TARGET, 'ws://127.0.0.1:9001/ws');
+    assert.equal(getConnectionTarget({ connectionMode: 'auto' }), DEFAULT_LOCAL_WS_TARGET);
 });
 
 test('cancelling the initial connection gate prevents its only attempt', () => {

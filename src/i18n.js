@@ -1,7 +1,12 @@
 const translations = {
     'zh-Hans': {
         title: 'HOOZi 3.0 网页雷达',
-        header: { title: 'HOOZi 3.0 网页雷达', connectionStatusLabel: '连接状态', viewModeFree: '自由视角', viewModeFollow: '固定跟随' },
+        header: {
+            title: 'HOOZi 3.0 网页雷达', connectionStatusLabel: '连接状态',
+            layoutLandscape: '横屏', layoutPortrait: '竖屏',
+            showMenu: '显示菜单栏', showPlayerTable: '显示玩家信息列表',
+            viewModeFree: '自由视角', viewModeFollow: '固定跟随'
+        },
         config: {
             connection: '连接配置', connectionAuto: '自动', connectionManual: '手动', protocol: '协议',
             host: 'IP 地址 / 域名', port: '端口', path: '路径（可选）', toggles: '地图绘制信息',
@@ -24,7 +29,7 @@ const translations = {
                 self: '本机', id: '原始序号', index: '序号', team: '队伍', squad: '是否队友', name: '昵称',
                 x: 'X坐标', y: 'Y坐标', yaw: '视角朝向', legend: '传奇', legendIconKey: '传奇图标',
                 uid: '短UID', uidLong: '长UID', hp: '血量', maxHp: '最大血量', shield: '护盾',
-                maxShield: '护盾品质', distance: '与本机的距离', dead: '死亡', down: '倒地',
+                maxShield: '护盾品质', distance: '距离', dead: '死亡', down: '倒地',
                 level: '等级', rank: '段位', rankIconKey: '段位图标', rankColor: '段位颜色', kills: '击杀',
                 damage: '伤害', roster: '标记'
             }
@@ -45,7 +50,12 @@ const translations = {
     },
     'zh-Hant': {
         title: 'HOOZi 3.0 網頁雷達',
-        header: { title: 'HOOZi 3.0 網頁雷達', connectionStatusLabel: '連線狀態', viewModeFree: '自由視角', viewModeFollow: '固定跟隨' },
+        header: {
+            title: 'HOOZi 3.0 網頁雷達', connectionStatusLabel: '連線狀態',
+            layoutLandscape: '橫屏', layoutPortrait: '豎屏',
+            showMenu: '顯示選單列', showPlayerTable: '顯示玩家資訊列表',
+            viewModeFree: '自由視角', viewModeFollow: '固定跟隨'
+        },
         config: {
             connection: '連線設定', connectionAuto: '自動', connectionManual: '手動', protocol: '協議',
             host: 'IP 位址 / 網域', port: '連接埠', path: '路徑（可選）', toggles: '地圖繪製資訊',
@@ -68,7 +78,7 @@ const translations = {
                 self: '本機', id: '原始序號', index: '序號', team: '隊伍', squad: '是否隊友', name: '暱稱',
                 x: 'X座標', y: 'Y座標', yaw: '視角朝向', legend: '傳奇', legendIconKey: '傳奇圖示',
                 uid: '短UID', uidLong: '長UID', hp: '血量', maxHp: '最大血量', shield: '護盾',
-                maxShield: '護盾品質', distance: '與本機的距離', dead: '死亡', down: '倒地',
+                maxShield: '護盾品質', distance: '距離', dead: '死亡', down: '倒地',
                 level: '等級', rank: '段位', rankIconKey: '段位圖示', rankColor: '段位顏色', kills: '擊殺',
                 damage: '傷害', roster: '標記'
             }
@@ -89,7 +99,12 @@ const translations = {
     },
     en: {
         title: 'HOOZi 3.0 Web Radar',
-        header: { title: 'HOOZi 3.0 Web Radar', connectionStatusLabel: 'Connection', viewModeFree: 'Free', viewModeFollow: 'Follow' },
+        header: {
+            title: 'HOOZi 3.0 Web Radar', connectionStatusLabel: 'Connection',
+            layoutLandscape: 'Landscape', layoutPortrait: 'Portrait',
+            showMenu: 'Show Menu', showPlayerTable: 'Show Player List',
+            viewModeFree: 'Free', viewModeFollow: 'Follow'
+        },
         config: {
             connection: 'Connection', connectionAuto: 'Auto', connectionManual: 'Manual', protocol: 'Protocol',
             host: 'IP address / domain', port: 'Port', path: 'Path (optional)', toggles: 'Map overlays',
@@ -112,7 +127,7 @@ const translations = {
                 self: 'Local', id: 'Original ID', index: 'Index', team: 'Team', squad: 'Teammate Flag', name: 'Nickname',
                 x: 'X Coordinate', y: 'Y Coordinate', yaw: 'View Direction', legend: 'Legend', legendIconKey: 'Legend Icon',
                 uid: 'Short UID', uidLong: 'Long UID', hp: 'Health', maxHp: 'Max Health', shield: 'Shield',
-                maxShield: 'Shield Quality', distance: 'Distance to Local', dead: 'Death', down: 'Downed',
+                maxShield: 'Shield Quality', distance: 'Distance', dead: 'Death', down: 'Downed',
                 level: 'Level', rank: 'Rank', rankIconKey: 'Rank Icon', rankColor: 'Rank Color', kills: 'Kills',
                 damage: 'Damage', roster: 'Marker'
             }
@@ -134,7 +149,8 @@ const translations = {
 };
 
 function browserLanguage() {
-    const language = navigator.language || navigator.userLanguage || 'en';
+    const browserNavigator = typeof navigator === 'undefined' ? null : navigator;
+    const language = browserNavigator?.language || browserNavigator?.userLanguage || 'en';
     if (language.startsWith('zh-TW') || language.startsWith('zh-HK') || language.startsWith('zh-MO')) return 'zh-Hant';
     if (language.startsWith('zh')) return 'zh-Hans';
     return 'en';

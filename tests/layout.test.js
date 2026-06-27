@@ -1,7 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { allocateDesktopLayout } from '../src/ui/layout.js';
+import {
+    AUTO_LANDSCAPE_ASPECT_RATIO,
+    AUTO_PORTRAIT_ASPECT_RATIO,
+    allocateDesktopLayout,
+    resolveResponsiveLayoutOrientation
+} from '../src/ui/layout.js';
 
 test('growing a three-column page gives excess width to the map, not the table', () => {
     const narrow = allocateDesktopLayout({
@@ -38,6 +43,17 @@ test('hiding the table assigns all remaining width to the map', () => {
     assert.equal(allocation.mapHeight, 609);
 });
 
+test('hiding the config menu returns its width to the map and table area', () => {
+    const allocation = allocateDesktopLayout({
+        width: 1100, height: 609, configVisible: false, tableVisible: true, tableContentWidth: 2000
+    });
+
+    assert.equal(allocation.configWidth, 0);
+    assert.equal(allocation.tableWidth, 275);
+    assert.equal(allocation.mapWidth, 820);
+    assert.equal(allocation.mapHeight, 609);
+});
+
 test('allocation remains stable when player-table content width is unchanged', () => {
     const beforeContentChange = allocateDesktopLayout({
         width: 1280, height: 609, tableVisible: true, tableContentWidth: 2000
@@ -68,4 +84,32 @@ test('a wide table is capped at 25 percent of the page content width', () => {
     assert.equal(allocation.tableWidth, 400);
     assert.equal(allocation.mapWidth, 890);
     assert.ok(allocation.mapWidth >= allocation.mapHeight);
+});
+
+test('responsive orientation uses separated aspect-ratio thresholds', () => {
+    assert.ok(AUTO_PORTRAIT_ASPECT_RATIO < 1);
+    assert.ok(AUTO_LANDSCAPE_ASPECT_RATIO > 1);
+    assert.notEqual(AUTO_PORTRAIT_ASPECT_RATIO, AUTO_LANDSCAPE_ASPECT_RATIO);
+});
+
+test('obvious viewport ratios override the preferred orientation', () => {
+    assert.equal(
+        resolveResponsiveLayoutOrientation({ width: 1200, height: 900 }, 'portrait'),
+        'landscape'
+    );
+    assert.equal(
+        resolveResponsiveLayoutOrientation({ width: 900, height: 1200 }, 'landscape'),
+        'portrait'
+    );
+});
+
+test('near-square viewport ratios keep the user preferred orientation', () => {
+    assert.equal(
+        resolveResponsiveLayoutOrientation({ width: 1000, height: 980 }, 'portrait'),
+        'portrait'
+    );
+    assert.equal(
+        resolveResponsiveLayoutOrientation({ width: 980, height: 1000 }, 'landscape'),
+        'landscape'
+    );
 });

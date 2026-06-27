@@ -13,10 +13,13 @@ Lua script, not a hypothetical server or the older HOOZi 2.0 transport.
 ## Message flow
 
 1. `web_radar.lua` listens on `127.0.0.1:9001` with `net.ws_server`.
-2. After the page `load` event, the browser attempts
-   `ws://127.0.0.1:9001` once (no required path). Failure or later closure does
-   not schedule another attempt on either HTTP or HTTPS pages; further attempts
-   require an explicit connection/reconnect action.
+2. After the page `load` event, the browser auto mode attempts
+   `ws://127.0.0.1:9001/ws` once. The checked-in Lua server listens on the
+   loopback port and does not define application-level path routing, so `/ws`
+   is a frontend connection target path rather than a different payload
+   protocol. Failure or later closure does not schedule another attempt on
+   either HTTP or HTTPS pages; further attempts require an explicit
+   connection/reconnect action.
 3. On each configured broadcast interval, the script snapshots the current
    game state, JSON-encodes it, and broadcasts it to every connected client.
    The menu interval is 16–500 ms and defaults to 30 ms.
@@ -142,15 +145,15 @@ map. For example, `mp_rr_canyonlands_mu1` and `mp_rr_canyonlands_mu2` both use
 | `distance` | number | meters | `p.distance`; API examples compare it to meter thresholds | Focus/table details. |
 | `is_dead` | boolean | — | `p.is_dead` | Dead marker styling and optional visibility filter. |
 | `is_down` | boolean | — | `p.is_down` | Downed marker styling and optional visibility filter. |
-| `legend` | string | runtime label | `p.legend` | Label, focus, and table details. |
-| `legend_icon_key` | string | local asset key | Forwarded from `p.legend_icon_key`; observed keys use paths such as `icon_legends/30px-Portrait_Lifeline_square` | Preserved in state/export. The player table resolves non-empty keys to `./res/<legend_icon_key>.png` and displays the image. |
+| `legend` | string | runtime label | `p.legend` | Map label and merged player-table legend column. |
+| `legend_icon_key` | string | local asset key | Forwarded from `p.legend_icon_key`; observed keys use paths such as `icon_legends/30px-Portrait_Lifeline_square` | Preserved in state/export. The player table resolves non-empty keys to `./res/<legend_icon_key>.png` and displays the transparent PNG directly in the merged legend column. |
 | `uid` | string | short platform UID | `p.platform_uid` | Displayed exactly as received in the short-UID column. The normalized state also derives `uid_long` for display only by XORing the short UID with `0xDEADBEEF1B4DF00D` as an unsigned 64-bit value. The raw exported server message still contains only the backend `uid` field. |
 | `level` | number | account level | `p.grade` | Focus/table/stat labels. |
 | `kills` | number | count | `p.kills` | Focus/table/stat labels. |
 | `damage` | number | damage count/value from runtime | `p.damage` | Focus/table/stat labels. |
-| `rank` | string | runtime label | `p.rank` | Focus/table details. Valid hex `rank_color` values are used to color this table cell. |
-| `rank_color` | string | CSS hex color in observed backend data | Forwarded from `p.rank_color` | Preserved in state/export. The table shows a swatch and raw hex value, and uses valid hex values to color the `rank` cell. Invalid values fall back to default text color. |
-| `rank_icon_key` | string | local asset key | Forwarded from `p.rank_icon_key`; observed keys use paths such as `icon_rank/rookie1` | Preserved in state/export. The player table resolves non-empty keys to `./res/<rank_icon_key>.png` and displays the image. |
+| `rank` | string | runtime label | `p.rank` | Map label and merged player-table rank column. |
+| `rank_color` | string | CSS hex color in observed backend data | Forwarded from `p.rank_color` | Preserved in state/export only. It is not exposed as a visible table field and is not used to style the merged rank column. |
+| `rank_icon_key` | string | local asset key | Forwarded from `p.rank_icon_key`; observed keys use paths such as `icon_rank/rookie1` | Preserved in state/export. The player table resolves non-empty keys to `./res/<rank_icon_key>.png` and displays the transparent PNG directly in the merged rank column. |
 | `roster` | number | undocumented category/value | `p.roster`, fallback `0` | Displayed as a raw numeric marker only; it is not mapped to legacy “pro/black/white” tags. |
 
 NPC entries are intentionally excluded in Lua (`if not p.is_npc`). The frontend
@@ -169,17 +172,24 @@ This value is not sent by `web_radar.lua`, is not written back to the raw
 exported server message, and is not used as player identity.
 
 The visible player table columns default to the user-facing order: `team`,
-`name`, `level`, `legend`, `legend_icon_key`, `rank`, `rank_color`,
-`rank_icon_key`, `kills`, `roster`, `max_shield`, `shield`, `hp`, `is_dead`,
-`is_down`, `damage`, `distance`, `uid`, and derived `uid_long`. Raw `id`,
-`index`, `self`, `squad`, `x`, `y`, `yaw`, and `max_hp` remain normalized and
-exported but are intentionally hidden from the controls and table. The table
-itself uses intrinsic, non-shrinking column widths inside a horizontally
-scrollable viewport. Its desktop panel expands toward the current intrinsic
-content width but is capped at 25% of the page content width. The map first
-receives enough width to remain at least as wide as it is tall. Content beyond
-the capped table panel scrolls horizontally. This allocation is repeated after
-table content, field visibility, table visibility, or page dimensions change.
+`name`, `level`, merged `legend`/`legend_icon_key`, merged
+`rank`/`rank_icon_key`, `damage`, `kills`, `roster`, `max_shield`, `shield`,
+`hp`, `is_dead`, `is_down`, `distance`, `uid`, and derived `uid_long`. Raw
+`id`, `index`, `self`, `squad`, `x`, `y`, `yaw`, `max_hp`, and `rank_color`
+remain normalized and exported but are intentionally hidden from the controls
+and table. The table itself uses intrinsic, non-shrinking column widths inside a
+horizontally scrollable viewport. Viewport ratios of at least `1.12`
+automatically select landscape layout, while ratios at or below `0.893`
+automatically select portrait layout; ratios between those thresholds keep the
+user-selected header-button orientation. In landscape layout, the desktop table
+panel expands toward the current intrinsic content width but is capped at 25%
+of the page content width. The map first receives enough width to remain at
+least as wide as it is tall. In portrait layout, the map stage uses a `1:1.12`
+width-to-height ratio unless it is the only visible body panel, and the player
+table expands vertically so every row is shown without an internal vertical
+scrollbar. Content beyond the table panel scrolls horizontally. This allocation
+is repeated after table content, field visibility, table visibility, menu
+visibility, or page dimensions change.
 
 Player markers use the same four-pixel radius for local and remote players.
 Normal remote marker outlines are one-pixel dark lines. The local-player marker
@@ -202,9 +212,10 @@ The responsive map stage is only an observation port. Its initial square
 drawing-surface side is the smaller observation-port dimension. At 100%, one
 map dimension exactly reaches the corresponding port edge while the complete
 square remains visible; the longer observation axis may contain empty space.
-The surface is then retained when browser width or player-table visibility
-changes, preventing map images, circles, and player geometry from being
-stretched. User-controlled zoom is clamped to 50%–300%
+The surface is then retained when browser width, landscape/portrait layout,
+menu visibility, or player-table visibility changes, preventing map images,
+circles, and player geometry from being stretched. User-controlled zoom is
+clamped to 50%–300%
 for buttons, wheel input, and two-pointer pinch input. Page load defaults to
 fixed follow at 150%. Selecting free view resets to a centered 100%; selecting
 fixed follow resets to 150% and re-centers the selected player.
@@ -229,7 +240,7 @@ origin or radius conversion fails, the entire `ring` property is omitted.
 
 | Legacy frontend assumption | HOOZi 3.0 equivalent | Migration action |
 | --- | --- | --- |
-| `ws://127.0.0.1:2334/ws` | `ws://127.0.0.1:9001` | Default target and path replaced. Manual `ws`/`wss` targets remain configurable for an external relay. |
+| `ws://127.0.0.1:2334/ws` | `ws://127.0.0.1:9001/ws` | Default port replaced while auto mode now uses `/ws` as the frontend connection path. Manual `ws`/`wss` targets remain configurable for an external relay. |
 | Snapshot payload accepted without a message discriminator | `kind: "state"` | Strict kind-based parsing. |
 | `player.pos.x`, `player.pos.y` | Flat `player.x`, `player.y` | Normalize to a single internal `{x,y}` position. |
 | Local player identified by name `"<hoozi>"` | `player.self` | Selection and focus use `self` and stable `id`. |
@@ -288,7 +299,7 @@ the next valid live snapshot resumes without interpolation from test data.
 | `src/render/entities.js` | Team links, local marker, player marker, vitals, and labels on the unaffected top canvas |
 | `src/render/viewport.js` | Pure zoom bounds, gesture anchors, observation-port resize, and fixed-follow transform math |
 | `src/render/radar.js` | Fixed drawing-surface sizing, observation-port clipping, coordinate transform, and pan/zoom/follow behavior |
-| `src/ui/layout.js` | Pure map-first desktop column and observation-port allocation |
+| `src/ui/layout.js` | Pure map-first landscape column allocation with menu/player-list visibility |
 | `src/ui/player-data.js` | JSON import/export filename validation, creation, formatting, and deterministic ordering |
 | `src/ui/controls.js` | Connection inputs, display settings, focus selector, and table |
 | `src/assets/maps.js` | Verified raw-map token mapping, localized labels, and CDN-first/local asset fallback |
@@ -301,7 +312,7 @@ the next valid live snapshot resumes without interpolation from test data.
   frontend exposes the value but does not draw a directional arrow.
 - `legend_icon_key` and `rank_icon_key` are resolved only through the observed
   local `./res/<key>.png` contract. No CDN or fallback namespace is inferred.
-- `rank_color` is interpreted only when it is a valid CSS hex color; other
-  values are preserved but ignored for styling.
+- `rank_color` is preserved in state/export only. Its visual meaning is not
+  used by the current table or map rendering.
 - The semantic categories represented by numeric `roster` values are not
   documented. The value is not mapped to legacy roster tags.

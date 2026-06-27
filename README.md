@@ -10,13 +10,13 @@ CSS v4. It has no JavaScript bundler and no production runtime dependencies.
 ## HOOZi 3.0 migration
 
 The previous frontend was written around a HOOZi 2.0 transport and a monolithic
-`app.js`. That design assumed port 2334, a `/ws` path, nested player positions,
-numeric map identifiers, name-based local-player detection, a cropped legacy
-coordinate space, roster flags, and a derived long UID.
+`app.js`. That design assumed port 2334, nested player positions, numeric map
+identifiers, name-based local-player detection, a cropped legacy coordinate
+space, roster flags, and a derived long UID.
 
 The HOOZi 3.0 version follows the checked-in Lua script instead:
 
-- local WebSocket endpoint: `ws://127.0.0.1:9001`
+- local WebSocket auto endpoint: `ws://127.0.0.1:9001/ws`
 - full `state` snapshots selected by `kind`
 - raw `game.world.map_name` strings with verified first-token aliases for the six numeric map assets
 - flat `x`/`y` coordinates in a 1000×1000 map domain
@@ -26,9 +26,11 @@ The HOOZi 3.0 version follows the checked-in Lua script instead:
 - a display-only long UID derived from the backend short UID with the approved
   unsigned 64-bit XOR mask
 - optional browser `ping` and Lua `pong`
-- a desktop layout that keeps table columns intrinsically sized and horizontally
-  scrollable while guaranteeing that the map viewport is never narrower than
-  it is tall
+- header controls for landscape/portrait layout, menu visibility, player-list
+  visibility, and free/fixed-follow map view
+- a landscape desktop layout that keeps table columns intrinsically sized and
+  horizontally scrollable while guaranteeing that the map viewport is never
+  narrower than it is tall
 - independent map-overlay switches and player-table columns in the current
   HOOZi 3.0 display order, with raw-only fields retained for exports but hidden
   from the controls
@@ -77,7 +79,7 @@ hoozi_radar/
 │   ├── render/entities.js        Player canvas rendering above map effects
 │   ├── render/viewport.js        Pure zoom, anchor, resize, and follow math
 │   ├── render/radar.js           Render loop, sizing, follow, pan, and zoom
-│   ├── ui/layout.js              Map-first desktop column allocation
+│   ├── ui/layout.js              Map-first landscape column allocation
 │   ├── ui/player-data.js         JSON import/export filename rules
 │   ├── ui/controls.js            Controls, focus UI, and player table
 │   └── assets/maps.js            CDN-first image fallback
@@ -119,12 +121,19 @@ while trying fallbacks, or after a missing asset. It becomes visible only after
 a CDN or local map image has loaded successfully, so no broken-image placeholder
 is shown.
 
-In the three-column desktop layout, the player-table panel expands toward its
-current intrinsic content width, but never beyond 25% of the page content width.
-The map first receives enough width to remain at least as wide as it is tall.
-If the table still cannot fit within its capped panel, its intrinsic columns
-scroll horizontally. The same allocation runs after window resizing, table
-field changes, snapshot content changes, and player-table visibility changes.
+Viewport ratios of at least `1.12` automatically use landscape layout, and
+ratios at or below `0.893` automatically use portrait layout. Ratios between
+those thresholds keep the user's header-button choice. In landscape layout, the
+player-table panel expands toward its current intrinsic content width, but
+never beyond 25% of the page content width. The map first receives enough width
+to remain at least as wide as it is tall. In portrait layout, the page stacks
+the map, player information list, and menu from top to bottom, and the map
+stage uses a `1:1.12` width-to-height ratio unless it is the only visible body
+panel. Header buttons independently show or hide the menu and player list in
+either layout. The portrait player list grows to show every row and only its
+intrinsic columns scroll horizontally. The same allocation runs after window
+resizing, layout changes, table field changes, snapshot content changes, and
+menu/player-table visibility changes.
 
 The player-information toolbar exports the latest complete `state` JSON as the
 current player data. Exported object keys use dictionary order with four-space
@@ -159,9 +168,10 @@ python -m http.server 8080
 
 Open `http://127.0.0.1:8080/` and ensure HOOZi 3.0 has loaded
 `web_radar.lua` with its server enabled. After the page `load` event, local auto
-mode attempts `ws://127.0.0.1:9001` exactly once. A failed or later-closed
-connection is not retried automatically on HTTP or HTTPS pages; use the
-connection/reconnect control for another attempt.
+mode attempts `ws://127.0.0.1:9001/ws` exactly once. The checked-in Lua server
+listens on the loopback port and does not define a separate payload protocol by
+path. A failed or later-closed connection is not retried automatically on HTTP
+or HTTPS pages; use the connection/reconnect control for another attempt.
 
 When the page itself is hosted over HTTPS, browsers normally block a plain
 `ws://` connection as mixed content. Use Manual mode with the authorized
@@ -231,10 +241,11 @@ verified asset order is `canyonlands` → `1.png`, `desertlands` → `2.png`,
 `6.png`. Unknown raw names retain exact-name `<map>.png` lookup.
 
 Legend and rank icon keys are preserved in normalized state and exported
-snapshots. Non-empty keys are displayed in the player table by resolving
-`./res/<key>.png`, for example `icon_rank/rookie1` becomes
-`./res/icon_rank/rookie1.png`. `rank_color` is used only when it is a valid CSS
-hex color; otherwise the raw value is preserved but not styled.
+snapshots. Non-empty keys are displayed in the merged Legend and Rank table
+columns by resolving `./res/<key>.png`, for example `icon_rank/rookie1` becomes
+`./res/icon_rank/rookie1.png`. These PNGs are drawn directly with their
+transparent backgrounds. `rank_color` is preserved in state/export only and is
+not exposed as a visible table field.
 
 ## Development rules
 

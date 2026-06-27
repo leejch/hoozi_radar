@@ -5,7 +5,8 @@ export const STATIC_SOURCES = Object.freeze([
     { key: 'local', baseUrl: LOCAL_STATIC_BASE_URL }
 ]);
 
-export const DEFAULT_LOCAL_WS_TARGET = 'ws://127.0.0.1:9001';
+export const DEFAULT_LOCAL_WS_PATH = '/ws';
+export const DEFAULT_LOCAL_WS_TARGET = `ws://127.0.0.1:9001${DEFAULT_LOCAL_WS_PATH}`;
 export const DEFAULT_WS_PORT = '9001';
 export const DEFAULT_WSS_PORT = '443';
 export const MAP_SIDE = 1000;
@@ -13,6 +14,8 @@ export const MIN_SCALE = 0.5;
 export const MAX_SCALE = 3;
 export const VIEW_MODE_FOLLOW = 'follow';
 export const VIEW_MODE_FREE = 'free';
+export const LAYOUT_ORIENTATION_LANDSCAPE = 'landscape';
+export const LAYOUT_ORIENTATION_PORTRAIT = 'portrait';
 
 export const TEAM_PALETTE = Object.freeze([
     '#F87171', '#34D399', '#60A5FA', '#FBBF24', '#2DD4BF', '#A855F7', '#F97316', '#38BDF8',
@@ -40,6 +43,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
     showRing: true,
     showDead: true,
     showDown: true,
+    menuVisible: true,
     tableVisible: true,
     tableTeam: true,
     tableName: true,
@@ -47,8 +51,8 @@ export const DEFAULT_SETTINGS = Object.freeze({
     tableLegend: true,
     tableLegendIconKey: true,
     tableRank: true,
-    tableRankColor: true,
     tableRankIconKey: true,
+    tableDamage: true,
     tableKills: true,
     tableRoster: true,
     tableMaxShield: true,
@@ -56,10 +60,12 @@ export const DEFAULT_SETTINGS = Object.freeze({
     tableHp: true,
     tableDead: true,
     tableDown: true,
-    tableDamage: true,
     tableDistance: true,
     tableUid: true,
     tableUidLong: true,
+    // rank_color is preserved in normalized/exported state but no longer shown
+    // as a visible table field.
+    // tableRankColor: true,
     // Removed from the visible table controls by request. Exported JSON still
     // preserves these raw backend fields when they are present.
     // tableId: true,
@@ -71,11 +77,12 @@ export const DEFAULT_SETTINGS = Object.freeze({
     // tableYaw: true,
     // tableMaxHp: true,
     selectedPlayerId: '',
-    viewMode: VIEW_MODE_FOLLOW
+    viewMode: VIEW_MODE_FOLLOW,
+    layoutOrientation: LAYOUT_ORIENTATION_LANDSCAPE
 });
 
 const STORAGE_PREFIX = 'hoozi3_radar_';
-const SETTINGS_SCHEMA_VERSION = '3';
+const SETTINGS_SCHEMA_VERSION = '4';
 
 export function clamp(value, min, max) {
     return Math.min(max, Math.max(min, value));
@@ -87,6 +94,12 @@ export function clampScale(value) {
 
 export function normalizeViewMode(value) {
     return value === VIEW_MODE_FREE ? VIEW_MODE_FREE : VIEW_MODE_FOLLOW;
+}
+
+export function normalizeLayoutOrientation(value) {
+    return value === LAYOUT_ORIENTATION_PORTRAIT
+        ? LAYOUT_ORIENTATION_PORTRAIT
+        : LAYOUT_ORIENTATION_LANDSCAPE;
 }
 
 export function defaultScaleForMode(mode) {
@@ -131,6 +144,7 @@ export function loadSettings() {
     settings.manualPort = String(settings.manualPort || '').trim();
     settings.manualPath = normalizeWebSocketPath(settings.manualPath);
     settings.fontSize = clamp(Math.round(Number(settings.fontSize) || DEFAULT_SETTINGS.fontSize), 7, 32);
+    settings.layoutOrientation = normalizeLayoutOrientation(settings.layoutOrientation);
     // Every page load starts in fixed-follow mode. View-mode changes are
     // intentionally session-only so an old persisted free-view choice cannot
     // move the focus away from the local player on the next launch.

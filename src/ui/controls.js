@@ -1,7 +1,14 @@
-import { VIEW_MODE_FOLLOW, VIEW_MODE_FREE, saveSetting, teamColorFor } from '../config.js';
+import {
+    LAYOUT_ORIENTATION_LANDSCAPE,
+    LAYOUT_ORIENTATION_PORTRAIT,
+    VIEW_MODE_FOLLOW,
+    VIEW_MODE_FREE,
+    saveSetting,
+    teamColorFor
+} from '../config.js';
 import { mapDisplayName } from '../assets/maps.js';
 import { formatPlayerStatus, shieldBarStyle } from '../render/entities.js';
-import { allocateDesktopLayout } from './layout.js';
+import { allocateDesktopLayout, resolveResponsiveLayoutOrientation } from './layout.js';
 import { currentPlayerExportFileName, formatPlayerExportJson, isJsonFileName } from './player-data.js';
 
 const DESKTOP_QUERY = window.matchMedia('(min-width: 1024px)');
@@ -17,6 +24,10 @@ export function collectDomReferences(root = document) {
         statusIndicator: root.querySelector('[data-role="status-indicator"]'),
         statusText: root.querySelector('[data-role="status-text"]'),
         playerSelect: byId('sel_player'),
+        layoutLandscapeButton: byId('layoutOrientationLandscape'),
+        layoutPortraitButton: byId('layoutOrientationPortrait'),
+        menuVisibleButton: byId('menuVisibleToggle'),
+        playerTableVisibleButton: byId('playerTableVisibleToggle'),
         viewModeFreeButton: byId('viewModeFree'),
         viewModeFollowButton: byId('viewModeFollow'),
         mapStageContainer: root.querySelector('.map-stage-container'),
@@ -105,7 +116,7 @@ function displayValue(value) {
 function displayDistance(value) {
     const distance = Number(value);
     if (!Number.isFinite(distance)) return displayValue(value);
-    return `${Number.isInteger(distance) ? distance : distance.toFixed(1)} m`;
+    return `${Number.isInteger(distance) ? distance : distance.toFixed(1)}m`;
 }
 
 function displayStatus(player, t) {
@@ -121,10 +132,6 @@ function comparePlayersByTeam(left, right) {
     const teamDelta = teamSortValue(left?.team) - teamSortValue(right?.team);
     if (teamDelta !== 0) return teamDelta;
     return String(left?.name ?? '').localeCompare(String(right?.name ?? ''));
-}
-
-function isCssHexColor(value) {
-    return typeof value === 'string' && /^#[\da-f]{6}(?:[\da-f]{2})?$/i.test(value.trim());
 }
 
 function resIconSource(iconKey) {
@@ -146,39 +153,30 @@ function teamCell(player) {
     return nodeCell(wrapper);
 }
 
-function iconCell(iconKey, altText) {
+function iconImage(iconKey, altText) {
     const source = resIconSource(iconKey);
-    if (!source) return cell('—', 'text-slate-500');
-    const wrapper = document.createElement('div');
-    wrapper.className = 'flex items-center justify-center';
+    if (!source) return null;
     const image = document.createElement('img');
     image.src = source;
     image.alt = altText || '';
     image.loading = 'lazy';
     image.decoding = 'async';
-    image.className = 'size-6 rounded border border-black bg-slate-950/60 object-contain';
+    image.className = 'size-6 shrink-0 object-contain';
     image.title = iconKey;
-    wrapper.appendChild(image);
-    return nodeCell(wrapper);
+    return image;
 }
 
-function rankCell(player) {
-    const element = cell(displayValue(player.rank));
-    if (isCssHexColor(player.rank_color)) element.style.color = player.rank_color.trim();
-    return element;
-}
-
-function rankColorCell(player) {
-    const color = isCssHexColor(player.rank_color) ? player.rank_color.trim() : '';
-    if (!color) return cell('—', 'font-mono text-slate-500');
+function iconTextCell({ iconKey, altText, text, showIcon, showText }) {
     const wrapper = document.createElement('div');
-    wrapper.className = 'flex items-center gap-2 font-mono';
-    const swatch = document.createElement('span');
-    swatch.className = 'inline-flex size-3 shrink-0 rounded-sm border border-black';
-    swatch.style.backgroundColor = color;
-    const text = document.createElement('span');
-    text.textContent = color;
-    wrapper.append(swatch, text);
+    wrapper.className = 'flex items-center gap-1.5';
+    const image = showIcon ? iconImage(iconKey, altText) : null;
+    if (image) wrapper.appendChild(image);
+    if (showText) {
+        const label = document.createElement('span');
+        label.textContent = displayValue(text);
+        wrapper.appendChild(label);
+    }
+    if (!wrapper.childNodes.length) return cell('—', 'text-slate-500');
     return nodeCell(wrapper);
 }
 
@@ -203,6 +201,7 @@ function downCell(player, t) {
 
 export function createUiController({ refs, store, settings, t, onReconnect, onViewModeChange, onImportPlayerData }) {
     let layoutFrame = 0;
+    let activeLayoutOrientation = settings.layoutOrientation;
 
     function layoutContentBox() {
         const style = window.getComputedStyle(refs.layout);
@@ -242,9 +241,30 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
         ));
     }
 
+    function viewportBox() {
+        const viewport = window.visualViewport;
+        return {
+            width: viewport?.width || window.innerWidth || refs.layout.clientWidth,
+            height: viewport?.height || window.innerHeight || refs.layout.clientHeight
+        };
+    }
+
+    function applyLayoutState() {
+        activeLayoutOrientation = resolveResponsiveLayoutOrientation(viewportBox(), settings.layoutOrientation);
+        const portrait = activeLayoutOrientation === LAYOUT_ORIENTATION_PORTRAIT;
+        refs.layout.dataset.layoutOrientation = activeLayoutOrientation;
+        refs.layout.dataset.menuVisible = settings.menuVisible ? 'true' : 'false';
+        refs.layout.dataset.tableVisible = settings.tableVisible ? 'true' : 'false';
+        setSegmentButtonState(refs.layoutLandscapeButton, !portrait);
+        setSegmentButtonState(refs.layoutPortraitButton, portrait);
+        setSegmentButtonState(refs.menuVisibleButton, settings.menuVisible);
+        setSegmentButtonState(refs.playerTableVisibleButton, settings.tableVisible);
+    }
+
     function syncDesktopLayout() {
         layoutFrame = 0;
-        if (!DESKTOP_QUERY.matches) {
+        applyLayoutState();
+        if (!DESKTOP_QUERY.matches || activeLayoutOrientation !== LAYOUT_ORIENTATION_LANDSCAPE) {
             refs.layout.style.removeProperty('grid-template-columns');
             refs.mapStageContainer.style.removeProperty('height');
             delete refs.layout.dataset.mapAllocatedWidth;
@@ -257,6 +277,7 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
         const allocation = allocateDesktopLayout({
             width: content.width,
             height: content.height,
+            configVisible: settings.menuVisible,
             tableVisible: settings.tableVisible,
             tableContentWidth: requiredTablePanelWidth(),
             configWidth: DESKTOP_CONFIG_WIDTH,
@@ -264,9 +285,11 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
             tableMinWidth: DESKTOP_TABLE_MIN_WIDTH,
             tableMaxRatio: DESKTOP_TABLE_MAX_RATIO
         });
-        refs.layout.style.gridTemplateColumns = settings.tableVisible
-            ? `${allocation.configWidth}px minmax(0, 1fr) ${allocation.tableWidth}px`
-            : `${allocation.configWidth}px minmax(0, 1fr)`;
+        const columns = [];
+        if (settings.menuVisible) columns.push(`${allocation.configWidth}px`);
+        columns.push('minmax(0, 1fr)');
+        if (settings.tableVisible) columns.push(`${allocation.tableWidth}px`);
+        refs.layout.style.gridTemplateColumns = columns.join(' ');
         refs.mapStageContainer.style.height = `${allocation.mapHeight}px`;
         refs.layout.dataset.mapAllocatedWidth = String(Math.floor(allocation.mapWidth));
         refs.layout.dataset.mapAllocatedHeight = String(allocation.mapHeight);
@@ -302,10 +325,8 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
         setSegmentButtonState(refs.viewModeFollowButton, !free);
     }
 
-    function syncTableVisibility() {
-        refs.playerTableSection.classList.toggle('lg:flex', settings.tableVisible);
-        refs.playerTableSection.classList.toggle('lg:hidden', !settings.tableVisible);
-        refs.layout.classList.toggle('player-table-hidden', !settings.tableVisible);
+    function syncLayoutControls() {
+        applyLayoutState();
         scheduleLayoutSync();
     }
 
@@ -339,41 +360,58 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
     }
 
     const columns = [
-        ['tableTeam', 'table.columns.team', (p) => teamCell(p)],
-        ['tableName', 'table.columns.name', (p) => cell(displayValue(p.name))],
-        ['tableLevel', 'table.columns.level', (p) => cell(displayValue(p.level))],
-        ['tableLegend', 'table.columns.legend', (p) => cell(displayValue(p.legend))],
-        ['tableLegendIconKey', 'table.columns.legendIconKey', (p) => iconCell(p.legend_icon_key, p.legend)],
-        ['tableRank', 'table.columns.rank', (p) => rankCell(p)],
-        ['tableRankColor', 'table.columns.rankColor', (p) => rankColorCell(p)],
-        ['tableRankIconKey', 'table.columns.rankIconKey', (p) => iconCell(p.rank_icon_key, p.rank)],
-        ['tableKills', 'table.columns.kills', (p) => cell(displayValue(p.kills))],
-        ['tableRoster', 'table.columns.roster', (p) => cell(displayValue(p.roster))],
-        ['tableMaxShield', 'table.columns.maxShield', (p) => shieldQualityCell(p)],
-        ['tableShield', 'table.columns.shield', (p) => cell(displayValue(p.shield))],
-        ['tableHp', 'table.columns.hp', (p) => cell(displayValue(p.hp))],
-        ['tableDead', 'table.columns.dead', (p) => deadCell(p, t)],
-        ['tableDown', 'table.columns.down', (p) => downCell(p, t)],
-        ['tableDamage', 'table.columns.damage', (p) => cell(displayValue(p.damage))],
-        ['tableDistance', 'table.columns.distance', (p) => cell(displayDistance(p.distance))],
-        ['tableUid', 'table.columns.uid', (p) => cell(displayValue(p.uid), 'font-mono')],
-        ['tableUidLong', 'table.columns.uidLong', (p) => cell(displayValue(p.uid_long), 'font-mono')]
+        { visible: () => settings.tableTeam, label: 'table.columns.team', render: (p) => teamCell(p) },
+        { visible: () => settings.tableName, label: 'table.columns.name', render: (p) => cell(displayValue(p.name)) },
+        { visible: () => settings.tableLevel, label: 'table.columns.level', render: (p) => cell(displayValue(p.level)) },
+        {
+            visible: () => settings.tableLegend || settings.tableLegendIconKey,
+            label: 'table.columns.legend',
+            render: (p) => iconTextCell({
+                iconKey: p.legend_icon_key,
+                altText: p.legend,
+                text: p.legend,
+                showIcon: settings.tableLegendIconKey,
+                showText: settings.tableLegend
+            })
+        },
+        {
+            visible: () => settings.tableRank || settings.tableRankIconKey,
+            label: 'table.columns.rank',
+            render: (p) => iconTextCell({
+                iconKey: p.rank_icon_key,
+                altText: p.rank,
+                text: p.rank,
+                showIcon: settings.tableRankIconKey,
+                showText: settings.tableRank
+            })
+        },
+        { visible: () => settings.tableDamage, label: 'table.columns.damage', render: (p) => cell(displayValue(p.damage)) },
+        { visible: () => settings.tableKills, label: 'table.columns.kills', render: (p) => cell(displayValue(p.kills)) },
+        { visible: () => settings.tableRoster, label: 'table.columns.roster', render: (p) => cell(displayValue(p.roster)) },
+        { visible: () => settings.tableMaxShield, label: 'table.columns.maxShield', render: (p) => shieldQualityCell(p) },
+        { visible: () => settings.tableShield, label: 'table.columns.shield', render: (p) => cell(displayValue(p.shield)) },
+        { visible: () => settings.tableHp, label: 'table.columns.hp', render: (p) => cell(displayValue(p.hp)) },
+        { visible: () => settings.tableDead, label: 'table.columns.dead', render: (p) => deadCell(p, t) },
+        { visible: () => settings.tableDown, label: 'table.columns.down', render: (p) => downCell(p, t) },
+        { visible: () => settings.tableDistance, label: 'table.columns.distance', render: (p) => cell(displayDistance(p.distance)) },
+        { visible: () => settings.tableUid, label: 'table.columns.uid', render: (p) => cell(displayValue(p.uid), 'font-mono') },
+        { visible: () => settings.tableUidLong, label: 'table.columns.uidLong', render: (p) => cell(displayValue(p.uid_long), 'font-mono') }
 
         // Removed from the visible table by request. The raw state/export
         // payload still keeps these fields when the backend sends them.
-        // ['tableId', 'table.columns.id', (p) => cell(displayValue(p.id), 'font-mono')],
-        // ['tableIndex', 'table.columns.index', (p) => cell(displayValue(p.index))],
-        // ['tableSelf', 'table.columns.self', (p) => cell(p.self ? t('player.yes') : t('player.no'))],
-        // ['tableSquad', 'table.columns.squad', (p) => cell(displayValue(p.squad))],
-        // ['tableX', 'table.columns.x', (p) => cell(displayValue(p.x))],
-        // ['tableY', 'table.columns.y', (p) => cell(displayValue(p.y))],
-        // ['tableYaw', 'table.columns.yaw', (p) => cell(displayValue(p.yaw))],
-        // ['tableMaxHp', 'table.columns.maxHp', (p) => cell(displayValue(p.max_hp))]
+        // { visible: () => settings.tableId, label: 'table.columns.id', render: (p) => cell(displayValue(p.id), 'font-mono') },
+        // { visible: () => settings.tableIndex, label: 'table.columns.index', render: (p) => cell(displayValue(p.index)) },
+        // { visible: () => settings.tableSelf, label: 'table.columns.self', render: (p) => cell(p.self ? t('player.yes') : t('player.no')) },
+        // { visible: () => settings.tableSquad, label: 'table.columns.squad', render: (p) => cell(displayValue(p.squad)) },
+        // { visible: () => settings.tableX, label: 'table.columns.x', render: (p) => cell(displayValue(p.x)) },
+        // { visible: () => settings.tableY, label: 'table.columns.y', render: (p) => cell(displayValue(p.y)) },
+        // { visible: () => settings.tableYaw, label: 'table.columns.yaw', render: (p) => cell(displayValue(p.yaw)) },
+        // { visible: () => settings.tableMaxHp, label: 'table.columns.maxHp', render: (p) => cell(displayValue(p.max_hp)) }
     ];
 
     function renderTable(players) {
-        const activeColumns = columns.filter(([setting]) => settings[setting]);
-        refs.playerTableHeader.replaceChildren(...activeColumns.map(([, label]) => {
+        const activeColumns = columns.filter((column) => column.visible());
+        refs.playerTableHeader.replaceChildren(...activeColumns.map(({ label }) => {
             const th = document.createElement('th');
             th.className = 'whitespace-nowrap px-2.5 py-2 text-left';
             th.textContent = t(label);
@@ -404,7 +442,7 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
                 row.className = `player-table-row player-table-row-band-${bandIndex}`;
                 if (player.is_dead) row.classList.add('player-table-row-dead');
                 else if (player.is_down) row.classList.add('player-table-row-down');
-                row.append(...activeColumns.map(([, , render]) => render(player)));
+                row.append(...activeColumns.map(({ render }) => render(player)));
                 return row;
             });
         refs.playerTableBody.replaceChildren(...rows);
@@ -432,6 +470,26 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
         settings.connectionMode = 'manual';
         syncConnectionControls();
     });
+    refs.layoutLandscapeButton.addEventListener('click', () => {
+        settings.layoutOrientation = LAYOUT_ORIENTATION_LANDSCAPE;
+        saveSetting('layoutOrientation', settings.layoutOrientation);
+        syncLayoutControls();
+    });
+    refs.layoutPortraitButton.addEventListener('click', () => {
+        settings.layoutOrientation = LAYOUT_ORIENTATION_PORTRAIT;
+        saveSetting('layoutOrientation', settings.layoutOrientation);
+        syncLayoutControls();
+    });
+    refs.menuVisibleButton.addEventListener('click', () => {
+        settings.menuVisible = !settings.menuVisible;
+        saveSetting('menuVisible', settings.menuVisible);
+        syncLayoutControls();
+    });
+    refs.playerTableVisibleButton.addEventListener('click', () => {
+        settings.tableVisible = !settings.tableVisible;
+        saveSetting('tableVisible', settings.tableVisible);
+        syncLayoutControls();
+    });
     for (const [key, input] of [
         ['manualProtocol', refs.inputs.protocol],
         ['manualHost', refs.inputs.host],
@@ -451,8 +509,8 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
             settings[key] = input.checked;
             saveSetting(key, settings[key]);
             if (key.startsWith('table')) {
-                syncTableVisibility();
                 renderTable(store.state.currentSnapshot?.players || []);
+                scheduleLayoutSync();
             }
         });
     }
@@ -510,13 +568,14 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
     });
 
     window.addEventListener('resize', scheduleLayoutSync);
+    window.visualViewport?.addEventListener('resize', scheduleLayoutSync);
     if (typeof DESKTOP_QUERY.addEventListener === 'function') DESKTOP_QUERY.addEventListener('change', scheduleLayoutSync);
     if ('ResizeObserver' in window) new ResizeObserver(scheduleLayoutSync).observe(refs.layout);
     document.fonts?.ready.then(scheduleLayoutSync);
 
     syncConnectionControls();
+    syncLayoutControls();
     syncViewControls();
-    syncTableVisibility();
 
     return { updateSnapshot, updateFocus, renderTable, syncViewControls, syncDesktopLayout };
 }

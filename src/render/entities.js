@@ -1,4 +1,5 @@
 import { MAP_SIDE, teamColorFor } from '../config.js';
+import { activeLanguage } from '../i18n.js';
 
 const PLAYER_RADIUS = 4;
 const PLAYER_BORDER_WIDTH = 1;
@@ -7,11 +8,13 @@ const SELECTED_RING_COLOR = 'rgb(255, 255, 255)';
 const SELECTED_RING_GAP = 1;
 const SELECTED_RING_WIDTH = 1;
 const BAR_WIDTH = 28;
-const BAR_HEIGHT = 4;
+const BAR_HEIGHT = 3;
 const BAR_BORDER_WIDTH = 0.5;
+const BAR_BORDER_COLOR = 'rgb(0, 0, 0)';
 const TEXT_OUTLINE_WIDTH = 1;
-const PLAYER_DECORATION_GAP = 1;
+const PLAYER_DECORATION_GAP = 3;
 const LABEL_GAP = 2;
+const LABEL_LINE_GAP = 2;
 const SHIELD_TIERS = Object.freeze({
     50: Object.freeze({ widthScale: 0.5, color: 'rgb(224, 224, 224)' }),
     75: Object.freeze({ widthScale: 0.75, color: 'rgb(50, 133, 205)' }),
@@ -33,17 +36,104 @@ function playerStatus(player, t) {
     return t('player.alive');
 }
 
+function compactValue(value) {
+    if (value === null || value === undefined || value === '') return '';
+    const numeric = Number(value);
+    if (Number.isFinite(numeric)) return Number.isInteger(numeric) ? String(numeric) : numeric.toFixed(1);
+    return String(value);
+}
+
+function pushIfValue(parts, value) {
+    const text = compactValue(value);
+    if (text) parts.push(text);
+}
+
+function mapInfoLinesZhHans(player, settings) {
+    const first = [];
+    const second = [];
+    if (settings.showName) pushIfValue(first, player.name);
+    if (settings.showLegend) pushIfValue(first, player.legend);
+    if (settings.showCombat) {
+        const damage = compactValue(player.damage);
+        const kills = compactValue(player.kills);
+        if (damage) first.push(`伤${damage}`);
+        if (kills) first.push(`K.${kills}`);
+    }
+    if (settings.showLevel) {
+        const level = compactValue(player.level);
+        if (level) second.push(`Lv.${level}`);
+    }
+    if (settings.showRank) pushIfValue(second, player.rank);
+    if (settings.showRoster) pushIfValue(second, player.roster);
+    return [first, second];
+}
+
+function mapInfoLinesZhHant(player, settings) {
+    const first = [];
+    const second = [];
+    if (settings.showName) pushIfValue(first, player.name);
+    if (settings.showLegend) pushIfValue(first, player.legend);
+    if (settings.showCombat) {
+        const damage = compactValue(player.damage);
+        const kills = compactValue(player.kills);
+        if (damage) first.push(`DMG${damage}`);
+        if (kills) first.push(`K.${kills}`);
+    }
+    if (settings.showLevel) {
+        const level = compactValue(player.level);
+        if (level) second.push(`Lv.${level}`);
+    }
+    if (settings.showRank) pushIfValue(second, player.rank);
+    if (settings.showRoster) pushIfValue(second, player.roster);
+    return [first, second];
+}
+
+function mapInfoLinesEn(player, settings) {
+    const first = [];
+    const second = [];
+    if (settings.showName) pushIfValue(first, player.name);
+    if (settings.showLegend) pushIfValue(first, player.legend);
+    if (settings.showCombat) {
+        const damage = compactValue(player.damage);
+        const kills = compactValue(player.kills);
+        if (damage) first.push(`DMG${damage}`);
+        if (kills) first.push(`K.${kills}`);
+    }
+    if (settings.showLevel) {
+        const level = compactValue(player.level);
+        if (level) second.push(`Lv.${level}`);
+    }
+    if (settings.showRank) pushIfValue(second, player.rank);
+    if (settings.showRoster) pushIfValue(second, player.roster);
+    return [first, second];
+}
+
+function mapInfoLines(player, settings) {
+    const groups = activeLanguage === 'zh-Hans'
+        ? mapInfoLinesZhHans(player, settings)
+        : activeLanguage === 'zh-Hant'
+            ? mapInfoLinesZhHant(player, settings)
+            : mapInfoLinesEn(player, settings);
+    return groups.map((parts) => parts.join(' ')).filter(Boolean);
+}
+
 function drawBar(ctx, x, y, width, height, value, maximum, color) {
     const ratio = maximum > 0 ? Math.min(1, Math.max(0, value / maximum)) : 0;
-    ctx.fillStyle = 'rgba(2, 6, 23, 0.82)';
-    ctx.fillRect(x, y, width, height);
-    ctx.fillStyle = color;
-    ctx.fillRect(
-        x + BAR_BORDER_WIDTH,
-        y + BAR_BORDER_WIDTH,
-        Math.max(0, (width - BAR_BORDER_WIDTH * 2) * ratio),
-        Math.max(0, height - BAR_BORDER_WIDTH * 2)
-    );
+    const innerWidth = Math.max(0, width - BAR_BORDER_WIDTH * 2);
+    const innerHeight = Math.max(0, height - BAR_BORDER_WIDTH * 2);
+    const fillWidth = innerWidth * ratio;
+    if (fillWidth > 0 && innerHeight > 0) {
+        ctx.fillStyle = color;
+        ctx.fillRect(
+            x + BAR_BORDER_WIDTH,
+            y + BAR_BORDER_WIDTH,
+            fillWidth,
+            innerHeight
+        );
+    }
+    ctx.strokeStyle = BAR_BORDER_COLOR;
+    ctx.lineWidth = BAR_BORDER_WIDTH;
+    ctx.strokeRect(x, y, width, height);
 }
 
 export function shieldBarStyle(maxShield) {
@@ -163,14 +253,8 @@ export function renderEntities(ctx, snapshot, settings, selectedPlayer, dimensio
             drawBar(ctx, point.x - BAR_WIDTH / 2, barY, BAR_WIDTH, BAR_HEIGHT, player.hp, player.max_hp, '#FFFFFF');
         }
 
-        const parts = [];
-        if (settings.showName) parts.push(player.name);
-        if (settings.showLegend && player.legend) parts.push(player.legend);
-        if (settings.showLevel) parts.push(`${t('table.columns.level')} ${player.level}`);
-        if (settings.showRank && player.rank) parts.push(`${t('table.columns.rank')} ${player.rank}`);
-        if (settings.showCombat) parts.push(`${t('table.columns.kills')} ${player.kills} · ${t('table.columns.damage')} ${player.damage}`);
-        if (settings.showRoster) parts.push(`${t('table.columns.roster')} ${player.roster}`);
-        if (parts.length) labels.push({ point, color: player.self ? '#FFFFFF' : teamColor, text: parts.join(' · '), alpha, player });
+        const lines = mapInfoLines(player, settings);
+        if (lines.length) labels.push({ point, color: player.self ? '#FFFFFF' : teamColor, lines, alpha, player });
         ctx.restore();
     }
 
@@ -181,11 +265,16 @@ export function renderEntities(ctx, snapshot, settings, selectedPlayer, dimensio
     for (const label of labels) {
         ctx.globalAlpha = label.alpha;
         const y = label.point.y + PLAYER_RADIUS + LABEL_GAP;
-        ctx.strokeStyle = 'rgba(2, 6, 23, 0.92)';
-        ctx.lineWidth = TEXT_OUTLINE_WIDTH;
-        ctx.strokeText(label.text.slice(0, 72), label.point.x, y);
-        ctx.fillStyle = label.color;
-        ctx.fillText(label.text.slice(0, 72), label.point.x, y);
+        const lineHeight = settings.fontSize + LABEL_LINE_GAP;
+        label.lines.forEach((line, index) => {
+            const text = line.slice(0, 72);
+            const lineY = y + index * lineHeight;
+            ctx.strokeStyle = 'rgba(2, 6, 23, 0.92)';
+            ctx.lineWidth = TEXT_OUTLINE_WIDTH;
+            ctx.strokeText(text, label.point.x, lineY);
+            ctx.fillStyle = label.color;
+            ctx.fillText(text, label.point.x, lineY);
+        });
     }
     ctx.restore();
 }

@@ -120,15 +120,121 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
 
         .three-column-layout {
             display: flex;
-            flex-direction: column-reverse;
             gap: 4px;
             width: 100%;
             flex: 1;
             min-height: 0;
+            overflow: hidden;
         }
 
         .three-column-layout > * {
             min-width: 0;
+        }
+
+        .three-column-layout[data-layout-orientation="landscape"] {
+            display: grid;
+            grid-template-columns: minmax(260px, 300px) minmax(320px, 1fr) minmax(240px, 320px);
+            align-items: stretch;
+            overflow: auto;
+        }
+
+        .three-column-layout[data-layout-orientation="landscape"][data-menu-visible="false"] {
+            grid-template-columns: minmax(320px, 1fr) minmax(240px, 320px);
+        }
+
+        .three-column-layout[data-layout-orientation="landscape"][data-table-visible="false"] {
+            grid-template-columns: minmax(260px, 300px) minmax(320px, 1fr);
+        }
+
+        .three-column-layout[data-layout-orientation="landscape"][data-menu-visible="false"][data-table-visible="false"] {
+            grid-template-columns: minmax(320px, 1fr);
+        }
+
+        .three-column-layout[data-layout-orientation="portrait"] {
+            flex-direction: column;
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+
+        .three-column-layout[data-layout-orientation="portrait"] .map-shell {
+            order: 1;
+            flex: 0 0 auto;
+            width: 100%;
+        }
+
+        .three-column-layout[data-layout-orientation="portrait"] .map-stage-container {
+            align-items: stretch;
+            width: 100%;
+        }
+
+        .three-column-layout[data-layout-orientation="portrait"] #mapStage {
+            width: 100%;
+            aspect-ratio: 1 / 1.12;
+        }
+
+        .three-column-layout[data-layout-orientation="portrait"] [data-role="player-table-section"] {
+            order: 2;
+            flex: 0 0 auto;
+            height: auto;
+            min-height: 0;
+        }
+
+        .three-column-layout[data-layout-orientation="portrait"] .player-table-shell,
+        .three-column-layout[data-layout-orientation="portrait"] .player-table-wrapper,
+        .three-column-layout[data-layout-orientation="portrait"] [data-role="player-table-scroll"] {
+            height: auto;
+            min-height: 0;
+        }
+
+        .three-column-layout[data-layout-orientation="portrait"] .player-table-wrapper {
+            flex: 0 0 auto;
+            overflow-x: hidden;
+            overflow-y: visible;
+        }
+
+        .three-column-layout[data-layout-orientation="portrait"] [data-role="player-table-scroll"] {
+            overflow-x: auto;
+            overflow-y: hidden;
+        }
+
+        .three-column-layout[data-layout-orientation="portrait"] .config-column {
+            order: 3;
+            flex: 0 0 auto;
+        }
+
+        .three-column-layout[data-menu-visible="false"] .config-column,
+        .three-column-layout[data-table-visible="false"] [data-role="player-table-section"] {
+            display: none !important;
+        }
+
+        .three-column-layout[data-layout-orientation="portrait"][data-menu-visible="false"][data-table-visible="false"] {
+            overflow: hidden;
+        }
+
+        .three-column-layout[data-layout-orientation="portrait"][data-menu-visible="false"][data-table-visible="false"] .map-shell {
+            flex: 1 1 auto;
+            min-height: 0;
+        }
+
+        .three-column-layout[data-layout-orientation="portrait"][data-menu-visible="false"][data-table-visible="false"] .map-stage-container {
+            position: relative;
+            height: 100%;
+            min-height: 0;
+        }
+
+        .three-column-layout[data-layout-orientation="portrait"][data-menu-visible="false"][data-table-visible="false"] #mapStage {
+            height: 100%;
+            aspect-ratio: auto;
+        }
+
+        .three-column-layout[data-layout-orientation="portrait"][data-menu-visible="false"][data-table-visible="false"] .map-controls-outlet {
+            position: absolute;
+            left: 0.75rem;
+            right: 0.75rem;
+            bottom: 0.75rem;
+            z-index: 2;
+            margin-top: 0;
+            width: auto;
         }
 
         .map-stage-container {
@@ -148,11 +254,7 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
         }
 
         @media (min-width: 1024px) {
-            [data-role="player-table-section"].player-table-hidden {
-                display: none !important;
-            }
-
-            .three-column-layout {
+            .three-column-layout[data-layout-orientation="landscape"] {
                 display: grid;
                 grid-template-columns: 300px minmax(0, 1fr) 320px;
                 column-gap: 5px;
@@ -161,29 +263,25 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
                 height: 100%;
             }
 
-            .three-column-layout.player-table-hidden {
-                grid-template-columns: 300px minmax(0, 1fr);
-            }
-
             .three-column-layout > * {
                 min-height: 0;
             }
 
-            .config-column {
+            .three-column-layout[data-layout-orientation="landscape"] .config-column {
                 display: flex;
                 flex-direction: column;
                 min-height: 0;
                 height: 100%;
             }
 
-            .config-stack {
+            .three-column-layout[data-layout-orientation="landscape"] .config-stack {
                 flex: 1;
                 overflow-y: visible;
                 scrollbar-width: thin;
                 min-height: 0;
             }
 
-            .map-shell {
+            .three-column-layout[data-layout-orientation="landscape"] .map-shell {
                 display: flex;
                 align-items: stretch;
                 justify-content: stretch;
@@ -193,7 +291,7 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
                 overflow: hidden;
             }
 
-            .map-stage-container {
+            .three-column-layout[data-layout-orientation="landscape"] .map-stage-container {
                 position: relative;
                 display: flex;
                 flex-direction: column;
@@ -204,32 +302,32 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
                 min-height: 0;
             }
 
-            #mapStage {
+            .three-column-layout[data-layout-orientation="landscape"] #mapStage {
                 width: 100%;
                 height: 100%;
                 min-height: 0;
                 aspect-ratio: auto;
             }
 
-            .player-table-shell {
+            .three-column-layout[data-layout-orientation="landscape"] .player-table-shell {
                 height: 100%;
                 min-width: 0;
                 overflow: hidden;
             }
 
-            .player-table-wrapper {
+            .three-column-layout[data-layout-orientation="landscape"] .player-table-wrapper {
                 display: flex;
                 flex: 1;
                 flex-direction: column;
                 min-height: 0;
             }
 
-            .player-table-scroll {
+            .three-column-layout[data-layout-orientation="landscape"] [data-role="player-table-scroll"] {
                 flex: 1;
                 min-height: 0;
             }
 
-            .map-controls-outlet {
+            .three-column-layout[data-layout-orientation="landscape"] .map-controls-outlet {
                 position: absolute;
                 left: 1rem;
                 bottom: 1rem;
@@ -239,7 +337,7 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
                 z-index: 2;
             }
 
-            .map-controls-outlet #mapControls {
+            .three-column-layout[data-layout-orientation="landscape"] .map-controls-outlet #mapControls {
                 margin: 0;
                 max-width: 100%;
                 transform: none;
@@ -342,7 +440,27 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
             </div>
         </div>
         <div class="flex w-full flex-col gap-3 sm:flex-row sm:items-end sm:justify-end lg:ml-auto lg:w-auto">
-            <div class="flex w-full flex-nowrap items-end gap-2 overflow-x-auto sm:w-auto sm:justify-end">
+            <div class="flex w-full flex-wrap items-center justify-end gap-2 lg:flex-nowrap">
+                <div class="flex shrink-0 items-center gap-1 rounded-2xl border border-slate-800/70 bg-slate-950/60 p-1.5 shadow-inner shadow-black/10">
+                    <button id="layoutOrientationLandscape" type="button"
+                            aria-pressed="true" data-selected="true"
+                            class="rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-1 text-xs font-semibold text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60 data-[selected=true]:border-emerald-400 data-[selected=true]:bg-emerald-500/10 data-[selected=true]:text-emerald-300"
+                            data-i18n="header.layoutLandscape">横屏</button>
+                    <button id="layoutOrientationPortrait" type="button"
+                            aria-pressed="false" data-selected="false"
+                            class="rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-1 text-xs font-semibold text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60 data-[selected=true]:border-emerald-400 data-[selected=true]:bg-emerald-500/10 data-[selected=true]:text-emerald-300"
+                            data-i18n="header.layoutPortrait">竖屏</button>
+                </div>
+                <div class="flex shrink-0 items-center gap-1 rounded-2xl border border-slate-800/70 bg-slate-950/60 p-1.5 shadow-inner shadow-black/10">
+                    <button id="menuVisibleToggle" type="button"
+                            aria-pressed="true" data-selected="true"
+                            class="rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-1 text-xs font-semibold text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60 data-[selected=true]:border-emerald-400 data-[selected=true]:bg-emerald-500/10 data-[selected=true]:text-emerald-300"
+                            data-i18n="header.showMenu">显示菜单栏</button>
+                    <button id="playerTableVisibleToggle" type="button"
+                            aria-pressed="true" data-selected="true"
+                            class="rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-1 text-xs font-semibold text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60 data-[selected=true]:border-emerald-400 data-[selected=true]:bg-emerald-500/10 data-[selected=true]:text-emerald-300"
+                            data-i18n="header.showPlayerTable">显示玩家信息列表</button>
+                </div>
                 <div class="flex shrink-0 items-center gap-1 rounded-2xl border border-slate-800/70 bg-slate-950/60 p-1.5 shadow-inner shadow-black/10">
                     <button id="viewModeFree" type="button"
                             aria-pressed="false" data-selected="false"
@@ -364,7 +482,8 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
     </div>
 </header>
 <main class="w-full flex-1">
-    <div class="three-column-layout mx-auto w-full px-1 pb-1 sm:px-2" data-role="layout">
+    <div class="three-column-layout mx-auto w-full px-1 pb-1 sm:px-2"
+         data-role="layout" data-layout-orientation="landscape" data-menu-visible="true" data-table-visible="true">
         <aside class="config-column w-full overflow-y-auto overscroll-auto">
             <div class="config-stack flex flex-1 flex-col space-y-2">
                 <section class="glass-panel rounded-3xl py-2 px-4" data-role="connection-config">
@@ -501,14 +620,9 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
                         </div>
                     </div>
                 </section>
-                <section class="glass-panel hidden rounded-3xl py-2 px-4 lg:block" data-role="player-table-menu">
+                <section class="glass-panel rounded-3xl py-2 px-4" data-role="player-table-menu">
                     <div class="flex items-center justify-between gap-3">
                         <span class="text-sm font-semibold uppercase text-slate-300" data-i18n="config.playerTable">玩家信息列表</span>
-                        <label class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-slate-400">
-                            <input id="conf_table_visible" type="checkbox" data-setting="tableVisible"
-                                   class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                            <span data-role="player-table-toggle-label" data-i18n="config.playerTableShow">显示</span>
-                        </label>
                     </div>
                     <div class="mt-3 grid grid-cols-2 gap-1.5 text-xs text-slate-200">
                         <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableTeam" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.team">队伍</span></label>
@@ -517,8 +631,10 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
                         <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableLegend" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.legend">传奇</span></label>
                         <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableLegendIconKey" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.legendIconKey">传奇图标</span></label>
                         <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableRank" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.rank">段位</span></label>
-                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableRankColor" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.rankColor">段位颜色</span></label>
                         <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableRankIconKey" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.rankIconKey">段位图标</span></label>
+                        <!-- rank_color is preserved in JSON state/export but no longer exposed as a table field. -->
+                        <!-- <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableRankColor" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.rankColor">段位颜色</span></label> -->
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableDamage" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.damage">伤害</span></label>
                         <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableKills" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.kills">击杀</span></label>
                         <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableRoster" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.roster">标记</span></label>
                         <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableMaxShield" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.maxShield">护盾品质</span></label>
@@ -526,8 +642,7 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
                         <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableHp" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.hp">血量</span></label>
                         <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableDead" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.dead">死亡</span></label>
                         <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableDown" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.down">倒地</span></label>
-                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableDamage" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.damage">伤害</span></label>
-                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableDistance" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.distance">与本机的距离</span></label>
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableDistance" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.distance">距离</span></label>
                         <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableUid" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.uid">短UID</span></label>
                         <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableUidLong" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.uidLong">长UID</span></label>
                         <!-- Removed from the visible table controls by request. Exported JSON still preserves these raw backend fields.
@@ -628,9 +743,9 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
                 </div>
             </div>
         </section>
-        <section class="hidden min-w-0 lg:flex lg:h-full lg:flex-shrink-0" data-role="player-table-section">
+        <section class="flex min-w-0 flex-col lg:h-full lg:flex-shrink-0" data-role="player-table-section">
             <div class="player-table-shell glass-panel flex h-full w-full flex-col rounded-3xl p-2" data-role="player-table-shell">
-                <div class="flex items-center justify-between gap-3 overflow-x-auto pb-1" data-role="player-table-toolbar">
+                <div class="relative z-10 flex items-center justify-between gap-3 overflow-x-auto py-1" data-role="player-table-toolbar">
                     <h2 class="shrink-0 pl-2 text-sm font-semibold uppercase text-slate-300" data-i18n="table.title">玩家信息列表</h2>
                     <div class="flex shrink-0 items-center gap-1.5">
                         <input id="importPlayerDataInput" type="file" accept=".json,application/json" class="hidden">
