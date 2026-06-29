@@ -25,6 +25,10 @@ const translations = {
         header: {
             title: 'HOOZi 网页雷达',
             connectionStatusLabel: '连接状态',
+            layoutLandscape: '横屏',
+            layoutPortrait: '竖屏',
+            showMenu: '显示菜单栏',
+            showPlayerTable: '显示玩家信息列表',
             viewModeFree: '自由视角',
             viewModeFollow: '固定跟随'
         },
@@ -131,6 +135,10 @@ const translations = {
         header: {
             title: 'HOOZi 網頁雷達',
             connectionStatusLabel: '連線狀態',
+            layoutLandscape: '橫向',
+            layoutPortrait: '直向',
+            showMenu: '顯示選單欄',
+            showPlayerTable: '顯示玩家資訊列表',
             viewModeFree: '自由視角',
             viewModeFollow: '固定跟隨'
         },
@@ -237,6 +245,10 @@ const translations = {
         header: {
             title: 'HOOZi Radar',
             connectionStatusLabel: 'Status',
+            layoutLandscape: 'Landscape',
+            layoutPortrait: 'Portrait',
+            showMenu: 'Show Menu',
+            showPlayerTable: 'Show Player List',
             viewModeFree: 'Free',
             viewModeFollow: 'Follow'
         },
@@ -381,10 +393,21 @@ const DESKTOP_LEFT_COLUMN_WIDTH_WITH_TABLE = 320;
 const DESKTOP_LEFT_COLUMN_WIDTH_WITHOUT_TABLE = 300;
 const DESKTOP_RIGHT_MIN_WIDTH = 320;
 const DESKTOP_MIN_MAP_SIZE = 320;
+const LANDSCAPE_MIN_MENU_WIDTH = 220;
+const LANDSCAPE_MIN_TABLE_WIDTH = 220;
+const AUTO_LANDSCAPE_ASPECT_THRESHOLD = 1.18;
+const AUTO_PORTRAIT_ASPECT_THRESHOLD = 0.92;
+const PORTRAIT_MAP_HEIGHT_RATIO = 1.12;
 const MIN_SCALE = 1.0;
 const MAX_SCALE = 3.0;
+const LAYOUT_ORIENTATION_LANDSCAPE = 'landscape';
+const LAYOUT_ORIENTATION_PORTRAIT = 'portrait';
 const VIEW_MODE_FOLLOW = 'follow';
 const VIEW_MODE_FREE = 'free';
+
+function normalizeLayoutOrientation(value) {
+    return value === LAYOUT_ORIENTATION_PORTRAIT ? LAYOUT_ORIENTATION_PORTRAIT : LAYOUT_ORIENTATION_LANDSCAPE;
+}
 
 function normalizeViewMode(value) {
     return value === VIEW_MODE_FREE ? VIEW_MODE_FREE : VIEW_MODE_FOLLOW;
@@ -427,6 +450,10 @@ const refs = {
     statusIndicator: doc.querySelector('[data-role="status-indicator"]'),
     statusText: doc.querySelector('[data-role="status-text"]'),
     playerSelect: doc.getElementById('sel_player'),
+    layoutOrientationLandscapeButton: doc.getElementById('layoutOrientationLandscape'),
+    layoutOrientationPortraitButton: doc.getElementById('layoutOrientationPortrait'),
+    menuVisibleToggleButton: doc.getElementById('menuVisibleToggle'),
+    playerTableVisibleToggleButton: doc.getElementById('playerTableVisibleToggle'),
     viewModeFreeButton: doc.getElementById('viewModeFree'),
     viewModeFollowButton: doc.getElementById('viewModeFollow'),
     mapStage: doc.getElementById('mapStage'),
@@ -462,8 +489,6 @@ const refs = {
     playerTableBody: doc.querySelector('[data-role="player-table-body"]'),
     playerTableEmpty: doc.querySelector('[data-role="player-table-empty"]'),
     playerTableEmptyCell: doc.querySelector('[data-role="player-table-empty-cell"]'),
-    playerTableToggle: doc.getElementById('conf_table_visible'),
-    playerTableToggleLabel: doc.querySelector('[data-role="player-table-toggle-label"]'),
     inputs: {
         protocol: doc.getElementById('conf_protocol'),
         protocolReadonly: doc.getElementById('conf_protocol_readonly'),
@@ -488,8 +513,7 @@ const refs = {
         tableLevel: doc.getElementById('conf_table_level'),
         tableRank: doc.getElementById('conf_table_rank'),
         tableKills: doc.getElementById('conf_table_kills'),
-        tableMarks: doc.getElementById('conf_table_marks'),
-        tableVisible: doc.getElementById('conf_table_visible')
+        tableMarks: doc.getElementById('conf_table_marks')
     }
 };
 
@@ -603,6 +627,7 @@ const state = {
     pixelRatio: window.devicePixelRatio || 1,
     isSelectingPlayer: false,
     viewport: { scale: 1, translateX: 0, translateY: 0 },
+    layoutOrientation: LAYOUT_ORIENTATION_LANDSCAPE,
     viewMode: VIEW_MODE_FOLLOW,
     isConnected: false,
     playerTableSignature: null,
@@ -784,6 +809,8 @@ const settings = {
     tableKills: readSetting('conf_table_kills', true),
     tableMarks: readSetting('conf_table_marks', true),
     tableVisible: readSetting('conf_table_visible', true),
+    menuVisible: readSetting('conf_menu_visible', true),
+    layoutOrientation: normalizeLayoutOrientation(readSetting('layout_orientation', LAYOUT_ORIENTATION_LANDSCAPE)),
     selectedPlayer: readSetting('sel_player', '<hoozi>'),
     viewMode: normalizeViewMode(readSetting('view_mode', VIEW_MODE_FOLLOW))
 };
@@ -799,6 +826,7 @@ if (settings.connectionMode === 'manual' && legacyIpaddr && legacyIpaddr !== 'au
 normalizeManualSettings({ syncInputs: false, persist: false });
 
 state.viewMode = settings.viewMode;
+state.layoutOrientation = settings.layoutOrientation;
 state.viewport.scale = clampScale(getDefaultScaleForMode(state.viewMode));
 
 // Initialize input values
@@ -826,10 +854,10 @@ refs.inputs.tableLevel.checked = settings.tableLevel;
 refs.inputs.tableRank.checked = settings.tableRank;
 refs.inputs.tableKills.checked = settings.tableKills;
 refs.inputs.tableMarks.checked = settings.tableMarks;
-refs.inputs.tableVisible.checked = settings.tableVisible;
 
 updateViewModeControls();
 updateConnectionModeControls();
+syncLayoutOrientation();
 
 const playerTableColumns = [
     {
@@ -1120,6 +1148,115 @@ function getPreferredPlayerTableWidth() {
     return Math.max(0, intrinsicTableWidth + shellExtraWidth);
 }
 
+function setButtonActiveState(button, active) {
+    if (!button) return;
+    button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    button.classList.toggle('border-emerald-500/70', active);
+    button.classList.toggle('text-emerald-300', active);
+    button.classList.toggle('bg-emerald-500/10', active);
+    button.classList.toggle('border-slate-700', !active);
+    button.classList.toggle('text-slate-200', !active);
+    button.classList.toggle('bg-slate-950/70', !active);
+}
+
+function getViewportSize() {
+    const viewport = window.visualViewport;
+    const width = viewport && Number.isFinite(viewport.width) && viewport.width > 0 ? viewport.width : window.innerWidth;
+    const height = viewport && Number.isFinite(viewport.height) && viewport.height > 0 ? viewport.height : window.innerHeight;
+    return {
+        width: Math.max(1, width || 1),
+        height: Math.max(1, height || 1)
+    };
+}
+
+function getAutoLayoutOrientationForViewport() {
+    const { width, height } = getViewportSize();
+    const aspectRatio = width / height;
+    if (aspectRatio >= AUTO_LANDSCAPE_ASPECT_THRESHOLD) {
+        return LAYOUT_ORIENTATION_LANDSCAPE;
+    }
+    if (aspectRatio <= AUTO_PORTRAIT_ASPECT_THRESHOLD) {
+        return LAYOUT_ORIENTATION_PORTRAIT;
+    }
+    return null;
+}
+
+function getEffectiveLayoutOrientation() {
+    return getAutoLayoutOrientationForViewport() || settings.layoutOrientation;
+}
+
+function isLandscapeLayout() {
+    return state.layoutOrientation === LAYOUT_ORIENTATION_LANDSCAPE;
+}
+
+function isPortraitMapFullscreen() {
+    return state.layoutOrientation === LAYOUT_ORIENTATION_PORTRAIT && !settings.menuVisible && !settings.tableVisible;
+}
+
+function updateLayoutOrientationControls() {
+    setButtonActiveState(refs.layoutOrientationLandscapeButton, state.layoutOrientation === LAYOUT_ORIENTATION_LANDSCAPE);
+    setButtonActiveState(refs.layoutOrientationPortraitButton, state.layoutOrientation === LAYOUT_ORIENTATION_PORTRAIT);
+}
+
+function updateLayoutVisibilityControls() {
+    setButtonActiveState(refs.menuVisibleToggleButton, settings.menuVisible);
+    setButtonActiveState(refs.playerTableVisibleToggleButton, settings.tableVisible && state.playerTableHasColumns);
+    if (refs.playerTableVisibleToggleButton) {
+        refs.playerTableVisibleToggleButton.disabled = !state.playerTableHasColumns;
+    }
+}
+
+function applyLayoutStateClasses() {
+    const orientation = state.layoutOrientation;
+    const isLandscape = orientation === LAYOUT_ORIENTATION_LANDSCAPE;
+    const isPortrait = orientation === LAYOUT_ORIENTATION_PORTRAIT;
+
+    if (refs.layout) {
+        refs.layout.dataset.layoutMode = orientation;
+        refs.layout.classList.toggle('menu-hidden', !settings.menuVisible);
+    }
+
+    doc.body.classList.toggle('layout-orientation-landscape', isLandscape);
+    doc.body.classList.toggle('layout-orientation-portrait', isPortrait);
+    doc.body.classList.toggle('portrait-map-fullscreen', isPortraitMapFullscreen());
+
+    updateLayoutOrientationControls();
+    updateLayoutVisibilityControls();
+}
+
+function syncLayoutOrientation() {
+    const nextOrientation = getEffectiveLayoutOrientation();
+    const changed = state.layoutOrientation !== nextOrientation;
+    state.layoutOrientation = nextOrientation;
+    applyLayoutStateClasses();
+    return changed;
+}
+
+function setLayoutOrientation(orientation) {
+    settings.layoutOrientation = normalizeLayoutOrientation(orientation);
+    localStorage.setItem('layout_orientation', settings.layoutOrientation);
+    syncLayoutOrientation();
+    syncMapControlsHost();
+    scheduleLayoutRefresh();
+}
+
+function setMenuVisible(visible) {
+    settings.menuVisible = Boolean(visible);
+    localStorage.setItem('conf_menu_visible', settings.menuVisible);
+    applyLayoutStateClasses();
+    syncMapControlsHost();
+    scheduleLayoutRefresh();
+}
+
+function setPlayerTableVisible(visible) {
+    if (!state.playerTableHasColumns && visible) {
+        return;
+    }
+    settings.tableVisible = Boolean(visible);
+    localStorage.setItem('conf_table_visible', settings.tableVisible);
+    renderPlayerTable();
+}
+
 function syncMapStageSize() {
     const stage = refs.mapStage;
     const layout = refs.layout;
@@ -1127,24 +1264,29 @@ function syncMapStageSize() {
         return;
     }
 
-    if (desktopQuery.matches) {
-        const layoutStyles = window.getComputedStyle(layout);
-        const paddingLeft = parseFloat(layoutStyles.paddingLeft) || 0;
-        const paddingRight = parseFloat(layoutStyles.paddingRight) || 0;
-        const paddingTop = parseFloat(layoutStyles.paddingTop) || 0;
-        const paddingBottom = parseFloat(layoutStyles.paddingBottom) || 0;
-        const horizontalPadding = paddingLeft + paddingRight;
-        const gapX = parseFloat(layoutStyles.columnGap || layoutStyles.gap) || 0;
-        const layoutContentWidth = Math.max(0, (parseFloat(layoutStyles.width) || 0) - horizontalPadding);
-        const viewportHeight = window.innerHeight;
-        const headerHeight = refs.header ? refs.header.getBoundingClientRect().height : 0;
-        const footerHeight = refs.footer ? refs.footer.getBoundingClientRect().height : 0;
-        const availableVerticalSpace = Math.max(0, viewportHeight - headerHeight - footerHeight);
-        const interiorHeight = Math.max(0, availableVerticalSpace - paddingTop - paddingBottom);
+    const layoutStyles = window.getComputedStyle(layout);
+    const paddingLeft = parseFloat(layoutStyles.paddingLeft) || 0;
+    const paddingRight = parseFloat(layoutStyles.paddingRight) || 0;
+    const paddingTop = parseFloat(layoutStyles.paddingTop) || 0;
+    const paddingBottom = parseFloat(layoutStyles.paddingBottom) || 0;
+    const horizontalPadding = paddingLeft + paddingRight;
+    const verticalPadding = paddingTop + paddingBottom;
+    const gapX = parseFloat(layoutStyles.columnGap || layoutStyles.gap) || 0;
+    const layoutContentWidth = Math.max(0, layout.clientWidth - horizontalPadding);
+    const { height: viewportHeight } = getViewportSize();
+    const headerHeight = refs.header ? refs.header.getBoundingClientRect().height : 0;
+    const footerHeight = refs.footer ? refs.footer.getBoundingClientRect().height : 0;
+    const availableVerticalSpace = Math.max(0, viewportHeight - headerHeight - footerHeight);
+    const interiorHeight = Math.max(0, availableVerticalSpace - verticalPadding);
+    const layoutHasMenu = settings.menuVisible;
+    const layoutHasTable = !layout.classList.contains('player-table-hidden');
 
-        const layoutHasTable = !layout.classList.contains('player-table-hidden');
-        const columnGapCount = layoutHasTable ? 2 : 1;
-        const leftColumnWidth = layoutHasTable ? DESKTOP_LEFT_COLUMN_WIDTH_WITH_TABLE : DESKTOP_LEFT_COLUMN_WIDTH_WITHOUT_TABLE;
+    if (isLandscapeLayout()) {
+        const visibleSideCount = (layoutHasMenu ? 1 : 0) + (layoutHasTable ? 1 : 0);
+        const columnGapCount = visibleSideCount;
+        const baseMenuWidth = layoutHasTable ? DESKTOP_LEFT_COLUMN_WIDTH_WITH_TABLE : DESKTOP_LEFT_COLUMN_WIDTH_WITHOUT_TABLE;
+        const menuWidthCap = Math.max(180, Math.floor(layoutContentWidth * 0.32));
+        const leftColumnWidth = layoutHasMenu ? Math.min(baseMenuWidth, menuWidthCap) : 0;
         const availableWidth = Math.max(
                 0,
                 layoutContentWidth - leftColumnWidth - gapX * columnGapCount
@@ -1161,10 +1303,14 @@ function syncMapStageSize() {
         let stageWidth = availableWidth;
         let playerTableWidth = 0;
         if (layoutHasTable) {
-            const minViewportTableWidth = Math.ceil(window.innerWidth * 0.2);
-            const preferredPlayerTableWidth = Math.max(
-                    getPreferredPlayerTableWidth(),
-                    minViewportTableWidth
+            const minViewportTableWidth = Math.min(
+                    DESKTOP_RIGHT_MIN_WIDTH,
+                    Math.max(LANDSCAPE_MIN_TABLE_WIDTH, Math.floor(layoutContentWidth * 0.22))
+            );
+            const maxViewportTableWidth = Math.max(minViewportTableWidth, Math.floor(layoutContentWidth * 0.42));
+            const preferredPlayerTableWidth = Math.min(
+                    Math.max(getPreferredPlayerTableWidth(), minViewportTableWidth),
+                    maxViewportTableWidth
             );
             const widthWhenTablePreferred = Math.max(0, availableWidth - preferredPlayerTableWidth);
             if (widthWhenTablePreferred >= stageHeight) {
@@ -1198,6 +1344,9 @@ function syncMapStageSize() {
         layout.style.height = `${availableVerticalSpace}px`;
         layout.style.maxHeight = `${availableVerticalSpace}px`;
         if (refs.configColumn) {
+            refs.configColumn.style.width = layoutHasMenu ? `${leftColumnWidth}px` : '';
+            refs.configColumn.style.minWidth = layoutHasMenu ? `${leftColumnWidth}px` : '';
+            refs.configColumn.style.maxWidth = layoutHasMenu ? `${leftColumnWidth}px` : '';
             refs.configColumn.style.height = `${sideHeight}px`;
             refs.configColumn.style.maxHeight = `${availableVerticalSpace}px`;
         }
@@ -1223,39 +1372,54 @@ function syncMapStageSize() {
         if (refs.mapShell) {
             refs.mapShell.style.minHeight = `${stageHeight}px`;
         }
+        return;
+    }
+
+    const portraitFullscreen = isPortraitMapFullscreen();
+    const stageWidth = layoutContentWidth;
+    const stageHeight = portraitFullscreen ? Math.max(0, interiorHeight) : Math.max(0, stageWidth * PORTRAIT_MAP_HEIGHT_RATIO);
+
+    stage.style.width = `${stageWidth}px`;
+    stage.style.height = `${stageHeight}px`;
+
+    if (refs.mapStageContainer) {
+        refs.mapStageContainer.style.width = `${stageWidth}px`;
+        refs.mapStageContainer.style.height = portraitFullscreen ? `${stageHeight}px` : '';
+    }
+    if (refs.mapShell) {
+        refs.mapShell.style.minHeight = `${stageHeight}px`;
+    }
+    if (refs.configColumn) {
+        refs.configColumn.style.width = '';
+        refs.configColumn.style.minWidth = '';
+        refs.configColumn.style.maxWidth = '';
+        refs.configColumn.style.height = '';
+        refs.configColumn.style.maxHeight = '';
+    }
+    if (refs.configStack) {
+        refs.configStack.style.height = '';
+        refs.configStack.style.maxHeight = '';
+    }
+    if (refs.playerTableSection) {
+        refs.playerTableSection.style.width = '';
+        refs.playerTableSection.style.minWidth = '';
+        refs.playerTableSection.style.maxWidth = '';
+    }
+    if (refs.playerTableShell) {
+        refs.playerTableShell.style.height = '';
+        refs.playerTableShell.style.maxHeight = '';
+    }
+    if (refs.playerTableWrapper) {
+        refs.playerTableWrapper.style.maxHeight = '';
+    }
+    if (refs.playerTableScroll) {
+        refs.playerTableScroll.style.maxHeight = '';
+    }
+
+    if (portraitFullscreen) {
+        layout.style.height = `${availableVerticalSpace}px`;
+        layout.style.maxHeight = `${availableVerticalSpace}px`;
     } else {
-        stage.style.width = '';
-        stage.style.height = '';
-        if (refs.mapStageContainer) {
-            refs.mapStageContainer.style.width = '';
-            refs.mapStageContainer.style.height = '';
-        }
-        if (refs.mapShell) {
-            refs.mapShell.style.minHeight = '';
-        }
-        if (refs.configColumn) {
-            refs.configColumn.style.height = '';
-            refs.configColumn.style.maxHeight = '';
-        }
-        if (refs.configStack) {
-            refs.configStack.style.height = '';
-            refs.configStack.style.maxHeight = '';
-        }
-        if (refs.playerTableSection) {
-            refs.playerTableSection.style.width = '';
-            refs.playerTableSection.style.minWidth = '';
-            refs.playerTableSection.style.maxWidth = '';
-        }
-        if (refs.playerTableShell) {
-            refs.playerTableShell.style.height = '';
-            refs.playerTableShell.style.maxHeight = '';
-        }
-        if (refs.playerTableWrapper) {
-            refs.playerTableWrapper.style.maxHeight = '';
-        }
-        if (refs.playerTableScroll) {
-            refs.playerTableScroll.style.maxHeight = '';
-        }
         layout.style.removeProperty('height');
         layout.style.removeProperty('max-height');
     }
@@ -1270,7 +1434,7 @@ function syncMapControlsHost() {
         return;
     }
 
-    if (desktopQuery.matches) {
+    if (isLandscapeLayout() || isPortraitMapFullscreen()) {
         if (controls.parentElement !== stage) {
             stage.appendChild(controls);
         }
@@ -1810,7 +1974,7 @@ function createPlayerTableSnapshot(players) {
 }
 
 function requestTableSizingRefresh() {
-    if (!desktopQuery.matches) {
+    if (!isLandscapeLayout()) {
         return;
     }
     if (!settings.tableVisible) {
@@ -1837,25 +2001,15 @@ function scheduleLayoutRefresh() {
 }
 
 function updatePlayerTableToggleState(hasColumns, isVisible) {
-    const toggle = refs.playerTableToggle;
-    if (!toggle) {
+    const button = refs.playerTableVisibleToggleButton;
+    if (!button) {
         return;
     }
 
     const checked = Boolean(hasColumns && isVisible);
-    toggle.disabled = !hasColumns;
-    toggle.checked = checked;
-
-    const translation = t('config.playerTableShow');
-    const resolvedLabel = typeof translation === 'string' ? translation : '显示';
-
-    const label = refs.playerTableToggleLabel;
-    if (label) {
-        label.textContent = resolvedLabel;
-        label.setAttribute('data-i18n', 'config.playerTableShow');
-    }
-
-    toggle.setAttribute('aria-label', resolvedLabel);
+    button.disabled = !hasColumns;
+    setButtonActiveState(button, checked);
+    button.setAttribute('aria-label', t('header.showPlayerTable') || '显示玩家信息列表');
 }
 
 function updatePlayerTableSectionVisibility(visible) {
@@ -1882,6 +2036,7 @@ function updatePlayerTableSectionVisibility(visible) {
     if (layoutClassChanged) {
         scheduleLayoutRefresh();
     }
+    applyLayoutStateClasses();
 }
 
 
@@ -2166,6 +2321,30 @@ refs.playerSelect.addEventListener('change', (event) => {
     renderPlayers();
 });
 
+if (refs.layoutOrientationLandscapeButton) {
+    refs.layoutOrientationLandscapeButton.addEventListener('click', () => {
+        setLayoutOrientation(LAYOUT_ORIENTATION_LANDSCAPE);
+    });
+}
+
+if (refs.layoutOrientationPortraitButton) {
+    refs.layoutOrientationPortraitButton.addEventListener('click', () => {
+        setLayoutOrientation(LAYOUT_ORIENTATION_PORTRAIT);
+    });
+}
+
+if (refs.menuVisibleToggleButton) {
+    refs.menuVisibleToggleButton.addEventListener('click', () => {
+        setMenuVisible(!settings.menuVisible);
+    });
+}
+
+if (refs.playerTableVisibleToggleButton) {
+    refs.playerTableVisibleToggleButton.addEventListener('click', () => {
+        setPlayerTableVisible(!settings.tableVisible);
+    });
+}
+
 if (refs.viewModeFreeButton) {
     refs.viewModeFreeButton.addEventListener('click', () => {
         setViewMode(VIEW_MODE_FREE);
@@ -2291,22 +2470,6 @@ tableCheckboxBindings.forEach(([key, settingKey]) => {
         renderPlayerTable();
     });
 });
-
-if (refs.playerTableToggle) {
-    refs.playerTableToggle.addEventListener('change', (event) => {
-        const target = event.target;
-        const checked = Boolean(target.checked);
-
-        if (!state.playerTableHasColumns) {
-            target.checked = false;
-            return;
-        }
-
-        settings.tableVisible = checked;
-        localStorage.setItem('conf_table_visible', settings.tableVisible);
-        renderPlayerTable();
-    });
-}
 
 const handleReconnectClick = () => connect();
 
@@ -2478,6 +2641,7 @@ refs.zoomReset.addEventListener('click', () => {
 });
 
 const handleLayoutChange = () => {
+    syncLayoutOrientation();
     syncMapControlsHost();
     resizeCanvas();
     renderPlayers();
@@ -2494,6 +2658,8 @@ let resizeTimer = null;
 const scheduleResize = () => {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(() => {
+        syncLayoutOrientation();
+        syncMapControlsHost();
         resizeCanvas();
         renderPlayers();
         followSelectedPlayer();
