@@ -18,6 +18,7 @@ const DEFAULT_WSS_PORT = '443';
 const DEFAULT_WS_PATH = '/ws';
 const DEFAULT_WS_PROTOCOL = isHttpsAccess ? 'wss' : 'ws';
 const LOCAL_DEFAULT_HOST = '127.0.0.1';
+const EXAMPLE_DATA_PATH = `${LOCAL_STATIC_BASE_URL}example.json`;
 
 const translations = {
     'zh-Hans': {
@@ -1183,10 +1184,6 @@ function syncMapStageSize() {
             stageWidth = Math.max(stageWidth, Math.min(DESKTOP_MIN_MAP_SIZE, availableWidth));
         }
 
-        if (stageWidth < stageHeight) {
-            stageHeight = stageWidth;
-        }
-
         stage.style.width = `${stageWidth}px`;
         stage.style.height = `${stageHeight}px`;
 
@@ -1998,6 +1995,24 @@ function handleMessage(raw) {
     }
 }
 
+async function loadExampleData() {
+    try {
+        const response = await fetch(EXAMPLE_DATA_PATH, { cache: 'no-store' });
+        if (!response.ok) {
+            console.warn(`Failed to load demo data from ${EXAMPLE_DATA_PATH}: ${response.status}`);
+            return;
+        }
+        const message = await response.text();
+        if (!message) {
+            return;
+        }
+        handleMessage(message);
+        updateStatus('connected', t('status.connected'));
+    } catch (error) {
+        console.warn(`Failed to load demo data from ${EXAMPLE_DATA_PATH}.`, error);
+    }
+}
+
 function updateDownloadButtonState() {
     if (!refs.downloadLatestButton) {
         return;
@@ -2518,4 +2533,11 @@ syncMapControlsHost();
 resizeCanvas();
 updateStatus('connecting', t('status.waiting'));
 setOverlayState('loading', t('overlay.waitingTitle'), t('overlay.waitingSubtitle'));
-connect();
+
+if (doc.readyState === 'complete') {
+    loadExampleData();
+} else {
+    window.addEventListener('load', () => {
+        loadExampleData();
+    }, { once: true });
+}
