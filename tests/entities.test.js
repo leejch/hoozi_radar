@@ -62,6 +62,7 @@ test('player markers and text use the reduced geometry', () => {
     const settings = {
         ...DEFAULT_SETTINGS,
         showTeamLinks: false,
+        showName: true,
         showLegend: false,
         showLevel: false,
         showRank: false,
@@ -139,20 +140,29 @@ test('map labels use two lines without dot separators', () => {
         id: 'p1', self: false, name: 'Local', team: 2,
         position: { x: 500, y: 500 }, is_dead: false, is_down: false,
         hp: 100, max_hp: 100, shield: 0, max_shield: 0,
-        legend: 'Wraith', level: 100, rank: 'Silver4', kills: 3, damage: 200, roster: 0
+        legend: 'Wraith', level: 100, rank: 'Silver4', kills: 3, damage: 200, roster: 15
     };
     const settings = {
         ...DEFAULT_SETTINGS,
         showTeamLinks: false,
         showHealth: false,
-        showShield: false
+        showShield: false,
+        showName: true,
+        showLegend: true,
+        showLevel: true,
+        showRank: true,
+        showCombat: true,
+        showRoster: true
     };
 
     renderEntities(ctx, { players: [player] }, settings, null, { width: 1000, height: 1000 }, (key) => key);
 
     assert.equal(records.outlinedText.length, 2);
     assert.match(records.outlinedText[0].text, /^Local Wraith (DMG|伤)200 K\.3$/);
-    assert.equal(records.outlinedText[1].text, 'Lv.100 Silver4 0');
+    assert.match(
+        records.outlinedText[1].text,
+        /^Lv\.100 Silver4 (\[Friend\]\[Cheater\]\[Celebrity\]\[Pro\]|\[友\]\[作弊\]\[名人\]\[权\]|\[友\]\[作弊\]\[名人\]\[權\])$/
+    );
     assert.equal(records.outlinedText[0].y, 506);
     assert.equal(records.outlinedText[1].y, 518);
     assert.doesNotMatch(records.outlinedText.map((record) => record.text).join('\n'), /·/);
@@ -164,7 +174,7 @@ test('second-line-only map labels draw in the first line position', () => {
         id: 'p1', self: false, name: 'Local', team: 2,
         position: { x: 500, y: 500 }, is_dead: false, is_down: false,
         hp: 100, max_hp: 100, shield: 0, max_shield: 0,
-        legend: 'Wraith', level: 100, rank: 'Silver4', kills: 3, damage: 200, roster: 0
+        legend: 'Wraith', level: 100, rank: 'Silver4', kills: 3, damage: 200, roster: 9
     };
     const settings = {
         ...DEFAULT_SETTINGS,
@@ -173,13 +183,16 @@ test('second-line-only map labels draw in the first line position', () => {
         showShield: false,
         showName: false,
         showLegend: false,
-        showCombat: false
+        showCombat: false,
+        showLevel: true,
+        showRank: true,
+        showRoster: true
     };
 
     renderEntities(ctx, { players: [player] }, settings, null, { width: 1000, height: 1000 }, (key) => key);
 
     assert.equal(records.outlinedText.length, 1);
-    assert.equal(records.outlinedText[0].text, 'Lv.100 Silver4 0');
+    assert.match(records.outlinedText[0].text, /^Lv\.100 Silver4 (\[Friend\]\[Pro\]|\[友\]\[权\]|\[友\]\[權\])$/);
     assert.equal(records.outlinedText[0].y, 506);
 });
 

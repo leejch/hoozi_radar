@@ -9,8 +9,15 @@ const MAPS_BY_RUNTIME_TOKEN = Object.freeze({
     nemesis: Object.freeze({ assetName: '6.png', translationKey: 'maps.eDistrict' })
 });
 
+export function isLobbyMap(mapName) {
+    return /^mp_lobby/i.test(String(mapName || '').trim());
+}
+
 export function mapDefinition(mapName) {
     const normalized = String(mapName || '').trim();
+    if (isLobbyMap(normalized)) {
+        return Object.freeze({ assetName: 'mp_lobby.png', translationKey: 'maps.lobby', lobby: true });
+    }
     const token = /^mp_rr_([^_]+)/i.exec(normalized)?.[1]?.toLowerCase();
     return token ? MAPS_BY_RUNTIME_TOKEN[token] || null : null;
 }
@@ -23,6 +30,8 @@ export function createFallbackImageLoader(image, { onLoad, onMissing } = {}) {
     let requestToken = 0;
     let currentAsset = '';
     let sourceIndex = 0;
+
+    if ('referrerPolicy' in image) image.referrerPolicy = 'origin';
 
     const loadSource = () => {
         const source = STATIC_SOURCES[sourceIndex];
@@ -74,6 +83,7 @@ export function createFallbackImageLoader(image, { onLoad, onMissing } = {}) {
 export function mapAssetName(mapName) {
     const normalized = String(mapName || '').trim();
     if (!normalized) return '';
+    if (isLobbyMap(normalized)) return 'mp_lobby.png';
     return mapDefinition(normalized)?.assetName || `${normalized}.png`;
 }
 

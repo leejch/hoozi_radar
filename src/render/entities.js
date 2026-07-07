@@ -1,5 +1,6 @@
 import { MAP_SIDE, teamColorFor } from '../config.js';
 import { activeLanguage } from '../i18n.js';
+import { formatRosterTags } from '../ui/roster.js';
 
 const PLAYER_RADIUS = 4;
 const PLAYER_BORDER_WIDTH = 1;
@@ -48,6 +49,11 @@ function pushIfValue(parts, value) {
     if (text) parts.push(text);
 }
 
+function pushRosterIfValue(parts, value) {
+    const text = formatRosterTags(value, activeLanguage);
+    if (text) parts.push(text);
+}
+
 function mapInfoLinesZhHans(player, settings) {
     const first = [];
     const second = [];
@@ -64,7 +70,7 @@ function mapInfoLinesZhHans(player, settings) {
         if (level) second.push(`Lv.${level}`);
     }
     if (settings.showRank) pushIfValue(second, player.rank);
-    if (settings.showRoster) pushIfValue(second, player.roster);
+    if (settings.showRoster) pushRosterIfValue(second, player.roster);
     return [first, second];
 }
 
@@ -84,7 +90,7 @@ function mapInfoLinesZhHant(player, settings) {
         if (level) second.push(`Lv.${level}`);
     }
     if (settings.showRank) pushIfValue(second, player.rank);
-    if (settings.showRoster) pushIfValue(second, player.roster);
+    if (settings.showRoster) pushRosterIfValue(second, player.roster);
     return [first, second];
 }
 
@@ -104,7 +110,7 @@ function mapInfoLinesEn(player, settings) {
         if (level) second.push(`Lv.${level}`);
     }
     if (settings.showRank) pushIfValue(second, player.rank);
-    if (settings.showRoster) pushIfValue(second, player.roster);
+    if (settings.showRoster) pushRosterIfValue(second, player.roster);
     return [first, second];
 }
 

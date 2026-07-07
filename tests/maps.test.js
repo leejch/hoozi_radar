@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-import { createFallbackImageLoader, mapAssetName, mapDefinition, mapDisplayName } from '../src/assets/maps.js';
+import { createFallbackImageLoader, isLobbyMap, mapAssetName, mapDefinition, mapDisplayName } from '../src/assets/maps.js';
 
 const i18nSource = await readFile(new URL('../src/i18n.js', import.meta.url), 'utf8');
 
@@ -36,11 +36,21 @@ test('unknown raw map names keep exact-name loading and debug display', () => {
     assert.equal(mapDisplayName('mp_rr_nemesis_mu1', t), 'translated:maps.eDistrict');
 });
 
-test('all six map names are present in all three supported languages', () => {
+test('lobby map names use the dedicated lobby image without coordinate-map classification', () => {
+    const t = (key) => `translated:${key}`;
+    assert.equal(isLobbyMap('mp_lobby'), true);
+    assert.equal(isLobbyMap('mp_lobby_mu1'), true);
+    assert.equal(mapAssetName('mp_lobby_mu1'), 'mp_lobby.png');
+    assert.equal(mapDefinition('mp_lobby_mu1')?.lobby, true);
+    assert.equal(mapDisplayName('mp_lobby_mu1', t), 'translated:maps.lobby');
+});
+
+test('all map names are present in all three supported languages', () => {
     for (const label of [
         '诸王峡谷', '世界尽头', '奥林匹斯', '残月', '风暴点', '电气区',
         '王者峽谷', '世界邊緣', '奧林匹斯', '殘月', '暴風點', '電流區',
-        'Kings Canyon', "World's Edge", 'Olympus', 'Broken Moon', 'Storm Point', 'E-District'
+        'Kings Canyon', "World's Edge", 'Olympus', 'Broken Moon', 'Storm Point', 'E-District',
+        '大厅', '大廳', 'Lobby'
     ]) {
         assert.ok(i18nSource.includes(label), `missing localized map label: ${label}`);
     }
@@ -51,6 +61,7 @@ test('an image stays hidden until a requested asset finishes loading', () => {
     const image = {
         dataset: {},
         hidden: false,
+        referrerPolicy: '',
         addEventListener(type, listener) {
             listeners[type] = listener;
         },
@@ -59,10 +70,12 @@ test('an image stays hidden until a requested asset finishes loading', () => {
         }
     };
     const loader = createFallbackImageLoader(image);
+    assert.equal(image.referrerPolicy, 'origin');
 
     loader.load('4.png');
     assert.equal(image.hidden, true);
-    assert.match(image.src, /\/4\.png$/);
+    assert.equal(image.dataset.assetSource, 'local');
+    assert.match(image.src, /static\/4\.png$/);
 
     listeners.load();
     assert.equal(image.hidden, false);

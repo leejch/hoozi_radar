@@ -93,6 +93,7 @@ function pauseForImportedPreview() {
 
 function applyStateMessage(message, raw, { imported = false } = {}) {
     if (!store.applySnapshot(message, raw, { imported })) return;
+    radar.setMapName(message.map);
     const mapChanged = refs.mapImage.dataset.mapName !== message.map;
     if (!message.map) {
         refs.mapImage.dataset.mapName = '';

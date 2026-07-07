@@ -59,6 +59,21 @@ test('retains a self player with unavailable map coordinates', () => {
     assert.equal(message.players[0].self, true);
 });
 
+test('normalizes display-only sentinel strings and roster bit aliases', () => {
+    const player = {
+        ...basePlayer,
+        legend: 'pilot_medium_empty',
+        rank: 'None',
+        roster: undefined,
+        rosters: 13
+    };
+    const message = parseHoozi3Message({ kind: 'state', ts: 1, map: '', players: [player] });
+
+    assert.equal(message.players[0].legend, '');
+    assert.equal(message.players[0].rank, '');
+    assert.equal(message.players[0].roster, 13);
+});
+
 test('rejects unknown message kinds and malformed state arrays', () => {
     assert.throws(() => parseHoozi3Message('{"kind":"legacy"}'), HooziProtocolError);
     assert.throws(() => parseHoozi3Message('{"kind":"state","players":{}}'), HooziProtocolError);

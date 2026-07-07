@@ -1,14 +1,15 @@
-export const CDN_STATIC_BASE_URL = 'https://img.hoozi.net/static/';
-export const LOCAL_STATIC_BASE_URL = './static/';
-export const STATIC_SOURCES = Object.freeze([
-    { key: 'cdn', baseUrl: CDN_STATIC_BASE_URL },
-    { key: 'local', baseUrl: LOCAL_STATIC_BASE_URL }
-]);
-
 export const DEFAULT_LOCAL_WS_PATH = '/ws';
+export const R2_STATIC_BASE_URL = 'https://img.hoozi.net/static/';
+export const LOCAL_STATIC_BASE_URL = 'static/';
+export const STATIC_SOURCE_URLS = Object.freeze({
+    remote: R2_STATIC_BASE_URL,
+    local: LOCAL_STATIC_BASE_URL
+});
+export const LOCAL_DEFAULT_HOST = '127.0.0.1';
 export const DEFAULT_LOCAL_WS_TARGET = `ws://127.0.0.1:9001${DEFAULT_LOCAL_WS_PATH}`;
 export const DEFAULT_WS_PORT = '9001';
 export const DEFAULT_WSS_PORT = '443';
+export const DEFAULT_WS_PATH = DEFAULT_LOCAL_WS_PATH;
 export const MAP_SIDE = 1000;
 export const MIN_SCALE = 0.5;
 export const MAX_SCALE = 3;
@@ -29,20 +30,20 @@ export const DEFAULT_SETTINGS = Object.freeze({
     manualProtocol: 'ws',
     manualHost: '127.0.0.1',
     manualPort: DEFAULT_WS_PORT,
-    manualPath: '',
+    manualPath: DEFAULT_WS_PATH,
     fontSize: 10,
-    showName: true,
-    showLegend: true,
+    showName: false,
+    showLegend: false,
     showHealth: true,
     showShield: true,
-    showLevel: true,
-    showRank: true,
-    showCombat: true,
+    showLevel: false,
+    showRank: false,
+    showCombat: false,
     showRoster: true,
     showTeamLinks: true,
     showRing: true,
-    showDead: true,
-    showDown: true,
+    showDead: false,
+    showDown: false,
     menuVisible: true,
     tableVisible: true,
     tableTeam: true,
@@ -82,7 +83,38 @@ export const DEFAULT_SETTINGS = Object.freeze({
 });
 
 const STORAGE_PREFIX = 'hoozi3_radar_';
-const SETTINGS_SCHEMA_VERSION = '4';
+const SETTINGS_SCHEMA_VERSION = '5';
+const RESET_TO_DEFAULT_ON_SCHEMA_UPDATE = Object.freeze([
+    'showName',
+    'showLegend',
+    'showLevel',
+    'showRank',
+    'showCombat',
+    'showDead',
+    'showDown',
+    'manualPath'
+]);
+
+function browserLocation() {
+    return typeof window !== 'undefined' && window.location ? window.location : null;
+}
+
+export function isHttpsLocation(location = browserLocation()) {
+    return location?.protocol === 'https:';
+}
+
+export function staticSourceOrderForLocation(location = browserLocation()) {
+    return isHttpsLocation(location) ? ['remote', 'local'] : ['local', 'remote'];
+}
+
+export function staticSourcesForLocation(location = browserLocation()) {
+    return Object.freeze(staticSourceOrderForLocation(location).map((key) => Object.freeze({
+        key,
+        baseUrl: STATIC_SOURCE_URLS[key]
+    })));
+}
+
+export const STATIC_SOURCES = staticSourcesForLocation();
 
 export function clamp(value, min, max) {
     return Math.min(max, Math.max(min, value));
@@ -129,6 +161,10 @@ export function loadSettings() {
         settings[key] = readStoredValue(key, fallback);
     }
     if (localStorage.getItem(`${STORAGE_PREFIX}schemaVersion`) !== SETTINGS_SCHEMA_VERSION) {
+        for (const key of RESET_TO_DEFAULT_ON_SCHEMA_UPDATE) {
+            settings[key] = DEFAULT_SETTINGS[key];
+            localStorage.setItem(`${STORAGE_PREFIX}${key}`, String(DEFAULT_SETTINGS[key]));
+        }
         for (const key of Object.keys(DEFAULT_SETTINGS)) {
             if (!key.startsWith('table') || key === 'tableVisible') continue;
             settings[key] = true;
@@ -142,7 +178,7 @@ export function loadSettings() {
     settings.manualProtocol = settings.manualProtocol === 'wss' ? 'wss' : 'ws';
     settings.manualHost = String(settings.manualHost || DEFAULT_SETTINGS.manualHost).trim();
     settings.manualPort = String(settings.manualPort || '').trim();
-    settings.manualPath = normalizeWebSocketPath(settings.manualPath);
+    settings.manualPath = normalizeWebSocketPath(settings.manualPath || DEFAULT_SETTINGS.manualPath);
     settings.fontSize = clamp(Math.round(Number(settings.fontSize) || DEFAULT_SETTINGS.fontSize), 7, 32);
     settings.layoutOrientation = normalizeLayoutOrientation(settings.layoutOrientation);
     // Every page load starts in fixed-follow mode. View-mode changes are
@@ -162,19 +198,33 @@ export function normalizeWebSocketPath(value) {
     return path.startsWith('/') ? path : `/${path}`;
 }
 
+export function normalizeManualTargetValue(value) {
+    const target = String(value || '').trim();
+    return target.toLowerCase() === 'auto' ? '' : target;
+}
+
+export function buildAutomaticWebSocketTarget(location = browserLocation()) {
+    if (isHttpsLocation(location)) {
+        const hostname = String(location?.hostname || '').trim() || LOCAL_DEFAULT_HOST;
+        return `wss://${hostname}${DEFAULT_WS_PATH}`;
+    }
+    return DEFAULT_LOCAL_WS_TARGET;
+}
+
 export function buildManualWebSocketTarget(settings) {
     const protocol = settings.manualProtocol === 'wss' ? 'wss' : 'ws';
-    const host = String(settings.manualHost || '').trim();
+    const host = normalizeManualTargetValue(settings.manualHost);
+    if (!host) return buildAutomaticWebSocketTarget();
+    if (/^wss?:\/\//i.test(host)) return host;
     const port = String(settings.manualPort || '').trim();
     const path = normalizeWebSocketPath(settings.manualPath);
-    if (!host) return null;
     return `${protocol}://${host}${port ? `:${port}` : ''}${path}`;
 }
 
 export function getConnectionTarget(settings) {
     return settings.connectionMode === 'manual'
         ? buildManualWebSocketTarget(settings)
-        : DEFAULT_LOCAL_WS_TARGET;
+        : buildAutomaticWebSocketTarget();
 }
 
 export function createInitialConnectionGate() {

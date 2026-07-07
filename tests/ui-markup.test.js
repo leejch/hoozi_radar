@@ -40,3 +40,13 @@ test('the unloaded map image has no source and remains hidden', () => {
     assert.match(mapImageTag, /\shidden(?:\s|>)/);
     assert.doesNotMatch(mapImageTag, /\ssrc=/);
 });
+
+test('lobby map mode fits the image and suppresses coordinate drawing layers', () => {
+    assert.match(indexHtml, /#mapViewport\[data-map-mode="lobby"\][\s\S]{0,180}width:\s*100% !important/);
+    assert.match(indexHtml, /#mapViewport\[data-map-mode="lobby"\] canvas[\s\S]{0,80}display:\s*none/);
+    assert.match(indexHtml, /id="mapViewport"[^>]+data-map-mode="radar"/);
+});
+
+test('footer disclaimer uses the trademark ownership wording', () => {
+    assert.match(indexHtml, /所有其他商标、标志及著作权均为其各自所有者所有/);
+});

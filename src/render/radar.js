@@ -5,6 +5,7 @@ import {
     VIEW_MODE_FREE,
     defaultScaleForMode
 } from '../config.js';
+import { isLobbyMap } from '../assets/maps.js';
 import { renderEntities } from './entities.js';
 import { renderRingEffect } from './ring.js';
 import {
@@ -20,6 +21,8 @@ import {
 const BUTTON_ZOOM_STEP = 0.25;
 const WHEEL_ZOOM_STEP = 0.1;
 const SCALE_EPSILON = 0.0001;
+const MAP_MODE_LOBBY = 'lobby';
+const MAP_MODE_RADAR = 'radar';
 
 export function createRadarRenderer({ refs, store, settings, t }) {
     const ctx = refs.mapCanvas.getContext('2d');
@@ -33,6 +36,32 @@ export function createRadarRenderer({ refs, store, settings, t }) {
     let pixelRatio = 1;
     let animationFrame = 0;
     let resizeObserver = null;
+    let mapMode = MAP_MODE_RADAR;
+
+    function isLobbyMode() {
+        return mapMode === MAP_MODE_LOBBY;
+    }
+
+    function clearDrawingLayers() {
+        zoneCtx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+        zoneCtx.clearRect(0, 0, surface.width, surface.height);
+        ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+        ctx.clearRect(0, 0, surface.width, surface.height);
+    }
+
+    function setMapMode(mode) {
+        const normalized = mode === MAP_MODE_LOBBY ? MAP_MODE_LOBBY : MAP_MODE_RADAR;
+        if (mapMode === normalized && refs.mapViewport.dataset.mapMode === normalized) return;
+        mapMode = normalized;
+        refs.mapViewport.dataset.mapMode = mapMode;
+        refs.mapStage.dataset.mapMode = mapMode;
+        if (isLobbyMode()) {
+            refs.mapViewport.style.transform = 'none';
+            clearDrawingLayers();
+        } else {
+            applyTransform();
+        }
+    }
 
     function selectedPosition() {
         const snapshot = store.getRenderSnapshot();
@@ -89,11 +118,16 @@ export function createRadarRenderer({ refs, store, settings, t }) {
     }
 
     function applyTransform() {
+        if (isLobbyMode()) {
+            refs.mapViewport.style.transform = 'none';
+            return;
+        }
         const viewport = store.state.viewport;
         refs.mapViewport.style.transform = `translate3d(${viewport.translateX}px, ${viewport.translateY}px, 0) scale(${viewport.scale})`;
     }
 
     function centerOn(position) {
+        if (isLobbyMode()) return false;
         if (!position || !surface.width || !surface.height || !viewportWidth || !viewportHeight) return false;
         const viewport = store.state.viewport;
         const translation = translationForFollow(
@@ -134,6 +168,7 @@ export function createRadarRenderer({ refs, store, settings, t }) {
     }
 
     function zoomTo(point, requestedScale, anchoredMapPoint = null) {
+        if (isLobbyMode()) return;
         const viewport = store.state.viewport;
         const nextScale = normalizeZoomScale(requestedScale);
         if (!Number.isFinite(point?.x) || !Number.isFinite(point?.y)) return;
@@ -168,6 +203,12 @@ export function createRadarRenderer({ refs, store, settings, t }) {
 
     function renderFrame(now) {
         const snapshot = store.getRenderSnapshot(now);
+        setMapMode(isLobbyMap(snapshot?.map) ? MAP_MODE_LOBBY : MAP_MODE_RADAR);
+        if (isLobbyMode()) {
+            clearDrawingLayers();
+            animationFrame = requestAnimationFrame(renderFrame);
+            return;
+        }
         const selected = store.getSelectedPlayer(snapshot?.players);
         if (store.state.viewMode === VIEW_MODE_FOLLOW && selected?.position) centerOn(selected.position);
         zoneCtx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
@@ -183,6 +224,7 @@ export function createRadarRenderer({ refs, store, settings, t }) {
     }
 
     function startPointer(event) {
+        if (isLobbyMode()) return;
         if ((event.pointerType === 'mouse' && event.button !== 0)
             || refs.mapControls.contains(event.target)
             || refs.zoomControls.contains(event.target)
@@ -251,11 +293,13 @@ export function createRadarRenderer({ refs, store, settings, t }) {
     refs.mapStage.addEventListener('pointercancel', endPointer);
     refs.mapStage.addEventListener('lostpointercapture', endPointer);
     refs.mapStage.addEventListener('wheel', (event) => {
+        if (isLobbyMode()) return;
         if (refs.mapOverlay.dataset.state !== 'hidden' || event.deltaY === 0) return;
         event.preventDefault();
         adjustZoom(pointForEvent(event), event.deltaY < 0 ? WHEEL_ZOOM_STEP : -WHEEL_ZOOM_STEP);
     }, { passive: false });
     refs.mapStage.addEventListener('dblclick', (event) => {
+        if (isLobbyMode()) return;
         if (refs.mapOverlay.dataset.state === 'hidden') adjustZoom(pointForEvent(event), BUTTON_ZOOM_STEP);
     });
     refs.zoomOut.addEventListener('click', () => {
@@ -288,6 +332,9 @@ export function createRadarRenderer({ refs, store, settings, t }) {
         },
         setViewMode,
         resetViewport,
+        setMapName(mapName) {
+            setMapMode(isLobbyMap(mapName) ? MAP_MODE_LOBBY : MAP_MODE_RADAR);
+        },
         recenterSelected() {
             const snapshot = store.getRenderSnapshot();
             centerOn(store.getSelectedPlayer(snapshot?.players)?.position);

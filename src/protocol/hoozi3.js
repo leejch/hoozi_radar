@@ -41,6 +41,16 @@ function stringValue(value, fallback = '') {
     return fallback;
 }
 
+function normalizedLegend(value) {
+    const legend = stringValue(value).trim();
+    return legend === 'pilot_medium_empty' ? '' : legend;
+}
+
+function normalizedRank(value) {
+    const rank = stringValue(value).trim();
+    return rank === 'None' ? '' : rank;
+}
+
 function extractUidString(raw) {
     if (raw === null || raw === undefined) return '';
     if (typeof raw === 'string') return raw.trim();
@@ -72,6 +82,8 @@ function normalizePlayer(rawPlayer, position) {
     normalized.name = normalized.name || '?';
     normalized.uid = extractUidString(rawPlayer.uid);
     normalized.uid_long = computeLongUidFromShort(normalized.uid);
+    normalized.legend = normalizedLegend(rawPlayer.legend);
+    normalized.rank = normalizedRank(rawPlayer.rank);
     normalized.self = rawPlayer.self === true;
     normalized.team = normalized.team ?? 0;
     normalized.squad = normalized.squad ?? 0;
@@ -84,7 +96,7 @@ function normalizePlayer(rawPlayer, position) {
     normalized.level = nonNegativeNumber(rawPlayer.level);
     normalized.kills = nonNegativeNumber(rawPlayer.kills);
     normalized.damage = nonNegativeNumber(rawPlayer.damage);
-    normalized.roster = finiteNumber(rawPlayer.roster);
+    normalized.roster = finiteNumber(rawPlayer.roster ?? rawPlayer.rosters);
     normalized.is_dead = rawPlayer.is_dead === true;
     normalized.is_down = rawPlayer.is_down === true;
     normalized.position = normalized.x !== null && normalized.y !== null

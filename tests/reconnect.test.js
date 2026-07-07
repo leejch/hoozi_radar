@@ -2,7 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-import { DEFAULT_LOCAL_WS_TARGET, createInitialConnectionGate, getConnectionTarget } from '../src/config.js';
+import {
+    DEFAULT_LOCAL_WS_TARGET,
+    DEFAULT_SETTINGS,
+    buildAutomaticWebSocketTarget,
+    createInitialConnectionGate,
+    getConnectionTarget,
+    staticSourceOrderForLocation
+} from '../src/config.js';
 
 const mainSource = await readFile(new URL('../src/main.js', import.meta.url), 'utf8');
 
@@ -18,6 +25,38 @@ test('the initial connection gate can be consumed only once', () => {
 test('automatic connection uses the local /ws path', () => {
     assert.equal(DEFAULT_LOCAL_WS_TARGET, 'ws://127.0.0.1:9001/ws');
     assert.equal(getConnectionTarget({ connectionMode: 'auto' }), DEFAULT_LOCAL_WS_TARGET);
+});
+
+test('automatic HTTPS connection uses the current hostname with wss and /ws', () => {
+    assert.equal(
+        buildAutomaticWebSocketTarget({ protocol: 'https:', hostname: 'example.hoozi.net' }),
+        'wss://example.hoozi.net/ws'
+    );
+});
+
+test('manual empty or auto input falls back to the automatic target', () => {
+    assert.equal(getConnectionTarget({ ...DEFAULT_SETTINGS, connectionMode: 'manual', manualHost: '' }), DEFAULT_LOCAL_WS_TARGET);
+    assert.equal(getConnectionTarget({ ...DEFAULT_SETTINGS, connectionMode: 'manual', manualHost: 'auto' }), DEFAULT_LOCAL_WS_TARGET);
+    assert.equal(
+        getConnectionTarget({ ...DEFAULT_SETTINGS, connectionMode: 'manual', manualHost: 'wss://example.hoozi.net/ws' }),
+        'wss://example.hoozi.net/ws'
+    );
+});
+
+test('static asset order is local-first outside HTTPS and remote-first on HTTPS', () => {
+    assert.deepEqual(staticSourceOrderForLocation({ protocol: 'http:' }), ['local', 'remote']);
+    assert.deepEqual(staticSourceOrderForLocation({ protocol: 'file:' }), ['local', 'remote']);
+    assert.deepEqual(staticSourceOrderForLocation({ protocol: 'https:' }), ['remote', 'local']);
+});
+
+test('requested map overlay defaults start disabled', () => {
+    assert.equal(DEFAULT_SETTINGS.showName, false);
+    assert.equal(DEFAULT_SETTINGS.showLegend, false);
+    assert.equal(DEFAULT_SETTINGS.showLevel, false);
+    assert.equal(DEFAULT_SETTINGS.showRank, false);
+    assert.equal(DEFAULT_SETTINGS.showCombat, false);
+    assert.equal(DEFAULT_SETTINGS.showDead, false);
+    assert.equal(DEFAULT_SETTINGS.showDown, false);
 });
 
 test('cancelling the initial connection gate prevents its only attempt', () => {

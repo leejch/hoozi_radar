@@ -7,7 +7,9 @@ import {
     teamColorFor
 } from '../config.js';
 import { mapDisplayName } from '../assets/maps.js';
+import { activeLanguage } from '../i18n.js';
 import { formatPlayerStatus, shieldBarStyle } from '../render/entities.js';
+import { formatRosterTags, rosterTags } from './roster.js';
 import { allocateDesktopLayout, resolveResponsiveLayoutOrientation } from './layout.js';
 import { currentPlayerExportFileName, formatPlayerExportJson, isJsonFileName } from './player-data.js';
 
@@ -120,7 +122,12 @@ function displayDistance(value) {
 }
 
 function displayStatus(player, t) {
-    return `${formatPlayerStatus(player, t)} · ${displayDistance(player.distance)} · ${t('player.roster', { roster: player.roster })}`;
+    const roster = formatRosterTags(player.roster, activeLanguage);
+    return [
+        formatPlayerStatus(player, t),
+        displayDistance(player.distance),
+        roster ? t('player.roster', { roster }) : ''
+    ].filter(Boolean).join(' · ');
 }
 
 function teamSortValue(team) {
@@ -173,22 +180,45 @@ function iconTextCell({ iconKey, altText, text, showIcon, showText }) {
     if (image) wrapper.appendChild(image);
     if (showText) {
         const label = document.createElement('span');
-        label.textContent = displayValue(text);
-        wrapper.appendChild(label);
+        const value = text === null || text === undefined ? '' : String(text);
+        if (value) {
+            label.textContent = value;
+            wrapper.appendChild(label);
+        }
     }
-    if (!wrapper.childNodes.length) return cell('—', 'text-slate-500');
+    if (!wrapper.childNodes.length) return cell('', 'text-slate-500');
     return nodeCell(wrapper);
 }
 
 function shieldQualityCell(player) {
     const maximum = Number(player.max_shield);
-    if (!Number.isFinite(maximum)) return cell('—', 'text-slate-500');
+    if (!Number.isFinite(maximum) || maximum <= 0) return cell('', 'text-center text-slate-500');
     const shieldStyle = shieldBarStyle(player.max_shield);
     const square = document.createElement('span');
     square.className = 'inline-flex size-3.5 border border-black align-middle';
     square.style.backgroundColor = shieldStyle?.color || 'rgba(15, 23, 42, 0.85)';
     square.title = String(player.max_shield);
     return nodeCell(square, 'text-center');
+}
+
+function shieldCell(player) {
+    const maximum = Number(player.max_shield);
+    if (!Number.isFinite(maximum) || maximum <= 0) return cell('', 'text-slate-500');
+    return cell(displayValue(player.shield));
+}
+
+function rosterCell(player) {
+    const tags = rosterTags(player.roster, activeLanguage);
+    if (!tags.length) return cell('', 'text-slate-500');
+    const wrapper = document.createElement('span');
+    wrapper.className = 'inline-flex items-center whitespace-nowrap';
+    for (const tag of tags) {
+        const item = document.createElement('span');
+        item.textContent = tag.text;
+        item.style.color = tag.color;
+        wrapper.appendChild(item);
+    }
+    return nodeCell(wrapper);
 }
 
 function deadCell(player, t) {
@@ -355,7 +385,8 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
         refs.focusName.textContent = `${player.self ? '★ ' : ''}${player.name}`;
         refs.focusName.style.color = teamColorFor(player.team);
         refs.focusTeamBadge.style.backgroundColor = teamColorFor(player.team);
-        refs.focusMeta.textContent = `${t('map.focusHealth')} ${player.hp}/${player.max_hp} · ${t('map.focusShield')} ${player.shield}/${player.max_shield} · ${t('map.focusKills')} ${player.kills}`;
+        const shieldText = Number(player.max_shield) > 0 ? `${player.shield}/${player.max_shield}` : '';
+        refs.focusMeta.textContent = `${t('map.focusHealth')} ${player.hp}/${player.max_hp} · ${t('map.focusShield')} ${shieldText} · ${t('map.focusKills')} ${player.kills}`;
         refs.focusName.title = `${t('player.team', { team: player.team })} · ${displayStatus(player, t)}`;
     }
 
@@ -387,9 +418,9 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
         },
         { visible: () => settings.tableDamage, label: 'table.columns.damage', render: (p) => cell(displayValue(p.damage)) },
         { visible: () => settings.tableKills, label: 'table.columns.kills', render: (p) => cell(displayValue(p.kills)) },
-        { visible: () => settings.tableRoster, label: 'table.columns.roster', render: (p) => cell(displayValue(p.roster)) },
+        { visible: () => settings.tableRoster, label: 'table.columns.roster', render: (p) => rosterCell(p) },
         { visible: () => settings.tableMaxShield, label: 'table.columns.maxShield', render: (p) => shieldQualityCell(p) },
-        { visible: () => settings.tableShield, label: 'table.columns.shield', render: (p) => cell(displayValue(p.shield)) },
+        { visible: () => settings.tableShield, label: 'table.columns.shield', render: (p) => shieldCell(p) },
         { visible: () => settings.tableHp, label: 'table.columns.hp', render: (p) => cell(displayValue(p.hp)) },
         { visible: () => settings.tableDead, label: 'table.columns.dead', render: (p) => deadCell(p, t) },
         { visible: () => settings.tableDown, label: 'table.columns.down', render: (p) => downCell(p, t) },

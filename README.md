@@ -16,13 +16,13 @@ space, roster flags, and a derived long UID.
 
 The HOOZi 3.0 version follows the checked-in Lua script instead:
 
-- local WebSocket auto endpoint: `ws://127.0.0.1:9001/ws`
+- automatic WebSocket target: `ws://127.0.0.1:9001/ws` on local/non-HTTPS access, or `wss://<current-hostname>/ws` on HTTPS
 - full `state` snapshots selected by `kind`
-- raw `game.world.map_name` strings with verified first-token aliases for the six numeric map assets
+- raw `game.world.map_name` strings with verified first-token aliases for the six numeric map assets plus `mp_lobby*` lobby handling
 - flat `x`/`y` coordinates in a 1000×1000 map domain
 - stable player `id` and explicit `self`
 - health, shield, down/dead state, legend, UID, level, kills, damage, rank,
-  squad/team, roster metadata, and an optional ring
+  squad/team, roster bit markers, and an optional ring
 - a display-only long UID derived from the backend short UID with the approved
   unsigned 64-bit XOR mask
 - optional browser `ping` and Lua `pong`
@@ -81,8 +81,9 @@ hoozi_radar/
 │   ├── render/radar.js           Render loop, sizing, follow, pan, and zoom
 │   ├── ui/layout.js              Map-first landscape column allocation
 │   ├── ui/player-data.js         JSON import/export filename rules
+│   ├── ui/roster.js              Roster bit labels and marker colors
 │   ├── ui/controls.js            Controls, focus UI, and player table
-│   └── assets/maps.js            CDN-first image fallback
+│   └── assets/maps.js            Protocol-aware R2/local image fallback
 ├── static/                       Local fallback images
 ├── res/                          Local legend, rank, and item icon assets
 ├── docs/protocol/                Project-owned protocol documentation
@@ -118,7 +119,7 @@ independent of selection.
 
 The map `<img>` has no initial `src` and remains hidden while disconnected,
 while trying fallbacks, or after a missing asset. It becomes visible only after
-a CDN or local map image has loaded successfully, so no broken-image placeholder
+one configured static source loads successfully, so no broken-image placeholder
 is shown.
 
 Viewport ratios of at least `1.12` automatically use landscape layout, and
@@ -170,12 +171,13 @@ Open `http://127.0.0.1:8080/` and ensure HOOZi 3.0 has loaded
 `web_radar.lua` with its server enabled. After the page `load` event, local auto
 mode attempts `ws://127.0.0.1:9001/ws` exactly once. The checked-in Lua server
 listens on the loopback port and does not define a separate payload protocol by
-path. A failed or later-closed connection is not retried automatically on HTTP
-or HTTPS pages; use the connection/reconnect control for another attempt.
+path. A failed or later-closed connection is not retried automatically; use the
+connection/reconnect control for another attempt.
 
-When the page itself is hosted over HTTPS, browsers normally block a plain
-`ws://` connection as mixed content. Use Manual mode with the authorized
-`wss://` relay provided by the surrounding deployment.
+When the page itself is hosted over HTTPS, auto mode uses
+`wss://<current-hostname>/ws` with no explicit port. Full manual `ws://` or
+`wss://` targets remain available for LAN backends or custom relays, and an
+empty/manual `auto` input falls back to the same automatic target.
 
 ## Installing, development CSS, and production build
 
@@ -229,16 +231,21 @@ in principle. Never put private keys, relay secrets, or trust decisions in it.
 
 ## Map and static assets
 
-Images are loaded in this order:
+Static image loading uses two sources: `https://img.hoozi.net/static/` and
+`static/`.
 
-1. `https://img.hoozi.net/static/`
-2. local `./static/`
+Local/non-HTTPS access tries `static/` first and falls back to R2. HTTPS access
+tries R2 first and falls back to `static/`. Image elements use
+`referrerPolicy="origin"` so cross-origin R2 image requests send the current
+page origin as the browser referrer.
 
 Known maps are classified by the first underscore-delimited token after
 `mp_rr_`; later runtime suffixes such as `_mu1` and `_mu2` are ignored. The
 verified asset order is `canyonlands` → `1.png`, `desertlands` → `2.png`,
 `olympus` → `3.png`, `divided` → `4.png`, `tropic` → `5.png`, and `nemesis` →
-`6.png`. Unknown raw names retain exact-name `<map>.png` lookup.
+`6.png`. Raw names beginning with `mp_lobby` use `mp_lobby.png` and render as a
+centered, aspect-preserving lobby image without coordinate-based player/ring
+plotting. Unknown raw names retain exact-name `<map>.png` lookup.
 
 Legend and rank icon keys are preserved in normalized state and exported
 snapshots. Non-empty keys are displayed in the merged Legend and Rank table
@@ -246,6 +253,14 @@ columns by resolving `./res/<key>.png`, for example `icon_rank/rookie1` becomes
 `./res/icon_rank/rookie1.png`. These PNGs are drawn directly with their
 transparent backgrounds. `rank_color` is preserved in state/export only and is
 not exposed as a visible table field.
+
+Roster values are rendered as four bit flags: friend `8`, cheater `4`,
+celebrity `2`, and pro/permission `1`. The table uses `[Friend]`,
+`[Cheater]`, `[Celebrity]`, and `[Pro]` in one line with the configured marker
+colors; Simplified and Traditional Chinese use the corresponding localized
+bracket tags. The sentinel legend value `pilot_medium_empty` and rank value
+`None` display as empty. When `max_shield` is `0`, shield quality and shield
+fields display as empty and the map shield bar is omitted.
 
 ## Development rules
 
@@ -263,8 +278,7 @@ not exposed as a visible table field.
 ## Known protocol limits
 
 The checked-in Lua script does not send loot or projectile arrays, so the
-frontend cannot render them. It also does not document yaw orientation or
-numeric roster categories. These values are retained or reported without
-invented interpretation; see the protocol document for the full uncertainty
-list.
+frontend cannot render them. It also does not document yaw orientation. The
+frontend retains yaw without drawing a directional arrow; see the protocol
+document for the full uncertainty list.
 
