@@ -41,9 +41,9 @@ test('the unloaded map image has no source and remains hidden', () => {
     assert.doesNotMatch(mapImageTag, /\ssrc=/);
 });
 
-test('lobby map mode fits the image and suppresses coordinate drawing layers', () => {
-    assert.match(indexHtml, /#mapViewport\[data-map-mode="lobby"\][\s\S]{0,180}width:\s*100% !important/);
-    assert.match(indexHtml, /#mapViewport\[data-map-mode="lobby"\] canvas[\s\S]{0,80}display:\s*none/);
+test('image-only map mode fits the image and suppresses coordinate drawing layers', () => {
+    assert.match(indexHtml, /#mapViewport\[data-map-mode="image"\][\s\S]{0,180}width:\s*100% !important/);
+    assert.match(indexHtml, /#mapViewport\[data-map-mode="image"\] canvas[\s\S]{0,80}display:\s*none/);
     assert.match(indexHtml, /id="mapViewport"[^>]+data-map-mode="radar"/);
 });
 

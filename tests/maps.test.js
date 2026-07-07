@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-import { createFallbackImageLoader, isLobbyMap, mapAssetName, mapDefinition, mapDisplayName } from '../src/assets/maps.js';
+import { createFallbackImageLoader, isImageOnlyMap, isLobbyMap, isRangeMap, mapAssetName, mapDefinition, mapDisplayName } from '../src/assets/maps.js';
 
 const i18nSource = await readFile(new URL('../src/i18n.js', import.meta.url), 'utf8');
 
@@ -25,6 +25,7 @@ test('known HOOZi map tokens resolve to the six numeric radar assets', () => {
 test('map matching uses the first token after mp_rr and accepts runtime suffixes', () => {
     assert.equal(mapAssetName('mp_rr_canyonlands_mu1'), '1.png');
     assert.equal(mapAssetName('mp_rr_canyonlands_mu2'), '1.png');
+    assert.equal(mapAssetName('mp_rr_canyonlands_hu_avt_uh'), '1.png');
     assert.equal(mapAssetName('mp_rr_divided_moon_mu1'), '4.png');
     assert.equal(mapAssetName('mp_rr_tropic_island_mu2'), '5.png');
 });
@@ -45,12 +46,23 @@ test('lobby map names use the dedicated lobby image without coordinate-map class
     assert.equal(mapDisplayName('mp_lobby_mu1', t), 'translated:maps.lobby');
 });
 
+test('canyonlands staging map names use the range image-only map', () => {
+    const t = (key) => `translated:${key}`;
+    assert.equal(isRangeMap('mp_rr_canyonlands_staging_mu1'), true);
+    assert.equal(isImageOnlyMap('mp_rr_canyonlands_staging_mu1'), true);
+    assert.equal(mapAssetName('mp_rr_canyonlands_staging_mu1'), 'mp_range.png');
+    assert.equal(mapDefinition('mp_rr_canyonlands_staging_mu1')?.range, true);
+    assert.equal(mapDefinition('mp_rr_canyonlands_staging_mu1')?.imageOnly, true);
+    assert.equal(mapDisplayName('mp_rr_canyonlands_staging_mu1', t), 'translated:maps.range');
+    assert.equal(mapAssetName('mp_rr_canyonlands_hu_avt_uh'), '1.png');
+});
+
 test('all map names are present in all three supported languages', () => {
     for (const label of [
         '诸王峡谷', '世界尽头', '奥林匹斯', '残月', '风暴点', '电气区',
         '王者峽谷', '世界邊緣', '奧林匹斯', '殘月', '暴風點', '電流區',
         'Kings Canyon', "World's Edge", 'Olympus', 'Broken Moon', 'Storm Point', 'E-District',
-        '大厅', '大廳', 'Lobby'
+        '大厅', '大廳', 'Lobby', '射击场', '射擊場', 'Firing Range'
     ]) {
         assert.ok(i18nSource.includes(label), `missing localized map label: ${label}`);
     }

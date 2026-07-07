@@ -34,7 +34,7 @@ const translations = {
                 damage: '伤害', roster: '标记'
             }
         },
-        maps: { kingsCanyon: '诸王峡谷', worldsEdge: '世界尽头', olympus: '奥林匹斯', brokenMoon: '残月', stormPoint: '风暴点', eDistrict: '电气区', lobby: '大厅' },
+        maps: { kingsCanyon: '诸王峡谷', worldsEdge: '世界尽头', olympus: '奥林匹斯', brokenMoon: '残月', stormPoint: '风暴点', eDistrict: '电气区', lobby: '大厅', range: '射击场' },
         status: { waiting: '等待连接', connecting: '正在连接', connected: '已连接', disconnected: '未连接', importedPreview: '离线预览', protocolError: '协议错误' },
         overlay: {
             waitingTitle: '等待连接', waitingSubtitle: '正在尝试连接 HOOZi 3.0 本机数据桥',
@@ -83,7 +83,7 @@ const translations = {
                 damage: '傷害', roster: '標記'
             }
         },
-        maps: { kingsCanyon: '王者峽谷', worldsEdge: '世界邊緣', olympus: '奧林匹斯', brokenMoon: '殘月', stormPoint: '暴風點', eDistrict: '電流區', lobby: '大廳' },
+        maps: { kingsCanyon: '王者峽谷', worldsEdge: '世界邊緣', olympus: '奧林匹斯', brokenMoon: '殘月', stormPoint: '暴風點', eDistrict: '電流區', lobby: '大廳', range: '射擊場' },
         status: { waiting: '等待連線', connecting: '正在連線', connected: '已連線', disconnected: '未連線', importedPreview: '離線預覽', protocolError: '協議錯誤' },
         overlay: {
             waitingTitle: '等待連線', waitingSubtitle: '正在嘗試連線 HOOZi 3.0 本機資料橋',
@@ -132,7 +132,7 @@ const translations = {
                 damage: 'Damage', roster: 'Marker'
             }
         },
-        maps: { kingsCanyon: 'Kings Canyon', worldsEdge: "World's Edge", olympus: 'Olympus', brokenMoon: 'Broken Moon', stormPoint: 'Storm Point', eDistrict: 'E-District', lobby: 'Lobby' },
+        maps: { kingsCanyon: 'Kings Canyon', worldsEdge: "World's Edge", olympus: 'Olympus', brokenMoon: 'Broken Moon', stormPoint: 'Storm Point', eDistrict: 'E-District', lobby: 'Lobby', range: 'Firing Range' },
         status: { waiting: 'Waiting', connecting: 'Connecting', connected: 'Connected', disconnected: 'Disconnected', importedPreview: 'Offline preview', protocolError: 'Protocol error' },
         overlay: {
             waitingTitle: 'Waiting to connect', waitingSubtitle: 'Trying the local HOOZi 3.0 data bridge',

@@ -109,15 +109,17 @@ No other browser command is implemented by `web_radar.lua`.
 | --- | --- | --- | --- | --- |
 | `kind` | string | — | Literal `"state"` in `snapshot()` | Selects the state parser. Other kinds are not treated as snapshots. |
 | `ts` | number | `time.now()` seconds | Snapshot wall-clock value from Lua | Stored for ordering, diagnostics, and interpolation cadence. |
-| `map` | string | runtime map identifier | `game.world.map_name` | Classifies known maps by the first underscore-delimited token after `mp_rr_`, loads the verified asset through the page-protocol-dependent static fallback order, and shows the localized map name. The raw value remains in the badge title for debugging. Unknown names retain exact-name `.png` lookup. `mp_lobby*` uses the lobby mode described below. |
+| `map` | string | runtime map identifier | `game.world.map_name` | Classifies known maps by the verified rules below, loads the verified asset through the page-protocol-dependent static fallback order, and shows the localized map name. The raw value remains in the badge title for debugging. Unknown names retain exact-name `.png` lookup. Image-only maps such as `mp_lobby*` and `mp_rr_canyonlands_staging*` use the non-coordinate display mode described below. |
 | `players` | array | — | Plain-table snapshots of non-NPC `game.entities.players` | Replaces the complete player set atomically; non-dead entries determine the live-player badge. |
 | `ring` | object or absent | map pixels and game-time values | Active `game.world.ring`, converted by Lua | Drives a thin sky-blue boundary and a dark, warm-tinted map-only filter outside the boundary. The effect layer sits below every player overlay. |
 
 ### Verified map identifiers and assets
 
 Later underscore-delimited suffixes are variants and do not change the base
-map. For example, `mp_rr_canyonlands_mu1` and `mp_rr_canyonlands_mu2` both use
-`1.png`.
+map unless a more specific rule is listed here. For example,
+`mp_rr_canyonlands_hu_avt_uh`, `mp_rr_canyonlands_mu1`, and
+`mp_rr_canyonlands_mu2` all use `1.png`, but
+`mp_rr_canyonlands_staging*` is checked first and uses the firing range asset.
 
 | First token after `mp_rr_` | Base runtime name | Asset | Simplified Chinese | Traditional Chinese | English |
 | --- | --- | --- | --- | --- | --- |
@@ -128,12 +130,13 @@ map. For example, `mp_rr_canyonlands_mu1` and `mp_rr_canyonlands_mu2` both use
 | `tropic` | `mp_rr_tropic_island` | `5.png` | 风暴点 | 暴風點 | Storm Point |
 | `nemesis` | `mp_rr_nemesis` | `6.png` | 电气区 | 電流區 | E-District |
 
-`mp_lobby` and any raw map name beginning with `mp_lobby` use `mp_lobby.png`.
-Lobby mode is not a coordinate radar: the map image is centered inside the map
-observation area, rendered with `object-fit: contain`, and never exceeds the
-available width or height. The ring and player canvases are cleared and hidden,
-so player coordinates from a lobby snapshot are retained in state/table data
-but are not plotted.
+`mp_rr_canyonlands_staging*` uses `mp_range.png` and is labeled as the firing
+range. `mp_lobby` and any raw map name beginning with `mp_lobby` use
+`mp_lobby.png`. These image-only maps are not coordinate radars: the map image
+is centered inside the map observation area, rendered with `object-fit: contain`,
+and never exceeds the available width or height. The ring and player canvases
+are cleared and hidden, so player coordinates from those snapshots are retained
+in state/table data but are not plotted.
 
 Static map/logo assets have two base URLs:
 
@@ -281,7 +284,7 @@ origin or radius conversion fails, the entire `ring` property is omitted.
 | `player.pos.x`, `player.pos.y` | Flat `player.x`, `player.y` | Normalize to a single internal `{x,y}` position. |
 | Local player identified by name `"<hoozi>"` | `player.self` | Selection and focus use `self` and stable `id`. |
 | Incoming coordinates interpreted inside a 1920×1080 frame with a 1015-pixel crop | Lua-produced 0–1000 square coordinates | Removed legacy offsets/crop; render directly against the square map. |
-| Numeric map IDs `1`–`6`, sentinel `-1`/`0` | `game.world.map_name` string, empty string outside a known map | Preserve the raw string, classify its verified first token, and select `1.png`–`6.png` using the table above. `mp_lobby*` selects `mp_lobby.png` and disables coordinate plotting. Empty map means no active map; unknown names keep exact-name lookup. |
+| Numeric map IDs `1`–`6`, sentinel `-1`/`0` | `game.world.map_name` string, empty string outside a known map | Preserve the raw string, classify it using the verified rules above, and select `1.png`–`6.png` for normal BR maps. `mp_lobby*` selects `mp_lobby.png`; `mp_rr_canyonlands_staging*` selects `mp_range.png`; both disable coordinate plotting. Empty map means no active map; unknown names keep exact-name lookup. |
 | `uidShort` plus XOR-derived `uidLong` | Exact backend `uid = p.platform_uid`, plus frontend-derived display-only `uid_long` | The backend UID is preserved unchanged. The long UID conversion is restored only as an explicit table display requirement and is not added to raw exports or player identity. |
 | `pro`, `black`, `white`, `hostile` | No verified field | Removed tag/filter behavior. |
 | Threshold-generated “danger/high kills/low level” protocol semantics | `level` and `kills` are plain values | Values remain displayable; the migration does not claim protocol-level suspicion semantics. |
@@ -339,7 +342,7 @@ the next valid live snapshot resumes without interpolation from test data.
 | `src/ui/player-data.js` | JSON import/export filename validation, creation, formatting, and deterministic ordering |
 | `src/ui/roster.js` | Pure roster bit-mask labels and table colors |
 | `src/ui/controls.js` | Connection inputs, display settings, focus selector, and table |
-| `src/assets/maps.js` | Verified raw-map token mapping, localized labels, lobby detection, and page-protocol-dependent R2/local asset fallback |
+| `src/assets/maps.js` | Verified raw-map token mapping, localized labels, image-only map detection, and page-protocol-dependent R2/local asset fallback |
 | `src/main.js` | WebSocket lifecycle and module wiring |
 
 ## Unconfirmed values and runtime checks

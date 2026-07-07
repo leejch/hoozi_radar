@@ -18,7 +18,7 @@ The HOOZi 3.0 version follows the checked-in Lua script instead:
 
 - automatic WebSocket target: `ws://127.0.0.1:9001/ws` on local/non-HTTPS access, or `wss://<current-hostname>/ws` on HTTPS
 - full `state` snapshots selected by `kind`
-- raw `game.world.map_name` strings with verified first-token aliases for the six numeric map assets plus `mp_lobby*` lobby handling
+- raw `game.world.map_name` strings with verified map aliases plus image-only `mp_lobby*` and `mp_rr_canyonlands_staging*` handling
 - flat `x`/`y` coordinates in a 1000×1000 map domain
 - stable player `id` and explicit `self`
 - health, shield, down/dead state, legend, UID, level, kills, damage, rank,
@@ -239,13 +239,15 @@ tries R2 first and falls back to `static/`. Image elements use
 `referrerPolicy="origin"` so cross-origin R2 image requests send the current
 page origin as the browser referrer.
 
-Known maps are classified by the first underscore-delimited token after
+Known BR maps are classified by the first underscore-delimited token after
 `mp_rr_`; later runtime suffixes such as `_mu1` and `_mu2` are ignored. The
 verified asset order is `canyonlands` → `1.png`, `desertlands` → `2.png`,
 `olympus` → `3.png`, `divided` → `4.png`, `tropic` → `5.png`, and `nemesis` →
-`6.png`. Raw names beginning with `mp_lobby` use `mp_lobby.png` and render as a
-centered, aspect-preserving lobby image without coordinate-based player/ring
-plotting. Unknown raw names retain exact-name `<map>.png` lookup.
+`6.png`. `mp_rr_canyonlands_staging*` is checked before the generic
+`canyonlands` rule and uses `mp_range.png`. Raw names beginning with `mp_lobby`
+use `mp_lobby.png`. Lobby and firing range maps render as centered,
+aspect-preserving images without coordinate-based player/ring plotting.
+Unknown raw names retain exact-name `<map>.png` lookup.
 
 Legend and rank icon keys are preserved in normalized state and exported
 snapshots. Non-empty keys are displayed in the merged Legend and Rank table

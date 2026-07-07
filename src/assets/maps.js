@@ -9,14 +9,29 @@ const MAPS_BY_RUNTIME_TOKEN = Object.freeze({
     nemesis: Object.freeze({ assetName: '6.png', translationKey: 'maps.eDistrict' })
 });
 
+const LOBBY_MAP_DEFINITION = Object.freeze({ assetName: 'mp_lobby.png', translationKey: 'maps.lobby', imageOnly: true, lobby: true });
+const RANGE_MAP_DEFINITION = Object.freeze({ assetName: 'mp_range.png', translationKey: 'maps.range', imageOnly: true, range: true });
+const RANGE_MAP_NAME_RE = /^mp_rr_canyonlands_staging(?:_|$)/i;
+
 export function isLobbyMap(mapName) {
     return /^mp_lobby/i.test(String(mapName || '').trim());
+}
+
+export function isRangeMap(mapName) {
+    return RANGE_MAP_NAME_RE.test(String(mapName || '').trim());
+}
+
+export function isImageOnlyMap(mapName) {
+    return isLobbyMap(mapName) || isRangeMap(mapName);
 }
 
 export function mapDefinition(mapName) {
     const normalized = String(mapName || '').trim();
     if (isLobbyMap(normalized)) {
-        return Object.freeze({ assetName: 'mp_lobby.png', translationKey: 'maps.lobby', lobby: true });
+        return LOBBY_MAP_DEFINITION;
+    }
+    if (isRangeMap(normalized)) {
+        return RANGE_MAP_DEFINITION;
     }
     const token = /^mp_rr_([^_]+)/i.exec(normalized)?.[1]?.toLowerCase();
     return token ? MAPS_BY_RUNTIME_TOKEN[token] || null : null;
@@ -83,7 +98,6 @@ export function createFallbackImageLoader(image, { onLoad, onMissing } = {}) {
 export function mapAssetName(mapName) {
     const normalized = String(mapName || '').trim();
     if (!normalized) return '';
-    if (isLobbyMap(normalized)) return 'mp_lobby.png';
     return mapDefinition(normalized)?.assetName || `${normalized}.png`;
 }
 
