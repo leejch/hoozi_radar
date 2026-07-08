@@ -526,14 +526,10 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
                                         <option value="ws">ws</option>
                                         <option value="wss">wss</option>
                                     </select>
-                                    <div id="conf_protocol_readonly"
-                                         class="hidden w-full rounded-xl border border-slate-700/70 bg-slate-950/70 px-3 py-2 text-sm font-medium text-slate-100">
-                                        wss
-                                    </div>
                                 </div>
                             </label>
                             <label class="col-span-2 space-y-1.5">
-                                <span class="block text-xs font-semibold uppercase tracking-wide text-slate-400" data-i18n="config.host">IP地址/域名</span>
+                                <span class="block text-xs font-semibold uppercase tracking-wide text-slate-400" data-i18n="config.host">IP地址 / 域名</span>
                                 <input id="conf_host" type="text" autocomplete="off"
                                        class="w-full rounded-xl border border-slate-700/70 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:border-emerald-400/70 focus:outline-none focus:ring-2 focus:ring-emerald-500/40">
                             </label>
@@ -543,7 +539,7 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
                                        class="w-full rounded-xl border border-slate-700/70 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:border-emerald-400/70 focus:outline-none focus:ring-2 focus:ring-emerald-500/40">
                             </label>
                             <label class="col-span-2 space-y-1.5">
-                                <span class="block text-xs font-semibold uppercase tracking-wide text-slate-400" data-i18n="config.path">路径</span>
+                                <span class="block text-xs font-semibold tracking-wide text-slate-400" data-i18n="config.path">路径(默认 /ws)</span>
                                 <input id="conf_path" type="text" autocomplete="off"
                                        class="w-full rounded-xl border border-slate-700/70 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:border-emerald-400/70 focus:outline-none focus:ring-2 focus:ring-emerald-500/40">
                             </label>
@@ -565,14 +561,9 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
                                 <span data-i18n="config.toggleLegend">传奇</span>
                             </label>
                             <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
-                                <input id="conf_showhealth" type="checkbox" data-setting="showHealth"
+                                <input id="conf_showvitals" type="checkbox" data-setting="showVitals"
                                        class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                                <span data-i18n="config.toggleHealth">血量</span>
-                            </label>
-                            <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
-                                <input id="conf_showshield" type="checkbox" data-setting="showShield"
-                                       class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                                <span data-i18n="config.toggleShield">护盾</span>
+                                <span data-i18n="config.toggleVitals">护盾 &amp; 血量</span>
                             </label>
                             <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
                                 <input id="conf_showlevel" type="checkbox" data-setting="showLevel"
@@ -607,22 +598,7 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
                                 <span data-i18n="config.toggleRing">安全区</span>
                             </label>
                         </div>
-                    </div>
-                </section>
-                <section class="glass-panel rounded-3xl py-2 px-4">
-                    <h2 class="text-sm font-semibold uppercase text-slate-300" data-i18n="config.filters">玩家过滤</h2>
-                    <div class="mt-3 space-y-2.5">
-                        <label class="flex items-center gap-3 rounded-2xl border border-slate-800/70 bg-slate-950/40 px-3 py-1.5 text-sm transition hover:border-emerald-400/60">
-                            <input id="conf_showdead" type="checkbox" data-setting="showDead"
-                                   class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                            <span class="text-slate-200" data-i18n="config.showDead">显示死亡玩家</span>
-                        </label>
-                        <label class="flex items-center gap-3 rounded-2xl border border-slate-800/70 bg-slate-950/40 px-3 py-1.5 text-sm transition hover:border-emerald-400/60">
-                            <input id="conf_showdown" type="checkbox" data-setting="showDown"
-                                   class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                            <span class="text-slate-200" data-i18n="config.showDown">显示倒地玩家</span>
-                        </label>
-                        <div class="grid grid-cols-1 gap-2.5 text-[0.7rem] uppercase text-slate-500">
+                        <div class="grid grid-cols-1 gap-2.5 text-[0.7rem] text-slate-500">
                             <label class="space-y-2">
                                 <span data-i18n="config.fontSize">字体大小</span>
                                 <input id="conf_fontsize" type="number" min="6" max="48" step="1"
@@ -647,41 +623,12 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
                         <!-- <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableRankColor" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.rankColor">段位颜色</span></label> -->
                         <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableDamage" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.damage">伤害</span></label>
                         <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableKills" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.kills">击杀</span></label>
-                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableRoster" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.roster">标记</span></label>
-                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableMaxShield" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.maxShield">护盾品质</span></label>
-                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableShield" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.shield">护盾</span></label>
-                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableHp" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.hp">血量</span></label>
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableVitals" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.vitals">护盾 &amp; 血量</span></label>
                         <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableDead" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.dead">死亡</span></label>
                         <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableDown" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.down">倒地</span></label>
                         <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableDistance" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.distance">距离</span></label>
                         <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableUid" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.uid">短UID</span></label>
                         <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableUidLong" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.uidLong">长UID</span></label>
-                        <!-- Removed from the visible table controls by request. Exported JSON still preserves these raw backend fields.
-                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableSelf" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.self">本机</span></label>
-                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableId" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.id">稳定 ID</span></label>
-                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableIndex" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.index">索引</span></label>
-                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableTeam" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.team">队伍</span></label>
-                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableSquad" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.squad">小队</span></label>
-                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableName" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.name">昵称</span></label>
-                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableLegend" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.legend">英雄</span></label>
-                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableLegendIconKey" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.legendIconKey">英雄图标 Key</span></label>
-                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableUid" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.uid">平台 UID</span></label>
-                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableHp" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.hp">血量</span></label>
-                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableMaxHp" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.maxHp">最大血量</span></label>
-                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableShield" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.shield">护盾</span></label>
-                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableMaxShield" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.maxShield">最大护盾</span></label>
-                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableDistance" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.distance">距离</span></label>
-                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableYaw" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.yaw">朝向值</span></label>
-                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableDead" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.dead">死亡</span></label>
-                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableDown" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.down">倒地</span></label>
-                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableLevel" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.level">等级</span></label>
-                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableRank" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.rank">段位</span></label>
-                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableRankIconKey" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.rankIconKey">段位图标 Key</span></label>
-                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableRankColor" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.rankColor">段位颜色</span></label>
-                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableKills" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.kills">击杀</span></label>
-                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableDamage" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.damage">伤害</span></label>
-                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableRoster" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.roster">名册</span></label>
-                        -->
                     </div>
                 </section>
             </div>

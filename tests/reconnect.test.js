@@ -7,6 +7,7 @@ import {
     DEFAULT_SETTINGS,
     buildAutomaticWebSocketTarget,
     createInitialConnectionGate,
+    defaultManualPortForProtocol,
     getConnectionTarget,
     staticSourceOrderForLocation
 } from '../src/config.js';
@@ -38,9 +39,22 @@ test('manual empty or auto input falls back to the automatic target', () => {
     assert.equal(getConnectionTarget({ ...DEFAULT_SETTINGS, connectionMode: 'manual', manualHost: '' }), DEFAULT_LOCAL_WS_TARGET);
     assert.equal(getConnectionTarget({ ...DEFAULT_SETTINGS, connectionMode: 'manual', manualHost: 'auto' }), DEFAULT_LOCAL_WS_TARGET);
     assert.equal(
+        getConnectionTarget(
+            { ...DEFAULT_SETTINGS, connectionMode: 'manual', manualHost: '' },
+            { protocol: 'https:', hostname: 'example.hoozi.net' }
+        ),
+        'wss://example.hoozi.net/ws'
+    );
+    assert.equal(
         getConnectionTarget({ ...DEFAULT_SETTINGS, connectionMode: 'manual', manualHost: 'wss://example.hoozi.net/ws' }),
         'wss://example.hoozi.net/ws'
     );
+});
+
+test('manual protocol defaults ports by page protocol and selected WebSocket protocol', () => {
+    assert.equal(defaultManualPortForProtocol('ws', { protocol: 'http:' }), '9001');
+    assert.equal(defaultManualPortForProtocol('wss', { protocol: 'http:' }), '443');
+    assert.equal(defaultManualPortForProtocol('ws', { protocol: 'https:' }), '443');
 });
 
 test('static asset order is local-first outside HTTPS and remote-first on HTTPS', () => {
@@ -52,11 +66,12 @@ test('static asset order is local-first outside HTTPS and remote-first on HTTPS'
 test('requested map overlay defaults start disabled', () => {
     assert.equal(DEFAULT_SETTINGS.showName, false);
     assert.equal(DEFAULT_SETTINGS.showLegend, false);
+    assert.equal(DEFAULT_SETTINGS.showVitals, true);
     assert.equal(DEFAULT_SETTINGS.showLevel, false);
     assert.equal(DEFAULT_SETTINGS.showRank, false);
     assert.equal(DEFAULT_SETTINGS.showCombat, false);
     assert.equal(DEFAULT_SETTINGS.showDead, false);
-    assert.equal(DEFAULT_SETTINGS.showDown, false);
+    assert.equal(DEFAULT_SETTINGS.showDown, true);
 });
 
 test('cancelling the initial connection gate prevents its only attempt', () => {

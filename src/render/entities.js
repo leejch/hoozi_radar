@@ -156,8 +156,7 @@ export function renderEntities(ctx, snapshot, settings, selectedPlayer, dimensio
 
     const visiblePlayers = snapshot.players.filter((player) => {
         if (!player.position) return false;
-        if (!settings.showDead && player.is_dead) return false;
-        if (!settings.showDown && player.is_down) return false;
+        if (player.is_dead) return false;
         return true;
     });
 
@@ -222,13 +221,6 @@ export function renderEntities(ctx, snapshot, settings, selectedPlayer, dimensio
         }
 
         if (player.is_down) {
-            ctx.strokeStyle = '#FBBF24';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(point.x - 6, point.y);
-            ctx.lineTo(point.x + 6, point.y);
-            ctx.stroke();
-        } else if (player.is_dead) {
             ctx.strokeStyle = '#FB7185';
             ctx.lineWidth = 2;
             ctx.beginPath();
@@ -239,8 +231,8 @@ export function renderEntities(ctx, snapshot, settings, selectedPlayer, dimensio
             ctx.stroke();
         }
 
-        const shieldStyle = settings.showShield ? shieldBarStyle(player.max_shield) : null;
-        const visibleBarCount = Number(Boolean(shieldStyle)) + Number(Boolean(settings.showHealth));
+        const shieldStyle = settings.showVitals ? shieldBarStyle(player.max_shield) : null;
+        const visibleBarCount = settings.showVitals ? Number(Boolean(shieldStyle)) + 1 : 0;
         let barY = point.y - PLAYER_RADIUS - PLAYER_DECORATION_GAP - visibleBarCount * BAR_HEIGHT;
         if (shieldStyle) {
             drawBar(
@@ -255,7 +247,7 @@ export function renderEntities(ctx, snapshot, settings, selectedPlayer, dimensio
             );
             barY += BAR_HEIGHT;
         }
-        if (settings.showHealth) {
+        if (settings.showVitals) {
             drawBar(ctx, point.x - BAR_WIDTH / 2, barY, BAR_WIDTH, BAR_HEIGHT, player.hp, player.max_hp, '#FFFFFF');
         }
 

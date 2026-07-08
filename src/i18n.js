@@ -9,8 +9,8 @@ const translations = {
         },
         config: {
             connection: '连接配置', connectionAuto: '自动', connectionManual: '手动', protocol: '协议',
-            host: 'IP 地址 / 域名', port: '端口', path: '路径（默认 /ws）', toggles: '地图绘制信息',
-            toggleName: '昵称', toggleLegend: '传奇', toggleHealth: '血量', toggleShield: '护盾',
+            host: 'IP地址 / 域名', port: '端口', path: '路径(默认 /ws)', toggles: '地图绘制信息',
+            toggleName: '昵称', toggleLegend: '传奇', toggleVitals: '护盾 & 血量', toggleHealth: '血量', toggleShield: '护盾',
             toggleLevel: '等级', toggleRank: '段位', toggleCombat: '击杀/伤害', toggleRoster: '标记',
             toggleTeamLinks: '同队连线', toggleRing: '安全区', filters: '玩家过滤', showDead: '显示死亡玩家',
             showDown: '显示倒地玩家', fontSize: '字体大小', importPlayerData: '导入玩家数据',
@@ -28,7 +28,7 @@ const translations = {
             columns: {
                 self: '本机', id: '原始序号', index: '序号', team: '队伍', squad: '是否队友', name: '昵称',
                 x: 'X坐标', y: 'Y坐标', yaw: '视角朝向', legend: '传奇', legendIconKey: '传奇图标',
-                uid: '短UID', uidLong: '长UID', hp: '血量', maxHp: '最大血量', shield: '护盾',
+                uid: '短UID', uidLong: '长UID', vitals: '护盾 & 血量', hp: '血量', maxHp: '最大血量', shield: '护盾',
                 maxShield: '护盾品质', distance: '距离', dead: '死亡', down: '倒地',
                 level: '等级', rank: '段位', rankIconKey: '段位图标', rankColor: '段位颜色', kills: '击杀',
                 damage: '伤害', roster: '标记'
@@ -58,8 +58,8 @@ const translations = {
         },
         config: {
             connection: '連線設定', connectionAuto: '自動', connectionManual: '手動', protocol: '協議',
-            host: 'IP 位址 / 網域', port: '連接埠', path: '路徑（預設 /ws）', toggles: '地圖繪製資訊',
-            toggleName: '暱稱', toggleLegend: '傳奇', toggleHealth: '血量', toggleShield: '護盾',
+            host: 'IP地址 / 網域', port: '連接埠', path: '路徑(預設 /ws)', toggles: '地圖繪製資訊',
+            toggleName: '暱稱', toggleLegend: '傳奇', toggleVitals: '護盾 & 血量', toggleHealth: '血量', toggleShield: '護盾',
             toggleLevel: '等級', toggleRank: '段位', toggleCombat: '擊殺/傷害', toggleRoster: '標記',
             toggleTeamLinks: '同隊連線', toggleRing: '安全區', filters: '玩家篩選', showDead: '顯示死亡玩家',
             showDown: '顯示倒地玩家', fontSize: '字體大小', importPlayerData: '匯入玩家資料',
@@ -77,7 +77,7 @@ const translations = {
             columns: {
                 self: '本機', id: '原始序號', index: '序號', team: '隊伍', squad: '是否隊友', name: '暱稱',
                 x: 'X座標', y: 'Y座標', yaw: '視角朝向', legend: '傳奇', legendIconKey: '傳奇圖示',
-                uid: '短UID', uidLong: '長UID', hp: '血量', maxHp: '最大血量', shield: '護盾',
+                uid: '短UID', uidLong: '長UID', vitals: '護盾 & 血量', hp: '血量', maxHp: '最大血量', shield: '護盾',
                 maxShield: '護盾品質', distance: '距離', dead: '死亡', down: '倒地',
                 level: '等級', rank: '段位', rankIconKey: '段位圖示', rankColor: '段位顏色', kills: '擊殺',
                 damage: '傷害', roster: '標記'
@@ -108,7 +108,7 @@ const translations = {
         config: {
             connection: 'Connection', connectionAuto: 'Auto', connectionManual: 'Manual', protocol: 'Protocol',
             host: 'IP address / domain', port: 'Port', path: 'Path (default /ws)', toggles: 'Map overlays',
-            toggleName: 'Name', toggleLegend: 'Legend', toggleHealth: 'Health', toggleShield: 'Shield',
+            toggleName: 'Name', toggleLegend: 'Legend', toggleVitals: 'SHIELD & HEALTH', toggleHealth: 'Health', toggleShield: 'Shield',
             toggleLevel: 'Level', toggleRank: 'Rank', toggleCombat: 'Kills/Damage', toggleRoster: 'Marker',
             toggleTeamLinks: 'Team links', toggleRing: 'Ring', filters: 'Player filters', showDead: 'Show dead players',
             showDown: 'Show downed players', fontSize: 'Font size', importPlayerData: 'Import player data',
@@ -126,7 +126,7 @@ const translations = {
             columns: {
                 self: 'Local', id: 'Original ID', index: 'Index', team: 'Team', squad: 'Teammate Flag', name: 'Nickname',
                 x: 'X Coordinate', y: 'Y Coordinate', yaw: 'View Direction', legend: 'Legend', legendIconKey: 'Legend Icon',
-                uid: 'Short UID', uidLong: 'Long UID', hp: 'Health', maxHp: 'Max Health', shield: 'Shield',
+                uid: 'Short UID', uidLong: 'Long UID', vitals: 'SHIELD & HEALTH', hp: 'Health', maxHp: 'Max Health', shield: 'Shield',
                 maxShield: 'Shield Quality', distance: 'Distance', dead: 'Death', down: 'Downed',
                 level: 'Level', rank: 'Rank', rankIconKey: 'Rank Icon', rankColor: 'Rank Color', kills: 'Kills',
                 damage: 'Damage', roster: 'Marker'

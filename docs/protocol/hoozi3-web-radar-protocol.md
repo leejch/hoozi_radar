@@ -161,23 +161,23 @@ current page origin as the cross-origin image request referrer.
 | `squad` | number | teammate flag / squad identifier | `p.squad_id`, fallback `0` | Raw export metadata only; no table column is shown. |
 | `x`, `y` | number or absent | 0–1000 map pixels | Lua calls `math.WorldToMapPixel(worldX, worldY, 1000, 1000)` and applies a two-second sticky cache | Uniformly mapped onto a square drawing surface inside the observation port. Players without both values are retained in state but not plotted; coordinates are intentionally omitted from table controls. |
 | `yaw` | number | not specified by the checked API | `p.yaw` forwarded unchanged after finite-value validation | Retained in state/export only. It is not converted into a map heading because the reference does not define its unit/orientation contract. |
-| `hp` | number | health points | `p.health`, fallback `0` | Independently controlled health bar, focus value, and table column. |
+| `hp` | number | health points | `p.health`, fallback `0` | Focus value, map health bar, and the merged table shield/health bar column. |
 | `max_hp` | number | health points | Literal `100` in Lua | Health ratio denominator; hidden from table controls because it is always 100 in observed backend data. |
-| `shield` | number | shield points | `p.shield`, fallback `0` | Independently controlled shield bar, focus value, and table column. When `max_shield` is `0`, the table shield field is displayed as empty and the map shield bar is omitted. |
-| `max_shield` | number | shield points | `p.max_shield`, fallback `0` | Shield ratio denominator and shield-quality table column. The table does not show the raw number; it shows a black-bordered square filled with the same tier color used by the map shield bar. A zero value displays an empty shield-quality field and omits the map shield bar. |
+| `shield` | number | shield points | `p.shield`, fallback `0` | Focus value, map shield bar, and the merged table shield/health bar column. When `max_shield` is `0`, the shield bar is omitted while health remains visible. |
+| `max_shield` | number | shield points | `p.max_shield`, fallback `0` | Shield ratio denominator and shield-tier color/length selector. A zero value omits the shield bar on the map and in the merged table shield/health column. |
 | `distance` | number | meters | `p.distance`; API examples compare it to meter thresholds | Focus/table details. |
-| `is_dead` | boolean | — | `p.is_dead` | Dead marker styling and optional visibility filter. |
-| `is_down` | boolean | — | `p.is_down` | Downed marker styling and optional visibility filter. |
+| `is_dead` | boolean | — | `p.is_dead` | Dead players are retained in state/table data but are not plotted on the map. |
+| `is_down` | boolean | — | `p.is_down` | Downed players remain plotted and use the same red X marker style that the old dead marker used. |
 | `legend` | string | runtime label | `p.legend` | Map label and merged player-table legend column. The frontend displays `pilot_medium_empty` as an empty value. |
-| `legend_icon_key` | string | local asset key | Forwarded from `p.legend_icon_key`; observed keys use paths such as `icon_legends/30px-Portrait_Lifeline_square` | Preserved in state/export. The player table resolves non-empty keys to `./res/<legend_icon_key>.png` and displays the transparent PNG directly in the merged legend column. |
+| `legend_icon_key` | string | icon asset key | Forwarded from `p.legend_icon_key`; observed keys use paths such as `icon_legends/30px-Portrait_Lifeline_square` | Preserved in state/export. The player table strips the leading `icon_legends/` prefix and loads the transparent PNG from `https://img.hoozi.net/icon_legends/` or local `./res/icon_legends/` using the same source order as map images. |
 | `uid` | string | short platform UID | `p.platform_uid` | Displayed exactly as received in the short-UID column. The normalized state also derives `uid_long` for display only by XORing the short UID with `0xDEADBEEF1B4DF00D` as an unsigned 64-bit value. The raw exported server message still contains only the backend `uid` field. |
 | `level` | number | account level | `p.grade` | Focus/table/stat labels. |
 | `kills` | number | count | `p.kills` | Focus/table/stat labels. |
 | `damage` | number | damage count/value from runtime | `p.damage` | Focus/table/stat labels. |
 | `rank` | string | runtime label | `p.rank` | Map label and merged player-table rank column. The frontend displays `None` as an empty value. |
 | `rank_color` | string | CSS hex color in observed backend data | Forwarded from `p.rank_color` | Preserved in state/export only. It is not exposed as a visible table field and is not used to style the merged rank column. |
-| `rank_icon_key` | string | local asset key | Forwarded from `p.rank_icon_key`; observed keys use paths such as `icon_rank/rookie1` | Preserved in state/export. The player table resolves non-empty keys to `./res/<rank_icon_key>.png` and displays the transparent PNG directly in the merged rank column. |
-| `roster` | number | four-bit marker mask | `p.roster`, fallback `0`; `rosters` is accepted as a compatibility alias in the frontend normalizer | Displayed as zero to four localized bracket tags by bit mask: friend `8`, cheater `4`, celebrity `2`, and pro/permission `1`. The map label uses a single-line text sequence such as `[Friend][Cheater]`; the table renders the same one-line sequence with per-tag colors. |
+| `rank_icon_key` | string | icon asset key | Forwarded from `p.rank_icon_key`; observed keys use paths such as `icon_rank/rookie1` | Preserved in state/export. The player table strips the leading `icon_rank/` prefix and loads the transparent PNG from `https://img.hoozi.net/icon_rank/` or local `./res/icon_rank/` using the same source order as map images. |
+| `roster` | number | four-bit marker mask | `p.roster`, fallback `0`; `rosters` is accepted as a compatibility alias in the frontend normalizer | Displayed as zero to four localized bracket tags by bit mask: friend `8`, cheater `4`, pro/permission `1`, and celebrity `2`. The map label uses a single-line text sequence; the table renders the same sequence before the nickname in the `name` column with per-tag colors. |
 
 NPC entries are intentionally excluded in Lua (`if not p.is_npc`). The frontend
 therefore has no NPC category to render.
@@ -188,8 +188,8 @@ Roster tag labels and table colors:
 | --- | --- | --- | --- | --- |
 | `8` | `[友]` | `[友]` | `[Friend]` | `#63B5FFCC` |
 | `4` | `[作弊]` | `[作弊]` | `[Cheater]` | `#FF0000CC` |
-| `2` | `[名人]` | `[名人]` | `[Celebrity]` | `#FFE633CC` |
 | `1` | `[权]` | `[權]` | `[Pro]` | `#B300FFCC` |
+| `2` | `[名人]` | `[名人]` | `[Celebrity]` | `#FFE633CC` |
 
 ### Frontend-derived player fields
 
@@ -205,17 +205,21 @@ exported server message, and is not used as player identity.
 
 The visible player table columns default to the user-facing order: `team`,
 `name`, `level`, merged `legend`/`legend_icon_key`, merged
-`rank`/`rank_icon_key`, `damage`, `kills`, `roster`, `max_shield`, `shield`,
-`hp`, `is_dead`, `is_down`, `distance`, `uid`, and derived `uid_long`. Raw
+`rank`/`rank_icon_key`, `damage`, `kills`, merged `max_shield`/`shield`/`hp`
+as the shield/health bar column, `is_dead`, `is_down`, `distance`, `uid`, and
+derived `uid_long`. Raw
 `id`, `index`, `self`, `squad`, `x`, `y`, `yaw`, `max_hp`, and `rank_color`
 remain normalized and exported but are intentionally hidden from the controls
-and table. The `roster` column displays localized bracket tags instead of the
-raw number; zero means no tags and displays as empty. The table itself uses intrinsic, non-shrinking column widths inside a
+and table. The `roster` value is not a standalone table column; localized
+bracket tags are rendered before the nickname in the `name` column, followed by
+one normal space before the actual player name. When one or more tags are
+present, the nickname uses the leftmost tag color. Zero means no tags. The
+table itself uses intrinsic, non-shrinking column widths inside a
 horizontally scrollable viewport. Viewport ratios of at least `1.12`
 automatically select landscape layout, while ratios at or below `0.893`
 automatically select portrait layout; ratios between those thresholds keep the
 user-selected header-button orientation. In landscape layout, the desktop table
-panel expands toward the current intrinsic content width but is capped at 25%
+panel expands toward the current intrinsic content width but is capped at 30%
 of the page content width. The map first receives enough width to remain at
 least as wide as it is tall. In portrait layout, the map stage uses a `1:1.12`
 width-to-height ratio unless it is the only visible body panel, and the player
@@ -224,10 +228,10 @@ scrollbar. Content beyond the table panel scrolls horizontally. This allocation
 is repeated after table content, field visibility, table visibility, menu
 visibility, or page dimensions change.
 
-Map overlay defaults start with nickname, legend, level, rank, kills/damage,
-dead-player visibility, and downed-player visibility turned off. Health,
-shield, roster tags, team links, and ring display remain independently
-toggleable.
+Map overlay defaults start with nickname, legend, level, rank, and kills/damage
+turned off. Dead players are always hidden on the map. Downed players are
+always shown on the map. Shield and health share one map-overlay toggle; roster
+tags, team links, and ring display remain independently toggleable.
 
 Player markers use the same four-pixel radius for local and remote players.
 Normal remote marker outlines are one-pixel dark lines. The local-player marker
@@ -236,15 +240,15 @@ white one-pixel ring outside the normal marker border, with a one-pixel visual
 gap, and a white crosshair line pair through that selected position. Team links
 connect the selected focus player to players on the same team. The shield bar
 is drawn directly above the health bar with a shared edge; the stacked bars sit
-immediately above the player marker. Entity labels are placed immediately below
-the marker. Both
-bars use a 0.5-pixel dark border. Shield bar
+immediately above the player marker. The table shield/health column mirrors
+that stack with the 125-shield length treated as the full unit width; the
+100-health bar is therefore 80% of that width. Entity labels are placed
+immediately below the marker. Both bars use a 0.5-pixel dark border. Shield bar
 width is 50%, 75%, 100%, or 125% of the health-bar width for maximum shield
 values 50, 75, 100, or 125. Their fill colors are respectively
 `rgb(224, 224, 224)`, `rgb(50, 133, 205)`, `rgb(135, 65, 177)`, and
-`rgb(209, 17, 15)`. Missing or zero maximum shield omits the bar and displays
-empty shield-quality/shield fields in the table; actual shield fill is capped
-at its maximum. Health fill is white. Entity labels
+`rgb(209, 17, 15)`. Missing or zero maximum shield omits the shield bar; actual
+shield fill is capped at its maximum. Health fill is white. Entity labels
 default to a 10-pixel font with a one-pixel dark outline.
 
 The responsive map stage is only an observation port. Its initial square
@@ -340,9 +344,11 @@ the next valid live snapshot resumes without interpolation from test data.
 | `src/render/radar.js` | Fixed drawing-surface sizing, observation-port clipping, coordinate transform, and pan/zoom/follow behavior |
 | `src/ui/layout.js` | Pure map-first landscape column allocation with menu/player-list visibility |
 | `src/ui/player-data.js` | JSON import/export filename validation, creation, formatting, and deterministic ordering |
+| `src/ui/player-sort.js` | Player table ordering, including fully-dead team placement |
 | `src/ui/roster.js` | Pure roster bit-mask labels and table colors |
 | `src/ui/controls.js` | Connection inputs, display settings, focus selector, and table |
 | `src/assets/maps.js` | Verified raw-map token mapping, localized labels, image-only map detection, and page-protocol-dependent R2/local asset fallback |
+| `src/assets/icons.js` | Legend/rank icon-key normalization and page-protocol-dependent R2/local asset fallback |
 | `src/main.js` | WebSocket lifecycle and module wiring |
 
 ## Unconfirmed values and runtime checks
@@ -350,7 +356,8 @@ the next valid live snapshot resumes without interpolation from test data.
 - The API reference lists `yaw` as a number but does not specify degrees,
   handedness, or its orientation relative to the generated map pixels. The
   frontend exposes the value but does not draw a directional arrow.
-- `legend_icon_key` and `rank_icon_key` are resolved only through the observed
-  local `./res/<key>.png` contract. No CDN or fallback namespace is inferred.
+- `legend_icon_key` and `rank_icon_key` currently use the observed
+  `icon_legends/` and `icon_rank/` key namespaces. Other icon namespaces remain
+  unsupported until the backend asset contract is verified.
 - `rank_color` is preserved in state/export only. Its visual meaning is not
   used by the current table or map rendering.

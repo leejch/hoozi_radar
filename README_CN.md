@@ -72,9 +72,11 @@ hoozi_radar/
 │   ├── render/radar.js           渲染循环、尺寸、跟随、拖动与缩放
 │   ├── ui/layout.js              地图优先的横屏列宽分配
 │   ├── ui/player-data.js         JSON 导入与导出文件名规则
+│   ├── ui/player-sort.js         玩家信息列表排序规则
 │   ├── ui/roster.js              名册位标记文本和颜色
 │   ├── ui/controls.js            控制项、焦点 UI 和玩家表格
-│   └── assets/maps.js            按访问协议切换的 R2/本地图片回退
+│   ├── assets/maps.js            按访问协议切换的 R2/本地图片回退
+│   └── assets/icons.js           传奇/段位图标回退
 ├── static/                       本地回退图片
 ├── res/                          本地传奇、段位与物品图标资源
 ├── docs/protocol/                项目协议文档
@@ -209,14 +211,16 @@ npm run build
 精确的 `<map>.png` 查找。
 
 传奇和段位图标 key 会保留在归一化状态及导出的快照中。非空 key 会在玩家信息列表的
-“传奇”和“段位”合并列中按 `./res/<key>.png` 解析显示，例如 `icon_rank/rookie1` 会使用
-`./res/icon_rank/rookie1.png`。这些 PNG 会按透明背景直接显示。`rank_color` 仅保留在状态和
-导出数据中，不再作为可见表格字段。
+“传奇”和“段位”合并列中按与地图图片相同的优先级加载。传奇图标会从
+`https://img.hoozi.net/icon_legends/` 或本地 `./res/icon_legends/` 解析；段位图标会从
+`https://img.hoozi.net/icon_rank/` 或本地 `./res/icon_rank/` 解析。例如 `icon_rank/rookie1`
+会在选中的段位图标 base URL 下使用 `rookie1.png`。这些 PNG 会按透明背景直接显示。
+`rank_color` 仅保留在状态和导出数据中，不再作为可见表格字段。
 
-`roster` 会按四个位标记显示：好友 `8`、作弊 `4`、名人 `2`、权限/Pro `1`。玩家信息列表中
-以一行显示 `[友]`、`[作弊]`、`[名人]`、`[权]`，并使用对应颜色；繁体中文和英文会显示各自
+`roster` 会按四个位标记显示：好友 `8`、作弊 `4`、权限/Pro `1`、名人 `2`。玩家信息列表中
+标记会显示在“昵称”列里，位于玩家昵称左侧，并使用对应颜色；繁体中文和英文会显示各自
 本地化的半角中括号标签。`legend` 的 `pilot_medium_empty` 和 `rank` 的 `None` 会显示为空。
-当 `max_shield` 为 `0` 时，护盾品质和护盾字段显示为空，地图护盾条也不绘制。
+护盾品质、护盾和血量合并为一个“护盾 & 血量”条形列；当 `max_shield` 为 `0` 时，只省略护盾条。
 
 ## 开发规则
 

@@ -3,20 +3,27 @@ import {
     LAYOUT_ORIENTATION_PORTRAIT,
     VIEW_MODE_FOLLOW,
     VIEW_MODE_FREE,
+    defaultManualPortForProtocol,
+    isHttpsLocation,
     saveSetting,
     teamColorFor
 } from '../config.js';
+import { configureFallbackIconImage } from '../assets/icons.js';
 import { mapDisplayName } from '../assets/maps.js';
 import { activeLanguage } from '../i18n.js';
 import { formatPlayerStatus, shieldBarStyle } from '../render/entities.js';
 import { formatRosterTags, rosterTags } from './roster.js';
 import { allocateDesktopLayout, resolveResponsiveLayoutOrientation } from './layout.js';
 import { currentPlayerExportFileName, formatPlayerExportJson, isJsonFileName } from './player-data.js';
+import { comparePlayersByTeamAndName, sortPlayersForTable, teamSortValue } from './player-sort.js';
 
 const DESKTOP_QUERY = window.matchMedia('(min-width: 1024px)');
 const DESKTOP_CONFIG_WIDTH = 300;
 const DESKTOP_TABLE_MIN_WIDTH = 180;
-const DESKTOP_TABLE_MAX_RATIO = 0.25;
+const DESKTOP_TABLE_MAX_RATIO = 0.3;
+const TABLE_VITALS_MAX_WIDTH = 70;
+const TABLE_VITALS_HEALTH_WIDTH = TABLE_VITALS_MAX_WIDTH * 0.8;
+const TABLE_VITALS_BAR_HEIGHT = 4;
 
 export function collectDomReferences(root = document) {
     const byId = (id) => root.getElementById(id);
@@ -130,23 +137,6 @@ function displayStatus(player, t) {
     ].filter(Boolean).join(' · ');
 }
 
-function teamSortValue(team) {
-    const value = Number(team);
-    return Number.isFinite(value) ? value : Number.POSITIVE_INFINITY;
-}
-
-function comparePlayersByTeam(left, right) {
-    const teamDelta = teamSortValue(left?.team) - teamSortValue(right?.team);
-    if (teamDelta !== 0) return teamDelta;
-    return String(left?.name ?? '').localeCompare(String(right?.name ?? ''));
-}
-
-function resIconSource(iconKey) {
-    const key = String(iconKey || '').trim();
-    if (!key || key.includes('..') || key.includes('\\') || key.startsWith('/') || /^[a-z]+:/i.test(key)) return '';
-    return `./res/${key.split('/').map((part) => encodeURIComponent(part)).join('/')}.png`;
-}
-
 function teamCell(player) {
     const wrapper = document.createElement('div');
     wrapper.className = 'flex items-center gap-2';
@@ -160,23 +150,20 @@ function teamCell(player) {
     return nodeCell(wrapper);
 }
 
-function iconImage(iconKey, altText) {
-    const source = resIconSource(iconKey);
-    if (!source) return null;
+function iconImage(kind, iconKey, altText) {
     const image = document.createElement('img');
-    image.src = source;
     image.alt = altText || '';
-    image.loading = 'lazy';
+    image.loading = 'eager';
     image.decoding = 'async';
     image.className = 'size-6 shrink-0 object-contain';
     image.title = iconKey;
-    return image;
+    return configureFallbackIconImage(image, kind, iconKey) ? image : null;
 }
 
-function iconTextCell({ iconKey, altText, text, showIcon, showText }) {
+function iconTextCell({ kind, iconKey, altText, text, showIcon, showText }) {
     const wrapper = document.createElement('div');
     wrapper.className = 'flex items-center gap-1.5';
-    const image = showIcon ? iconImage(iconKey, altText) : null;
+    const image = showIcon ? iconImage(kind, iconKey, altText) : null;
     if (image) wrapper.appendChild(image);
     if (showText) {
         const label = document.createElement('span');
@@ -190,26 +177,8 @@ function iconTextCell({ iconKey, altText, text, showIcon, showText }) {
     return nodeCell(wrapper);
 }
 
-function shieldQualityCell(player) {
-    const maximum = Number(player.max_shield);
-    if (!Number.isFinite(maximum) || maximum <= 0) return cell('', 'text-center text-slate-500');
-    const shieldStyle = shieldBarStyle(player.max_shield);
-    const square = document.createElement('span');
-    square.className = 'inline-flex size-3.5 border border-black align-middle';
-    square.style.backgroundColor = shieldStyle?.color || 'rgba(15, 23, 42, 0.85)';
-    square.title = String(player.max_shield);
-    return nodeCell(square, 'text-center');
-}
-
-function shieldCell(player) {
-    const maximum = Number(player.max_shield);
-    if (!Number.isFinite(maximum) || maximum <= 0) return cell('', 'text-slate-500');
-    return cell(displayValue(player.shield));
-}
-
-function rosterCell(player) {
+function nameCell(player) {
     const tags = rosterTags(player.roster, activeLanguage);
-    if (!tags.length) return cell('', 'text-slate-500');
     const wrapper = document.createElement('span');
     wrapper.className = 'inline-flex items-center whitespace-nowrap';
     for (const tag of tags) {
@@ -218,6 +187,51 @@ function rosterCell(player) {
         item.style.color = tag.color;
         wrapper.appendChild(item);
     }
+    if (tags.length) wrapper.append(' ');
+    const name = document.createElement('span');
+    name.textContent = displayValue(player.name);
+    if (tags[0]) name.style.color = tags[0].color;
+    wrapper.appendChild(name);
+    return nodeCell(wrapper);
+}
+
+function barSegment(width, fillWidth, color) {
+    const bar = document.createElement('span');
+    bar.className = 'relative block border border-black bg-slate-950/60';
+    bar.style.width = `${width}px`;
+    bar.style.height = `${TABLE_VITALS_BAR_HEIGHT}px`;
+    const fill = document.createElement('span');
+    fill.className = 'absolute inset-y-0 left-0';
+    fill.style.width = `${Math.max(0, Math.min(width, fillWidth))}px`;
+    fill.style.backgroundColor = color;
+    bar.appendChild(fill);
+    return bar;
+}
+
+function vitalsCell(player) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'flex w-[70px] flex-col items-start gap-0.5';
+    wrapper.title = `${displayValue(player.shield)}/${displayValue(player.max_shield)} · ${displayValue(player.hp)}/${displayValue(player.max_hp)}`;
+
+    const maximumShield = Number(player.max_shield);
+    const shieldStyle = shieldBarStyle(maximumShield);
+    if (shieldStyle && maximumShield > 0) {
+        const shieldWidth = TABLE_VITALS_MAX_WIDTH * Math.min(1, maximumShield / 125);
+        const shieldValue = Math.max(0, Number(player.shield) || 0);
+        wrapper.appendChild(barSegment(
+            shieldWidth,
+            shieldWidth * Math.min(1, shieldValue / maximumShield),
+            shieldStyle.color
+        ));
+    }
+
+    const maximumHealth = Math.max(1, Number(player.max_hp) || 100);
+    const healthValue = Math.max(0, Number(player.hp) || 0);
+    wrapper.appendChild(barSegment(
+        TABLE_VITALS_HEALTH_WIDTH,
+        TABLE_VITALS_HEALTH_WIDTH * Math.min(1, healthValue / maximumHealth),
+        '#FFFFFF'
+    ));
     return nodeCell(wrapper);
 }
 
@@ -344,6 +358,16 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
 
     function syncConnectionControls() {
         const manual = settings.connectionMode === 'manual';
+        const httpsAccess = isHttpsLocation();
+        if (httpsAccess) {
+            settings.manualProtocol = 'wss';
+            settings.manualPort = defaultManualPortForProtocol('wss');
+        }
+        refs.inputs.protocol.value = settings.manualProtocol;
+        refs.inputs.protocol.disabled = httpsAccess;
+        refs.inputs.protocol.classList.toggle('opacity-60', httpsAccess);
+        refs.inputs.protocol.classList.toggle('cursor-not-allowed', httpsAccess);
+        refs.inputs.port.value = String(settings.manualPort);
         refs.connectionManualFields.classList.toggle('hidden', !manual);
         setSegmentButtonState(refs.connectionModeAutoButton, !manual);
         setSegmentButtonState(refs.connectionModeManualButton, manual);
@@ -363,7 +387,7 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
     function populatePlayerSelect(players) {
         const selectedId = store.state.selectedPlayerId;
         const fragment = document.createDocumentFragment();
-        for (const player of [...players].sort(comparePlayersByTeam)) {
+        for (const player of [...players].sort(comparePlayersByTeamAndName)) {
             const option = document.createElement('option');
             option.value = player.id;
             option.textContent = `${player.self ? '★ ' : ''}${player.name} · T${player.team}`;
@@ -392,12 +416,13 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
 
     const columns = [
         { visible: () => settings.tableTeam, label: 'table.columns.team', render: (p) => teamCell(p) },
-        { visible: () => settings.tableName, label: 'table.columns.name', render: (p) => cell(displayValue(p.name)) },
+        { visible: () => settings.tableName, label: 'table.columns.name', render: (p) => nameCell(p) },
         { visible: () => settings.tableLevel, label: 'table.columns.level', render: (p) => cell(displayValue(p.level)) },
         {
             visible: () => settings.tableLegend || settings.tableLegendIconKey,
             label: 'table.columns.legend',
             render: (p) => iconTextCell({
+                kind: 'legend',
                 iconKey: p.legend_icon_key,
                 altText: p.legend,
                 text: p.legend,
@@ -409,6 +434,7 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
             visible: () => settings.tableRank || settings.tableRankIconKey,
             label: 'table.columns.rank',
             render: (p) => iconTextCell({
+                kind: 'rank',
                 iconKey: p.rank_icon_key,
                 altText: p.rank,
                 text: p.rank,
@@ -418,10 +444,7 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
         },
         { visible: () => settings.tableDamage, label: 'table.columns.damage', render: (p) => cell(displayValue(p.damage)) },
         { visible: () => settings.tableKills, label: 'table.columns.kills', render: (p) => cell(displayValue(p.kills)) },
-        { visible: () => settings.tableRoster, label: 'table.columns.roster', render: (p) => rosterCell(p) },
-        { visible: () => settings.tableMaxShield, label: 'table.columns.maxShield', render: (p) => shieldQualityCell(p) },
-        { visible: () => settings.tableShield, label: 'table.columns.shield', render: (p) => shieldCell(p) },
-        { visible: () => settings.tableHp, label: 'table.columns.hp', render: (p) => cell(displayValue(p.hp)) },
+        { visible: () => settings.tableVitals, label: 'table.columns.vitals', render: (p) => vitalsCell(p) },
         { visible: () => settings.tableDead, label: 'table.columns.dead', render: (p) => deadCell(p, t) },
         { visible: () => settings.tableDown, label: 'table.columns.down', render: (p) => downCell(p, t) },
         { visible: () => settings.tableDistance, label: 'table.columns.distance', render: (p) => cell(displayDistance(p.distance)) },
@@ -460,8 +483,7 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
         }
         let currentTeam = null;
         let bandIndex = 0;
-        const rows = [...players]
-            .sort(comparePlayersByTeam)
+        const rows = sortPlayersForTable(players)
             .map((player, index) => {
                 const team = teamSortValue(player.team);
                 if (index === 0) currentTeam = team;
@@ -521,8 +543,15 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
         saveSetting('tableVisible', settings.tableVisible);
         syncLayoutControls();
     });
+    refs.inputs.protocol.value = settings.manualProtocol;
+    refs.inputs.protocol.addEventListener('change', () => {
+        settings.manualProtocol = refs.inputs.protocol.value === 'wss' ? 'wss' : 'ws';
+        settings.manualPort = defaultManualPortForProtocol(settings.manualProtocol);
+        refs.inputs.port.value = String(settings.manualPort);
+        saveSetting('manualProtocol', settings.manualProtocol);
+        saveSetting('manualPort', settings.manualPort);
+    });
     for (const [key, input] of [
-        ['manualProtocol', refs.inputs.protocol],
         ['manualHost', refs.inputs.host],
         ['manualPort', refs.inputs.port],
         ['manualPath', refs.inputs.path]

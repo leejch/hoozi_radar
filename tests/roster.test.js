@@ -4,9 +4,9 @@ import assert from 'node:assert/strict';
 import { formatRosterTags, rosterTags } from '../src/ui/roster.js';
 
 test('roster bits map to ordered localized marker tags', () => {
-    assert.equal(formatRosterTags(15, 'zh-Hans'), '[友][作弊][名人][权]');
-    assert.equal(formatRosterTags(15, 'zh-Hant'), '[友][作弊][名人][權]');
-    assert.equal(formatRosterTags(15, 'en'), '[Friend][Cheater][Celebrity][Pro]');
+    assert.equal(formatRosterTags(15, 'zh-Hans'), '[友][作弊][权][名人]');
+    assert.equal(formatRosterTags(15, 'zh-Hant'), '[友][作弊][權][名人]');
+    assert.equal(formatRosterTags(15, 'en'), '[Friend][Cheater][Pro][Celebrity]');
     assert.equal(formatRosterTags(0, 'en'), '');
 });
 

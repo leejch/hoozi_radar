@@ -19,8 +19,8 @@ test('growing a three-column page gives excess width to the map, not the table',
     assert.equal(narrow.mapWidth, 609);
     assert.equal(narrow.mapHeight, 609);
     assert.equal(narrow.tableWidth, 181);
-    assert.equal(wide.tableWidth, 375);
-    assert.equal(wide.mapWidth, 815);
+    assert.equal(wide.tableWidth, 450);
+    assert.equal(wide.mapWidth, 740);
     assert.equal(wide.mapHeight, 609);
 });
 
@@ -49,8 +49,8 @@ test('hiding the config menu returns its width to the map and table area', () =>
     });
 
     assert.equal(allocation.configWidth, 0);
-    assert.equal(allocation.tableWidth, 275);
-    assert.equal(allocation.mapWidth, 820);
+    assert.equal(allocation.tableWidth, 330);
+    assert.equal(allocation.mapWidth, 765);
     assert.equal(allocation.mapHeight, 609);
 });
 
@@ -76,13 +76,13 @@ test('a short table expands only until its content fits', () => {
     assert.equal(allocation.mapHeight, 609);
 });
 
-test('a wide table is capped at 25 percent of the page content width', () => {
+test('a wide table is capped at 30 percent of the page content width', () => {
     const allocation = allocateDesktopLayout({
         width: 1600, height: 609, tableVisible: true, tableContentWidth: 2400
     });
 
-    assert.equal(allocation.tableWidth, 400);
-    assert.equal(allocation.mapWidth, 890);
+    assert.equal(allocation.tableWidth, 480);
+    assert.equal(allocation.mapWidth, 810);
     assert.ok(allocation.mapWidth >= allocation.mapHeight);
 });
 

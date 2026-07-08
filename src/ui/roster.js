@@ -12,16 +12,16 @@ const ROSTER_TAGS = Object.freeze([
         labels: Object.freeze({ 'zh-Hans': '作弊', 'zh-Hant': '作弊', en: 'Cheater' })
     }),
     Object.freeze({
-        key: 'celebrity',
-        mask: 2,
-        color: '#FFE633CC',
-        labels: Object.freeze({ 'zh-Hans': '名人', 'zh-Hant': '名人', en: 'Celebrity' })
-    }),
-    Object.freeze({
         key: 'pro',
         mask: 1,
         color: '#B300FFCC',
         labels: Object.freeze({ 'zh-Hans': '权', 'zh-Hant': '權', en: 'Pro' })
+    }),
+    Object.freeze({
+        key: 'celebrity',
+        mask: 2,
+        color: '#FFE633CC',
+        labels: Object.freeze({ 'zh-Hans': '名人', 'zh-Hant': '名人', en: 'Celebrity' })
     })
 ]);
 

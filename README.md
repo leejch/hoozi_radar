@@ -81,9 +81,11 @@ hoozi_radar/
 │   ├── render/radar.js           Render loop, sizing, follow, pan, and zoom
 │   ├── ui/layout.js              Map-first landscape column allocation
 │   ├── ui/player-data.js         JSON import/export filename rules
+│   ├── ui/player-sort.js         Player table sorting rules
 │   ├── ui/roster.js              Roster bit labels and marker colors
 │   ├── ui/controls.js            Controls, focus UI, and player table
-│   └── assets/maps.js            Protocol-aware R2/local image fallback
+│   ├── assets/maps.js            Protocol-aware R2/local image fallback
+│   └── assets/icons.js           Legend/rank icon fallback
 ├── static/                       Local fallback images
 ├── res/                          Local legend, rank, and item icon assets
 ├── docs/protocol/                Project-owned protocol documentation
@@ -251,18 +253,21 @@ Unknown raw names retain exact-name `<map>.png` lookup.
 
 Legend and rank icon keys are preserved in normalized state and exported
 snapshots. Non-empty keys are displayed in the merged Legend and Rank table
-columns by resolving `./res/<key>.png`, for example `icon_rank/rookie1` becomes
-`./res/icon_rank/rookie1.png`. These PNGs are drawn directly with their
-transparent backgrounds. `rank_color` is preserved in state/export only and is
-not exposed as a visible table field.
+columns through the same source order as map images. Legend icons resolve under
+`https://img.hoozi.net/icon_legends/` or local `./res/icon_legends/`; rank icons
+resolve under `https://img.hoozi.net/icon_rank/` or local `./res/icon_rank/`.
+For example, `icon_rank/rookie1` becomes `rookie1.png` inside the selected rank
+icon base URL. These PNGs are drawn directly with their transparent
+backgrounds. `rank_color` is preserved in state/export only and is not exposed
+as a visible table field.
 
 Roster values are rendered as four bit flags: friend `8`, cheater `4`,
-celebrity `2`, and pro/permission `1`. The table uses `[Friend]`,
-`[Cheater]`, `[Celebrity]`, and `[Pro]` in one line with the configured marker
-colors; Simplified and Traditional Chinese use the corresponding localized
-bracket tags. The sentinel legend value `pilot_medium_empty` and rank value
-`None` display as empty. When `max_shield` is `0`, shield quality and shield
-fields display as empty and the map shield bar is omitted.
+pro/permission `1`, and celebrity `2`. The table renders the localized
+bracket tags in the Nickname column before the player name with the configured
+marker colors. The sentinel legend value `pilot_medium_empty` and rank value
+`None` display as empty. Shield quality, shield, and health are shown as one
+`SHIELD & HEALTH` bar column; when `max_shield` is `0`, only the shield bar is
+omitted.
 
 ## Development rules
 

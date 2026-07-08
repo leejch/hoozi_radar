@@ -134,6 +134,27 @@ test('shield tiers control bar length and exact fill color', () => {
     assert.deepEqual(shieldBarStyle(125), { width: 35, color: 'rgb(209, 17, 15)' });
 });
 
+test('dead players are hidden while downed players draw the red cross marker', () => {
+    const { ctx, records } = recordingContext();
+    const dead = {
+        id: 'dead', self: false, name: 'Dead', team: 2,
+        position: { x: 400, y: 400 }, is_dead: true, is_down: false,
+        hp: 0, max_hp: 100, shield: 0, max_shield: 0,
+        legend: '', level: 0, rank: '', kills: 0, damage: 0, roster: 0
+    };
+    const down = {
+        id: 'down', self: false, name: 'Down', team: 3,
+        position: { x: 500, y: 500 }, is_dead: false, is_down: true,
+        hp: 20, max_hp: 100, shield: 0, max_shield: 0,
+        legend: '', level: 0, rank: '', kills: 0, damage: 0, roster: 0
+    };
+
+    renderEntities(ctx, { players: [dead, down] }, { ...DEFAULT_SETTINGS, showTeamLinks: false }, null, { width: 1000, height: 1000 }, (key) => key);
+
+    assert.deepEqual(records.arcs, [{ x: 500, y: 500, radius: 4 }]);
+    assert.ok(records.strokes.some((record) => record.style === '#FB7185' && record.width === 2));
+});
+
 test('map labels use two lines without dot separators', () => {
     const { ctx, records } = recordingContext();
     const player = {
@@ -145,8 +166,7 @@ test('map labels use two lines without dot separators', () => {
     const settings = {
         ...DEFAULT_SETTINGS,
         showTeamLinks: false,
-        showHealth: false,
-        showShield: false,
+        showVitals: false,
         showName: true,
         showLegend: true,
         showLevel: true,
@@ -161,7 +181,7 @@ test('map labels use two lines without dot separators', () => {
     assert.match(records.outlinedText[0].text, /^Local Wraith (DMG|伤)200 K\.3$/);
     assert.match(
         records.outlinedText[1].text,
-        /^Lv\.100 Silver4 (\[Friend\]\[Cheater\]\[Celebrity\]\[Pro\]|\[友\]\[作弊\]\[名人\]\[权\]|\[友\]\[作弊\]\[名人\]\[權\])$/
+        /^Lv\.100 Silver4 (\[Friend\]\[Cheater\]\[Pro\]\[Celebrity\]|\[友\]\[作弊\]\[权\]\[名人\]|\[友\]\[作弊\]\[權\]\[名人\])$/
     );
     assert.equal(records.outlinedText[0].y, 506);
     assert.equal(records.outlinedText[1].y, 518);
@@ -179,8 +199,7 @@ test('second-line-only map labels draw in the first line position', () => {
     const settings = {
         ...DEFAULT_SETTINGS,
         showTeamLinks: false,
-        showHealth: false,
-        showShield: false,
+        showVitals: false,
         showName: false,
         showLegend: false,
         showCombat: false,

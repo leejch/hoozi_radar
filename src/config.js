@@ -1,9 +1,23 @@
 export const DEFAULT_LOCAL_WS_PATH = '/ws';
 export const R2_STATIC_BASE_URL = 'https://img.hoozi.net/static/';
 export const LOCAL_STATIC_BASE_URL = 'static/';
+export const R2_LEGEND_ICON_BASE_URL = 'https://img.hoozi.net/icon_legends/';
+export const LOCAL_LEGEND_ICON_BASE_URL = './res/icon_legends/';
+export const R2_RANK_ICON_BASE_URL = 'https://img.hoozi.net/icon_rank/';
+export const LOCAL_RANK_ICON_BASE_URL = './res/icon_rank/';
 export const STATIC_SOURCE_URLS = Object.freeze({
     remote: R2_STATIC_BASE_URL,
     local: LOCAL_STATIC_BASE_URL
+});
+export const ICON_SOURCE_URLS = Object.freeze({
+    legend: Object.freeze({
+        remote: R2_LEGEND_ICON_BASE_URL,
+        local: LOCAL_LEGEND_ICON_BASE_URL
+    }),
+    rank: Object.freeze({
+        remote: R2_RANK_ICON_BASE_URL,
+        local: LOCAL_RANK_ICON_BASE_URL
+    })
 });
 export const LOCAL_DEFAULT_HOST = '127.0.0.1';
 export const DEFAULT_LOCAL_WS_TARGET = `ws://127.0.0.1:9001${DEFAULT_LOCAL_WS_PATH}`;
@@ -34,8 +48,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
     fontSize: 10,
     showName: false,
     showLegend: false,
-    showHealth: true,
-    showShield: true,
+    showVitals: true,
     showLevel: false,
     showRank: false,
     showCombat: false,
@@ -43,7 +56,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
     showTeamLinks: true,
     showRing: true,
     showDead: false,
-    showDown: false,
+    showDown: true,
     menuVisible: true,
     tableVisible: true,
     tableTeam: true,
@@ -55,10 +68,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
     tableRankIconKey: true,
     tableDamage: true,
     tableKills: true,
-    tableRoster: true,
-    tableMaxShield: true,
-    tableShield: true,
-    tableHp: true,
+    tableVitals: true,
     tableDead: true,
     tableDown: true,
     tableDistance: true,
@@ -83,15 +93,18 @@ export const DEFAULT_SETTINGS = Object.freeze({
 });
 
 const STORAGE_PREFIX = 'hoozi3_radar_';
-const SETTINGS_SCHEMA_VERSION = '5';
+const SETTINGS_SCHEMA_VERSION = '6';
 const RESET_TO_DEFAULT_ON_SCHEMA_UPDATE = Object.freeze([
     'showName',
     'showLegend',
+    'showVitals',
     'showLevel',
     'showRank',
     'showCombat',
     'showDead',
     'showDown',
+    'manualProtocol',
+    'manualPort',
     'manualPath'
 ]);
 
@@ -115,6 +128,15 @@ export function staticSourcesForLocation(location = browserLocation()) {
 }
 
 export const STATIC_SOURCES = staticSourcesForLocation();
+
+export function iconSourcesForKind(kind, location = browserLocation()) {
+    const urls = ICON_SOURCE_URLS[kind];
+    if (!urls) return Object.freeze([]);
+    return Object.freeze(staticSourceOrderForLocation(location).map((key) => Object.freeze({
+        key,
+        baseUrl: urls[key]
+    })));
+}
 
 export function clamp(value, min, max) {
     return Math.min(max, Math.max(min, value));
@@ -175,12 +197,15 @@ export function loadSettings() {
     // Every page load starts in automatic local-bridge mode. Manual endpoint
     // fields remain persisted, but selecting Manual is intentionally session-only.
     settings.connectionMode = 'auto';
-    settings.manualProtocol = settings.manualProtocol === 'wss' ? 'wss' : 'ws';
+    const httpsAccess = isHttpsLocation();
+    settings.manualProtocol = httpsAccess ? 'wss' : 'ws';
     settings.manualHost = String(settings.manualHost || DEFAULT_SETTINGS.manualHost).trim();
-    settings.manualPort = String(settings.manualPort || '').trim();
+    settings.manualPort = defaultManualPortForProtocol(settings.manualProtocol);
     settings.manualPath = normalizeWebSocketPath(settings.manualPath || DEFAULT_SETTINGS.manualPath);
     settings.fontSize = clamp(Math.round(Number(settings.fontSize) || DEFAULT_SETTINGS.fontSize), 7, 32);
     settings.layoutOrientation = normalizeLayoutOrientation(settings.layoutOrientation);
+    settings.showDead = false;
+    settings.showDown = true;
     // Every page load starts in fixed-follow mode. View-mode changes are
     // intentionally session-only so an old persisted free-view choice cannot
     // move the focus away from the local player on the next launch.
@@ -211,20 +236,26 @@ export function buildAutomaticWebSocketTarget(location = browserLocation()) {
     return DEFAULT_LOCAL_WS_TARGET;
 }
 
-export function buildManualWebSocketTarget(settings) {
-    const protocol = settings.manualProtocol === 'wss' ? 'wss' : 'ws';
+export function defaultManualPortForProtocol(protocol, location = browserLocation()) {
+    if (isHttpsLocation(location)) return DEFAULT_WSS_PORT;
+    return protocol === 'wss' ? DEFAULT_WSS_PORT : DEFAULT_WS_PORT;
+}
+
+export function buildManualWebSocketTarget(settings, location = browserLocation()) {
+    const httpsAccess = isHttpsLocation(location);
+    const protocol = httpsAccess || settings.manualProtocol === 'wss' ? 'wss' : 'ws';
     const host = normalizeManualTargetValue(settings.manualHost);
-    if (!host) return buildAutomaticWebSocketTarget();
-    if (/^wss?:\/\//i.test(host)) return host;
+    if (!host) return buildAutomaticWebSocketTarget(location);
+    if (/^wss?:\/\//i.test(host)) return httpsAccess ? host.replace(/^ws:/i, 'wss:') : host;
     const port = String(settings.manualPort || '').trim();
     const path = normalizeWebSocketPath(settings.manualPath);
     return `${protocol}://${host}${port ? `:${port}` : ''}${path}`;
 }
 
-export function getConnectionTarget(settings) {
+export function getConnectionTarget(settings, location = browserLocation()) {
     return settings.connectionMode === 'manual'
-        ? buildManualWebSocketTarget(settings)
-        : buildAutomaticWebSocketTarget();
+        ? buildManualWebSocketTarget(settings, location)
+        : buildAutomaticWebSocketTarget(location);
 }
 
 export function createInitialConnectionGate() {
