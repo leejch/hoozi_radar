@@ -264,8 +264,11 @@ as a visible table field.
 Roster values are rendered as four bit flags: friend `8`, cheater `4`,
 pro/permission `1`, and celebrity `2`. The table renders the localized
 bracket tags in the Nickname column before the player name with the configured
-marker colors. The sentinel legend value `pilot_medium_empty` and rank value
-`None` display as empty. Shield quality, shield, and health are shown as one
+marker colors; the player name uses the leftmost tag color when tags are
+present. Map labels color only the roster tag sequence by the leftmost tag,
+while the nickname and other label text keep the player marker color. The
+sentinel legend value `pilot_medium_empty` and rank value `None` display as
+empty. Shield quality, shield, and health are shown as one
 `SHIELD & HEALTH` bar column; when `max_shield` is `0`, only the shield bar is
 omitted.
 

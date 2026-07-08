@@ -1,6 +1,6 @@
 import { MAP_SIDE, teamColorFor } from '../config.js';
 import { activeLanguage } from '../i18n.js';
-import { formatRosterTags } from '../ui/roster.js';
+import { rosterTags } from '../ui/roster.js';
 
 const PLAYER_RADIUS = 4;
 const PLAYER_BORDER_WIDTH = 1;
@@ -44,14 +44,33 @@ function compactValue(value) {
     return String(value);
 }
 
+function textSegment(text, color = '') {
+    return Object.freeze({ text, color });
+}
+
 function pushIfValue(parts, value) {
     const text = compactValue(value);
-    if (text) parts.push(text);
+    if (text) parts.push(textSegment(text));
 }
 
 function pushRosterIfValue(parts, value) {
-    const text = formatRosterTags(value, activeLanguage);
-    if (text) parts.push(text);
+    const tags = rosterTags(value, activeLanguage);
+    const text = tags.map((tag) => tag.text).join('');
+    if (text) parts.push(textSegment(text, tags[0]?.color || ''));
+}
+
+function lineFromParts(parts) {
+    if (!parts.length) return null;
+    const segments = [];
+    parts.forEach((part, index) => {
+        const segment = typeof part === 'string' ? textSegment(part) : part;
+        if (index > 0) segments.push(textSegment(' '));
+        segments.push(segment);
+    });
+    return Object.freeze({
+        text: segments.map((segment) => segment.text).join(''),
+        segments: Object.freeze(segments)
+    });
 }
 
 function mapInfoLinesZhHans(player, settings) {
@@ -120,7 +139,45 @@ function mapInfoLines(player, settings) {
         : activeLanguage === 'zh-Hant'
             ? mapInfoLinesZhHant(player, settings)
             : mapInfoLinesEn(player, settings);
-    return groups.map((parts) => parts.join(' ')).filter(Boolean);
+    return groups.map(lineFromParts).filter(Boolean);
+}
+
+function truncatedSegments(segments, maxLength) {
+    const truncated = [];
+    let remaining = maxLength;
+    for (const segment of segments) {
+        if (remaining <= 0) break;
+        const text = String(segment.text || '');
+        if (!text) continue;
+        const nextText = text.slice(0, remaining);
+        if (nextText) truncated.push(textSegment(nextText, segment.color || ''));
+        remaining -= nextText.length;
+    }
+    return truncated;
+}
+
+function textWidth(ctx, text) {
+    return typeof ctx.measureText === 'function' ? ctx.measureText(text).width : text.length;
+}
+
+function drawLabelLine(ctx, line, label, y) {
+    const segments = truncatedSegments(line.segments, 72);
+    if (!segments.length) return;
+    const text = segments.map((segment) => segment.text).join('');
+    ctx.strokeStyle = 'rgba(2, 6, 23, 0.92)';
+    ctx.lineWidth = TEXT_OUTLINE_WIDTH;
+    ctx.textAlign = 'center';
+    ctx.strokeText(text, label.point.x, y);
+
+    const segmentWidths = segments.map((segment) => textWidth(ctx, segment.text));
+    let x = label.point.x - segmentWidths.reduce((total, width) => total + width, 0) / 2;
+    ctx.textAlign = 'left';
+    segments.forEach((segment, index) => {
+        ctx.fillStyle = segment.color || label.color;
+        ctx.fillText(segment.text, x, y);
+        x += segmentWidths[index];
+    });
+    ctx.textAlign = 'center';
 }
 
 function drawBar(ctx, x, y, width, height, value, maximum, color) {
@@ -265,13 +322,8 @@ export function renderEntities(ctx, snapshot, settings, selectedPlayer, dimensio
         const y = label.point.y + PLAYER_RADIUS + LABEL_GAP;
         const lineHeight = settings.fontSize + LABEL_LINE_GAP;
         label.lines.forEach((line, index) => {
-            const text = line.slice(0, 72);
             const lineY = y + index * lineHeight;
-            ctx.strokeStyle = 'rgba(2, 6, 23, 0.92)';
-            ctx.lineWidth = TEXT_OUTLINE_WIDTH;
-            ctx.strokeText(text, label.point.x, lineY);
-            ctx.fillStyle = label.color;
-            ctx.fillText(text, label.point.x, lineY);
+            drawLabelLine(ctx, line, label, lineY);
         });
     }
     ctx.restore();

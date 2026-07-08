@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { DEFAULT_SETTINGS } from '../src/config.js';
+import { DEFAULT_SETTINGS, teamColorFor } from '../src/config.js';
 import { renderEntities, shieldBarStyle } from '../src/render/entities.js';
 
 function recordingContext() {
-    const records = { arcs: [], fills: [], strokes: [], strokeRects: [], outlinedText: [] };
+    const records = { arcs: [], fills: [], strokes: [], strokeRects: [], outlinedText: [], filledText: [] };
     const stack = [];
     const ctx = {
         fillStyle: '',
@@ -46,7 +46,12 @@ function recordingContext() {
         strokeText(text, x, y) {
             records.outlinedText.push({ text, x, y, width: this.lineWidth, baseline: this.textBaseline });
         },
-        fillText() {}
+        fillText(text, x, y) {
+            records.filledText.push({ text, x, y, style: this.fillStyle, align: this.textAlign, baseline: this.textBaseline });
+        },
+        measureText(text) {
+            return { width: String(text).length };
+        }
     };
     return { ctx, records };
 }
@@ -186,6 +191,35 @@ test('map labels use two lines without dot separators', () => {
     assert.equal(records.outlinedText[0].y, 506);
     assert.equal(records.outlinedText[1].y, 518);
     assert.doesNotMatch(records.outlinedText.map((record) => record.text).join('\n'), /·/);
+});
+
+test('map roster tags use the highest-priority tag color without recoloring the nickname', () => {
+    const { ctx, records } = recordingContext();
+    const player = {
+        id: 'p1', self: false, name: 'Local', team: 2,
+        position: { x: 500, y: 500 }, is_dead: false, is_down: false,
+        hp: 100, max_hp: 100, shield: 0, max_shield: 0,
+        legend: '', level: 0, rank: '', kills: 0, damage: 0, roster: 15
+    };
+    const settings = {
+        ...DEFAULT_SETTINGS,
+        showTeamLinks: false,
+        showVitals: false,
+        showName: true,
+        showLegend: false,
+        showLevel: false,
+        showRank: false,
+        showCombat: false,
+        showRoster: true
+    };
+
+    renderEntities(ctx, { players: [player] }, settings, null, { width: 1000, height: 1000 }, (key) => key);
+
+    const nameFill = records.filledText.find((record) => record.text === 'Local');
+    const rosterFill = records.filledText.find((record) => record.text.startsWith('['));
+    assert.equal(nameFill?.style, teamColorFor(player.team));
+    assert.equal(rosterFill?.style, '#63B5FFCC');
+    assert.equal(rosterFill?.align, 'left');
 });
 
 test('second-line-only map labels draw in the first line position', () => {

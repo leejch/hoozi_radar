@@ -177,7 +177,7 @@ current page origin as the cross-origin image request referrer.
 | `rank` | string | runtime label | `p.rank` | Map label and merged player-table rank column. The frontend displays `None` as an empty value. |
 | `rank_color` | string | CSS hex color in observed backend data | Forwarded from `p.rank_color` | Preserved in state/export only. It is not exposed as a visible table field and is not used to style the merged rank column. |
 | `rank_icon_key` | string | icon asset key | Forwarded from `p.rank_icon_key`; observed keys use paths such as `icon_rank/rookie1` | Preserved in state/export. The player table strips the leading `icon_rank/` prefix and loads the transparent PNG from `https://img.hoozi.net/icon_rank/` or local `./res/icon_rank/` using the same source order as map images. |
-| `roster` | number | four-bit marker mask | `p.roster`, fallback `0`; `rosters` is accepted as a compatibility alias in the frontend normalizer | Displayed as zero to four localized bracket tags by bit mask: friend `8`, cheater `4`, pro/permission `1`, and celebrity `2`. The map label uses a single-line text sequence; the table renders the same sequence before the nickname in the `name` column with per-tag colors. |
+| `roster` | number | four-bit marker mask | `p.roster`, fallback `0`; `rosters` is accepted as a compatibility alias in the frontend normalizer | Displayed as zero to four localized bracket tags by bit mask: friend `8`, cheater `4`, pro/permission `1`, and celebrity `2`. The map label uses a single-line tag sequence colored by the leftmost/highest-priority tag, while other map label text keeps the player marker color. The table renders the same sequence before the nickname in the `name` column with per-tag colors. |
 
 NPC entries are intentionally excluded in Lua (`if not p.is_npc`). The frontend
 therefore has no NPC category to render.
@@ -213,7 +213,9 @@ remain normalized and exported but are intentionally hidden from the controls
 and table. The `roster` value is not a standalone table column; localized
 bracket tags are rendered before the nickname in the `name` column, followed by
 one normal space before the actual player name. When one or more tags are
-present, the nickname uses the leftmost tag color. Zero means no tags. The
+present in the table, the nickname uses the leftmost tag color. On the map,
+only the bracket-tag sequence uses the leftmost tag color; nickname and other
+label fields keep the player marker color. Zero means no tags. The
 table itself uses intrinsic, non-shrinking column widths inside a
 horizontally scrollable viewport. Viewport ratios of at least `1.12`
 automatically select landscape layout, while ratios at or below `0.893`
