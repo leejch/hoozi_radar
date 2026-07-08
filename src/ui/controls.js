@@ -417,7 +417,7 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
     const columns = [
         { visible: () => settings.tableTeam, label: 'table.columns.team', render: (p) => teamCell(p) },
         { visible: () => settings.tableName, label: 'table.columns.name', render: (p) => nameCell(p) },
-        { visible: () => settings.tableLevel, label: 'table.columns.level', render: (p) => cell(displayValue(p.level)) },
+        { visible: () => settings.tableVitals, label: 'table.columns.vitals', render: (p) => vitalsCell(p) },
         {
             visible: () => settings.tableLegend || settings.tableLegendIconKey,
             label: 'table.columns.legend',
@@ -442,14 +442,14 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
                 showText: settings.tableRank
             })
         },
+        { visible: () => settings.tableLevel, label: 'table.columns.level', render: (p) => cell(displayValue(p.level)) },
         { visible: () => settings.tableDamage, label: 'table.columns.damage', render: (p) => cell(displayValue(p.damage)) },
         { visible: () => settings.tableKills, label: 'table.columns.kills', render: (p) => cell(displayValue(p.kills)) },
-        { visible: () => settings.tableVitals, label: 'table.columns.vitals', render: (p) => vitalsCell(p) },
-        { visible: () => settings.tableDead, label: 'table.columns.dead', render: (p) => deadCell(p, t) },
-        { visible: () => settings.tableDown, label: 'table.columns.down', render: (p) => downCell(p, t) },
         { visible: () => settings.tableDistance, label: 'table.columns.distance', render: (p) => cell(displayDistance(p.distance)) },
         { visible: () => settings.tableUid, label: 'table.columns.uid', render: (p) => cell(displayValue(p.uid), 'font-mono') },
-        { visible: () => settings.tableUidLong, label: 'table.columns.uidLong', render: (p) => cell(displayValue(p.uid_long), 'font-mono') }
+        { visible: () => settings.tableUidLong, label: 'table.columns.uidLong', render: (p) => cell(displayValue(p.uid_long), 'font-mono') },
+        { visible: () => settings.tableDown, label: 'table.columns.down', render: (p) => downCell(p, t) },
+        { visible: () => settings.tableDead, label: 'table.columns.dead', render: (p) => deadCell(p, t) }
 
         // Removed from the visible table by request. The raw state/export
         // payload still keeps these fields when the backend sends them.

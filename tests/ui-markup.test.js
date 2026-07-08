@@ -56,6 +56,35 @@ test('player filters are removed and table controls use the combined vitals fiel
     assert.doesNotMatch(indexHtml, /data-setting="tableMaxShield"|data-setting="tableShield"|data-setting="tableHp"/);
 });
 
+test('player table columns and field toggles use the requested display order', () => {
+    const expectedOrder = [
+        'table.columns.team',
+        'table.columns.name',
+        'table.columns.vitals',
+        'table.columns.legend',
+        'table.columns.rank',
+        'table.columns.level',
+        'table.columns.damage',
+        'table.columns.kills',
+        'table.columns.distance',
+        'table.columns.uid',
+        'table.columns.uidLong',
+        'table.columns.down',
+        'table.columns.dead'
+    ];
+    const liveColumnsSource = controlsSource.slice(
+        controlsSource.indexOf('const columns = ['),
+        controlsSource.indexOf('// Removed from the visible table by request.')
+    );
+    const columnIndexes = expectedOrder.map((key) => liveColumnsSource.indexOf(`label: '${key}'`));
+    assert.deepEqual(columnIndexes, [...columnIndexes].sort((a, b) => a - b));
+    assert.ok(columnIndexes.every((index) => index >= 0));
+
+    const toggleIndexes = expectedOrder.map((key) => indexHtml.indexOf(`data-i18n="${key}"`));
+    assert.deepEqual(toggleIndexes, [...toggleIndexes].sort((a, b) => a - b));
+    assert.ok(toggleIndexes.every((index) => index >= 0));
+});
+
 test('portrait layout keeps a wide map and avoids an inner vertical player-list scroller', () => {
     assert.match(indexHtml, /data-layout-orientation="portrait"[\s\S]{0,120}#mapStage[\s\S]{0,120}aspect-ratio:\s*1\s*\/\s*1\.12/);
     assert.match(indexHtml, /data-layout-orientation="portrait"\] \[data-role="player-table-scroll"\]\s*\{[\s\S]{0,120}overflow-y:\s*hidden/);

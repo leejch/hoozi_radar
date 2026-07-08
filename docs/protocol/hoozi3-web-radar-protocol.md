@@ -204,13 +204,12 @@ This value is not sent by `web_radar.lua`, is not written back to the raw
 exported server message, and is not used as player identity.
 
 The visible player table columns default to the user-facing order: `team`,
-`name`, `level`, merged `legend`/`legend_icon_key`, merged
-`rank`/`rank_icon_key`, `damage`, `kills`, merged `max_shield`/`shield`/`hp`
-as the shield/health bar column, `is_dead`, `is_down`, `distance`, `uid`, and
-derived `uid_long`. Raw
-`id`, `index`, `self`, `squad`, `x`, `y`, `yaw`, `max_hp`, and `rank_color`
-remain normalized and exported but are intentionally hidden from the controls
-and table. The `roster` value is not a standalone table column; localized
+`name`, merged `max_shield`/`shield`/`hp` as the shield/health bar column,
+merged `legend`/`legend_icon_key`, merged `rank`/`rank_icon_key`, `level`,
+`damage`, `kills`, `distance`, `uid`, derived `uid_long`, `is_down`, and
+`is_dead`. Raw `id`, `index`, `self`, `squad`, `x`, `y`, `yaw`, `max_hp`, and
+`rank_color` remain normalized and exported but are intentionally hidden from
+the controls and table. The `roster` value is not a standalone table column; localized
 bracket tags are rendered before the nickname in the `name` column, followed by
 one normal space before the actual player name. When one or more tags are
 present in the table, the nickname uses the leftmost tag color. On the map,
