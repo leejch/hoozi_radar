@@ -241,15 +241,16 @@ tries R2 first and falls back to `static/`. Image elements use
 `referrerPolicy="origin"` so cross-origin R2 image requests send the current
 page origin as the browser referrer.
 
-Known BR maps are classified by the first underscore-delimited token after
-`mp_rr_`; later runtime suffixes such as `_mu1` and `_mu2` are ignored. The
-verified asset order is `canyonlands` → `1.png`, `desertlands` → `2.png`,
-`olympus` → `3.png`, `divided` → `4.png`, `tropic` → `5.png`, and `nemesis` →
-`6.png`. `mp_rr_canyonlands_staging*` is checked before the generic
-`canyonlands` rule and uses `mp_range.png`. Raw names beginning with `mp_lobby`
-use `mp_lobby.png`. Lobby and firing range maps render as centered,
-aspect-preserving images without coordinate-based player/ring plotting.
-Unknown raw names retain exact-name `<map>.png` lookup.
+Known BR maps are classified by verified runtime prefixes. Later runtime
+suffixes such as `_mu1` and `_mu2` are accepted after those prefixes. The
+verified assets are `mp_rr_canyonlands.png`, `mp_rr_desertlands.png`,
+`mp_rr_mp_rr_olympus.png`, `mp_rr_divided_moon.png`,
+`mp_rr_thunderdome.png`, and `mp_rr_district.png`.
+`mp_rr_canyonlands_staging*` is checked before the generic canyonlands rule and
+uses `mp_range.png`. Raw names beginning with `mp_lobby` use `mp_lobby.png`.
+Lobby and firing range maps render as centered, aspect-preserving images
+without coordinate-based player/ring plotting. Unknown raw names show an
+unsupported-map message instead of requesting `<map>.png`.
 
 Legend and rank icon keys are preserved in normalized state and exported
 snapshots. Non-empty keys are displayed in the merged Legend and Rank table

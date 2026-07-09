@@ -202,13 +202,13 @@ npm run build
 再回退到 `static/`。图片元素使用 `referrerPolicy="origin"`，让跨域 R2 图片请求按浏览器
 支持的方式携带当前页面 origin 作为 referrer。
 
-已知 BR 地图只读取 `mp_rr_` 后第一个下划线分隔标识，忽略 `_mu1`、`_mu2` 等后续变体。
-确认的资源映射为：`canyonlands` → `1.png`、`desertlands` → `2.png`、
-`olympus` → `3.png`、`divided` → `4.png`、`tropic` → `5.png`、
-`nemesis` → `6.png`。`mp_rr_canyonlands_staging*` 会先于普通 `canyonlands`
-规则匹配，并使用 `mp_range.png`。`mp_lobby` 开头的原始地图名使用 `mp_lobby.png`。
-大厅和射击场都会以居中、保持比例、不超过地图绘制区域宽高的方式显示，不再按玩家坐标绘制玩家或安全区。未知原始地图名仍使用
-精确的 `<map>.png` 查找。
+已知 BR 地图按已确认的运行时前缀匹配，后续 `_mu1`、`_mu2` 等变体后缀会被接受。
+确认的资源为：`mp_rr_canyonlands.png`、`mp_rr_desertlands.png`、
+`mp_rr_mp_rr_olympus.png`、`mp_rr_divided_moon.png`、
+`mp_rr_thunderdome.png` 和 `mp_rr_district.png`。`mp_rr_canyonlands_staging*`
+会先于普通 `mp_rr_canyonlands` 规则匹配，并使用 `mp_range.png`。`mp_lobby`
+开头的原始地图名使用 `mp_lobby.png`。大厅和射击场都会以居中、保持比例、不超过地图绘制区域宽高的方式显示，
+不再按玩家坐标绘制玩家或安全区。未知原始地图名会显示当前地图没有网页雷达的提示，不再请求 `<map>.png`。
 
 传奇和段位图标 key 会保留在归一化状态及导出的快照中。非空 key 会在玩家信息列表的
 “传奇”和“段位”合并列中按与地图图片相同的优先级加载。传奇图标会从

@@ -103,8 +103,20 @@ function applyStateMessage(message, raw, { imported = false } = {}) {
     } else if (mapChanged) {
         refs.mapImage.dataset.mapName = message.map;
         store.state.mapLoaded = false;
-        setOverlay(refs, 'loading', t('overlay.mapLoadingTitle'), t('overlay.mapLoadingSubtitle'));
-        mapLoader.load(mapAssetName(message.map));
+        const assetName = mapAssetName(message.map);
+        if (!assetName) {
+            mapLoader.clear();
+            setOverlay(
+                refs,
+                'info',
+                t('overlay.mapMissingTitle'),
+                t('overlay.mapMissingSubtitle', { map: message.map }),
+                false
+            );
+        } else {
+            setOverlay(refs, 'loading', t('overlay.mapLoadingTitle'), t('overlay.mapLoadingSubtitle'));
+            mapLoader.load(assetName);
+        }
     } else if (store.state.mapLoaded) {
         setOverlay(refs, 'hidden', '', '');
     }

@@ -109,7 +109,7 @@ No other browser command is implemented by `web_radar.lua`.
 | --- | --- | --- | --- | --- |
 | `kind` | string | — | Literal `"state"` in `snapshot()` | Selects the state parser. Other kinds are not treated as snapshots. |
 | `ts` | number | `time.now()` seconds | Snapshot wall-clock value from Lua | Stored for ordering, diagnostics, and interpolation cadence. |
-| `map` | string | runtime map identifier | `game.world.map_name` | Classifies known maps by the verified rules below, loads the verified asset through the page-protocol-dependent static fallback order, and shows the localized map name. The raw value remains in the badge title for debugging. Unknown names retain exact-name `.png` lookup. Image-only maps such as `mp_lobby*` and `mp_rr_canyonlands_staging*` use the non-coordinate display mode described below. |
+| `map` | string | runtime map identifier | `game.world.map_name` | Classifies known maps by the verified rules below, loads the verified asset through the page-protocol-dependent static fallback order, and shows the localized map name. The raw value remains in the badge title for debugging. Unknown names do not attempt synthetic image lookup; the UI reports that the current map has no web radar. Image-only maps such as `mp_lobby*` and `mp_rr_canyonlands_staging*` use the non-coordinate display mode described below. |
 | `players` | array | — | Plain-table snapshots of non-NPC `game.entities.players` | Replaces the complete player set atomically; non-dead entries determine the live-player badge. |
 | `ring` | object or absent | map pixels and game-time values | Active `game.world.ring`, converted by Lua | Drives a thin sky-blue boundary and a dark, warm-tinted map-only filter outside the boundary. The effect layer sits below every player overlay. |
 
@@ -118,17 +118,17 @@ No other browser command is implemented by `web_radar.lua`.
 Later underscore-delimited suffixes are variants and do not change the base
 map unless a more specific rule is listed here. For example,
 `mp_rr_canyonlands_hu_avt_uh`, `mp_rr_canyonlands_mu1`, and
-`mp_rr_canyonlands_mu2` all use `1.png`, but
+`mp_rr_canyonlands_mu2` all use `mp_rr_canyonlands.png`, but
 `mp_rr_canyonlands_staging*` is checked first and uses the firing range asset.
 
-| First token after `mp_rr_` | Base runtime name | Asset | Simplified Chinese | Traditional Chinese | English |
-| --- | --- | --- | --- | --- | --- |
-| `canyonlands` | `mp_rr_canyonlands` | `1.png` | 诸王峡谷 | 王者峽谷 | Kings Canyon |
-| `desertlands` | `mp_rr_desertlands` | `2.png` | 世界尽头 | 世界邊緣 | World's Edge |
-| `olympus` | `mp_rr_olympus` | `3.png` | 奥林匹斯 | 奧林匹斯 | Olympus |
-| `divided` | `mp_rr_divided_moon` | `4.png` | 残月 | 殘月 | Broken Moon |
-| `tropic` | `mp_rr_tropic_island` | `5.png` | 风暴点 | 暴風點 | Storm Point |
-| `nemesis` | `mp_rr_nemesis` | `6.png` | 电气区 | 電流區 | E-District |
+| Runtime prefix | Asset | Simplified Chinese | Traditional Chinese | English |
+| --- | --- | --- | --- | --- |
+| `mp_rr_canyonlands` | `mp_rr_canyonlands.png` | 诸王峡谷 | 王者峽谷 | Kings Canyon |
+| `mp_rr_desertlands` | `mp_rr_desertlands.png` | 世界尽头 | 世界邊緣 | World's Edge |
+| `mp_rr_olympus` | `mp_rr_mp_rr_olympus.png` | 奥林匹斯 | 奧林匹斯 | Olympus |
+| `mp_rr_divided_moon` | `mp_rr_divided_moon.png` | 残月 | 殘月 | Broken Moon |
+| `mp_rr_thunderdome` | `mp_rr_thunderdome.png` | 雷霆穹顶 | 雷霆穹頂 | Thunderdome |
+| `mp_rr_district` | `mp_rr_district.png` | 电气区 | 電流區 | E-District |
 
 `mp_rr_canyonlands_staging*` uses `mp_range.png` and is labeled as the firing
 range. `mp_lobby` and any raw map name beginning with `mp_lobby` use
@@ -289,7 +289,7 @@ origin or radius conversion fails, the entire `ring` property is omitted.
 | `player.pos.x`, `player.pos.y` | Flat `player.x`, `player.y` | Normalize to a single internal `{x,y}` position. |
 | Local player identified by name `"<hoozi>"` | `player.self` | Selection and focus use `self` and stable `id`. |
 | Incoming coordinates interpreted inside a 1920×1080 frame with a 1015-pixel crop | Lua-produced 0–1000 square coordinates | Removed legacy offsets/crop; render directly against the square map. |
-| Numeric map IDs `1`–`6`, sentinel `-1`/`0` | `game.world.map_name` string, empty string outside a known map | Preserve the raw string, classify it using the verified rules above, and select `1.png`–`6.png` for normal BR maps. `mp_lobby*` selects `mp_lobby.png`; `mp_rr_canyonlands_staging*` selects `mp_range.png`; both disable coordinate plotting. Empty map means no active map; unknown names keep exact-name lookup. |
+| Numeric map IDs `1`–`6` and old lobby sentinel fallback | `game.world.map_name` string, empty string outside a known map | Preserve the raw string and classify it using the verified prefix rules above. Named BR assets replace the old numeric image names; `mp_lobby*` selects `mp_lobby.png`; `mp_rr_canyonlands_staging*` selects `mp_range.png`; both disable coordinate plotting. Empty map means no active map; unknown names show the unsupported-map message without requesting a generated image path. |
 | `uidShort` plus XOR-derived `uidLong` | Exact backend `uid = p.platform_uid`, plus frontend-derived display-only `uid_long` | The backend UID is preserved unchanged. The long UID conversion is restored only as an explicit table display requirement and is not added to raw exports or player identity. |
 | `pro`, `black`, `white`, `hostile` | No verified field | Removed tag/filter behavior. |
 | Threshold-generated “danger/high kills/low level” protocol semantics | `level` and `kills` are plain values | Values remain displayable; the migration does not claim protocol-level suspicion semantics. |

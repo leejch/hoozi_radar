@@ -34,7 +34,7 @@ const translations = {
                 damage: '伤害', roster: '标记'
             }
         },
-        maps: { kingsCanyon: '诸王峡谷', worldsEdge: '世界尽头', olympus: '奥林匹斯', brokenMoon: '残月', stormPoint: '风暴点', eDistrict: '电气区', lobby: '大厅', range: '射击场' },
+        maps: { kingsCanyon: '诸王峡谷', worldsEdge: '世界尽头', olympus: '奥林匹斯', brokenMoon: '残月', thunderdome: '雷霆穹顶', eDistrict: '电气区', lobby: '大厅', range: '射击场' },
         status: { waiting: '等待连接', connecting: '正在连接', connected: '已连接', disconnected: '未连接', importedPreview: '离线预览', protocolError: '协议错误' },
         overlay: {
             waitingTitle: '等待连接', waitingSubtitle: '正在尝试连接 HOOZi 3.0 本机数据桥',
@@ -42,7 +42,7 @@ const translations = {
             instructionsSubtitle: '请启动 HOOZi 3.0、加载 web_radar.lua，并确认网页雷达 server 已启用',
             noDataTitle: '等待对局数据', noDataSubtitle: '连接成功，等待 state 快照',
             mapLoadingTitle: '加载地图资源', mapLoadingSubtitle: '本地访问优先使用 static，HTTPS 访问优先使用 HOOZi R2',
-            mapMissingTitle: '地图资源缺失', mapMissingSubtitle: '找不到 {map} 对应的地图文件',
+            mapMissingTitle: '地图不支持', mapMissingSubtitle: '当前地图 {map} 无网页雷达，只能在大逃杀模式的地图里使用。',
             protocolTitle: '数据协议错误', protocolSubtitle: '{message}'
         },
         player: { self: '本机', alive: '存活', down: '倒地', dead: '死亡', yes: '是', no: '否', team: '队伍 {team}', squad: '是否队友 {squad}', roster: '标记 {roster}', unknown: '未知' },
@@ -83,7 +83,7 @@ const translations = {
                 damage: '傷害', roster: '標記'
             }
         },
-        maps: { kingsCanyon: '王者峽谷', worldsEdge: '世界邊緣', olympus: '奧林匹斯', brokenMoon: '殘月', stormPoint: '暴風點', eDistrict: '電流區', lobby: '大廳', range: '射擊場' },
+        maps: { kingsCanyon: '王者峽谷', worldsEdge: '世界邊緣', olympus: '奧林匹斯', brokenMoon: '殘月', thunderdome: '雷霆穹頂', eDistrict: '電流區', lobby: '大廳', range: '射擊場' },
         status: { waiting: '等待連線', connecting: '正在連線', connected: '已連線', disconnected: '未連線', importedPreview: '離線預覽', protocolError: '協議錯誤' },
         overlay: {
             waitingTitle: '等待連線', waitingSubtitle: '正在嘗試連線 HOOZi 3.0 本機資料橋',
@@ -91,7 +91,7 @@ const translations = {
             instructionsSubtitle: '請啟動 HOOZi 3.0、載入 web_radar.lua，並確認網頁雷達 server 已啟用',
             noDataTitle: '等待對局資料', noDataSubtitle: '連線成功，等待 state 快照',
             mapLoadingTitle: '載入地圖資源', mapLoadingSubtitle: '本機存取優先使用 static，HTTPS 存取優先使用 HOOZi R2',
-            mapMissingTitle: '地圖資源缺失', mapMissingSubtitle: '找不到 {map} 對應的地圖檔案',
+            mapMissingTitle: '地圖不支援', mapMissingSubtitle: '目前地圖 {map} 沒有網頁雷達，只能在大逃殺模式的地圖中使用。',
             protocolTitle: '資料協議錯誤', protocolSubtitle: '{message}'
         },
         player: { self: '本機', alive: '存活', down: '倒地', dead: '死亡', yes: '是', no: '否', team: '隊伍 {team}', squad: '是否隊友 {squad}', roster: '標記 {roster}', unknown: '未知' },
@@ -132,7 +132,7 @@ const translations = {
                 damage: 'Damage', roster: 'Marker'
             }
         },
-        maps: { kingsCanyon: 'Kings Canyon', worldsEdge: "World's Edge", olympus: 'Olympus', brokenMoon: 'Broken Moon', stormPoint: 'Storm Point', eDistrict: 'E-District', lobby: 'Lobby', range: 'Firing Range' },
+        maps: { kingsCanyon: 'Kings Canyon', worldsEdge: "World's Edge", olympus: 'Olympus', brokenMoon: 'Broken Moon', thunderdome: 'Thunderdome', eDistrict: 'E-District', lobby: 'Lobby', range: 'Firing Range' },
         status: { waiting: 'Waiting', connecting: 'Connecting', connected: 'Connected', disconnected: 'Disconnected', importedPreview: 'Offline preview', protocolError: 'Protocol error' },
         overlay: {
             waitingTitle: 'Waiting to connect', waitingSubtitle: 'Trying the local HOOZi 3.0 data bridge',
@@ -140,7 +140,7 @@ const translations = {
             instructionsSubtitle: 'Start HOOZi 3.0, load web_radar.lua, and enable its Web Radar server',
             noDataTitle: 'Waiting for match data', noDataSubtitle: 'Connected; waiting for a state snapshot',
             mapLoadingTitle: 'Loading map asset', mapLoadingSubtitle: 'Local access tries static first; HTTPS access tries HOOZi R2 first',
-            mapMissingTitle: 'Map asset missing', mapMissingSubtitle: 'No map file was found for {map}',
+            mapMissingTitle: 'Map not supported', mapMissingSubtitle: 'The current map {map} has no web radar and can only be used on Battle Royale maps.',
             protocolTitle: 'Protocol error', protocolSubtitle: '{message}'
         },
         player: { self: 'Local', alive: 'Alive', down: 'Downed', dead: 'Dead', yes: 'Yes', no: 'No', team: 'Team {team}', squad: 'Teammate flag {squad}', roster: 'Marker {roster}', unknown: 'Unknown' },

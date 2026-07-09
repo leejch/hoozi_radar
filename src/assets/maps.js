@@ -1,13 +1,13 @@
 import { STATIC_SOURCES } from '../config.js';
 
-const MAPS_BY_RUNTIME_TOKEN = Object.freeze({
-    canyonlands: Object.freeze({ assetName: '1.png', translationKey: 'maps.kingsCanyon' }),
-    desertlands: Object.freeze({ assetName: '2.png', translationKey: 'maps.worldsEdge' }),
-    olympus: Object.freeze({ assetName: '3.png', translationKey: 'maps.olympus' }),
-    divided: Object.freeze({ assetName: '4.png', translationKey: 'maps.brokenMoon' }),
-    tropic: Object.freeze({ assetName: '5.png', translationKey: 'maps.stormPoint' }),
-    nemesis: Object.freeze({ assetName: '6.png', translationKey: 'maps.eDistrict' })
-});
+const RADAR_MAP_DEFINITIONS = Object.freeze([
+    Object.freeze({ match: /^mp_rr_canyonlands(?:_|$)/i, assetName: 'mp_rr_canyonlands.png', translationKey: 'maps.kingsCanyon' }),
+    Object.freeze({ match: /^mp_rr_desertlands(?:_|$)/i, assetName: 'mp_rr_desertlands.png', translationKey: 'maps.worldsEdge' }),
+    Object.freeze({ match: /^mp_rr_olympus(?:_|$)/i, assetName: 'mp_rr_mp_rr_olympus.png', translationKey: 'maps.olympus' }),
+    Object.freeze({ match: /^mp_rr_divided_moon(?:_|$)/i, assetName: 'mp_rr_divided_moon.png', translationKey: 'maps.brokenMoon' }),
+    Object.freeze({ match: /^mp_rr_thunderdome(?:_|$)/i, assetName: 'mp_rr_thunderdome.png', translationKey: 'maps.thunderdome' }),
+    Object.freeze({ match: /^mp_rr_district(?:_|$)/i, assetName: 'mp_rr_district.png', translationKey: 'maps.eDistrict' })
+]);
 
 const LOBBY_MAP_DEFINITION = Object.freeze({ assetName: 'mp_lobby.png', translationKey: 'maps.lobby', imageOnly: true, lobby: true });
 const RANGE_MAP_DEFINITION = Object.freeze({ assetName: 'mp_range.png', translationKey: 'maps.range', imageOnly: true, range: true });
@@ -33,8 +33,7 @@ export function mapDefinition(mapName) {
     if (isRangeMap(normalized)) {
         return RANGE_MAP_DEFINITION;
     }
-    const token = /^mp_rr_([^_]+)/i.exec(normalized)?.[1]?.toLowerCase();
-    return token ? MAPS_BY_RUNTIME_TOKEN[token] || null : null;
+    return RADAR_MAP_DEFINITIONS.find((definition) => definition.match.test(normalized)) || null;
 }
 
 function assetUrl(baseUrl, assetName) {
@@ -98,7 +97,7 @@ export function createFallbackImageLoader(image, { onLoad, onMissing } = {}) {
 export function mapAssetName(mapName) {
     const normalized = String(mapName || '').trim();
     if (!normalized) return '';
-    return mapDefinition(normalized)?.assetName || `${normalized}.png`;
+    return mapDefinition(normalized)?.assetName || '';
 }
 
 export function mapDisplayName(mapName, t) {
