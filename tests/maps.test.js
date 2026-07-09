@@ -11,7 +11,7 @@ const knownMaps = [
     ['mp_rr_desertlands', 'mp_rr_desertlands.png', 'maps.worldsEdge'],
     ['mp_rr_olympus', 'mp_rr_mp_rr_olympus.png', 'maps.olympus'],
     ['mp_rr_divided_moon', 'mp_rr_divided_moon.png', 'maps.brokenMoon'],
-    ['mp_rr_thunderdome', 'mp_rr_thunderdome.png', 'maps.thunderdome'],
+    ['mp_rr_tropic_island', 'mp_rr_thunderdome.png', 'maps.thunderdome'],
     ['mp_rr_district', 'mp_rr_district.png', 'maps.eDistrict']
 ];
 
@@ -28,15 +28,18 @@ test('map matching uses known runtime prefixes and accepts runtime suffixes', ()
     assert.equal(mapAssetName('mp_rr_canyonlands_hu_avt_uh'), 'mp_rr_canyonlands.png');
     assert.equal(mapAssetName('mp_rr_divided_moon_mu1'), 'mp_rr_divided_moon.png');
     assert.equal(mapAssetName('mp_rr_district_mu1'), 'mp_rr_district.png');
-    assert.equal(mapAssetName('mp_rr_thunderdome_mu2'), 'mp_rr_thunderdome.png');
+    assert.equal(mapAssetName('mp_rr_tropic_island_mu2_landscape'), 'mp_rr_thunderdome.png');
 });
 
 test('unknown raw map names do not request synthetic map assets', () => {
     const t = (key) => `translated:${key}`;
     assert.equal(mapAssetName('mp_rr_unknown_variant'), '');
+    assert.equal(mapAssetName('mp_rr_thunderdome_mu2'), '');
     assert.equal(mapDisplayName('mp_rr_unknown_variant', t), 'mp_rr_unknown_variant');
     assert.equal(mapDisplayName('mp_rr_unknown_br_mu1', t), 'mp_rr_unknown_br_mu1');
+    assert.equal(mapDisplayName('mp_rr_thunderdome_mu2', t), 'mp_rr_thunderdome_mu2');
     assert.equal(mapDisplayName('mp_rr_district_mu1', t), 'translated:maps.eDistrict');
+    assert.equal(mapDisplayName('mp_rr_tropic_island_mu2_landscape', t), 'translated:maps.thunderdome');
 });
 
 test('lobby map names use the dedicated lobby image without coordinate-map classification', () => {

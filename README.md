@@ -246,6 +246,8 @@ suffixes such as `_mu1` and `_mu2` are accepted after those prefixes. The
 verified assets are `mp_rr_canyonlands.png`, `mp_rr_desertlands.png`,
 `mp_rr_mp_rr_olympus.png`, `mp_rr_divided_moon.png`,
 `mp_rr_thunderdome.png`, and `mp_rr_district.png`.
+The runtime prefix `mp_rr_tropic_island*` uses the Thunderdome asset
+`mp_rr_thunderdome.png`; `mp_rr_thunderdome*` is not a runtime map prefix.
 `mp_rr_canyonlands_staging*` is checked before the generic canyonlands rule and
 uses `mp_range.png`. Raw names beginning with `mp_lobby` use `mp_lobby.png`.
 Lobby and firing range maps render as centered, aspect-preserving images
