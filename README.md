@@ -244,7 +244,7 @@ page origin as the browser referrer.
 Known BR maps are classified by verified runtime prefixes. Later runtime
 suffixes such as `_mu1` and `_mu2` are accepted after those prefixes. The
 verified assets are `mp_rr_canyonlands.png`, `mp_rr_desertlands.png`,
-`mp_rr_mp_rr_olympus.png`, `mp_rr_divided_moon.png`,
+`mp_rr_olympus.png`, `mp_rr_divided_moon.png`,
 `mp_rr_thunderdome.png`, and `mp_rr_district.png`.
 The runtime prefix `mp_rr_tropic_island*` uses the Thunderdome asset
 `mp_rr_thunderdome.png`; `mp_rr_thunderdome*` is not a runtime map prefix.

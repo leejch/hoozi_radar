@@ -3,7 +3,7 @@ import { STATIC_SOURCES } from '../config.js';
 const RADAR_MAP_DEFINITIONS = Object.freeze([
     Object.freeze({ match: /^mp_rr_canyonlands(?:_|$)/i, assetName: 'mp_rr_canyonlands.png', translationKey: 'maps.kingsCanyon' }),
     Object.freeze({ match: /^mp_rr_desertlands(?:_|$)/i, assetName: 'mp_rr_desertlands.png', translationKey: 'maps.worldsEdge' }),
-    Object.freeze({ match: /^mp_rr_olympus(?:_|$)/i, assetName: 'mp_rr_mp_rr_olympus.png', translationKey: 'maps.olympus' }),
+    Object.freeze({ match: /^mp_rr_olympus(?:_|$)/i, assetName: 'mp_rr_olympus.png', translationKey: 'maps.olympus' }),
     Object.freeze({ match: /^mp_rr_divided_moon(?:_|$)/i, assetName: 'mp_rr_divided_moon.png', translationKey: 'maps.brokenMoon' }),
     Object.freeze({ match: /^mp_rr_tropic_island(?:_|$)/i, assetName: 'mp_rr_thunderdome.png', translationKey: 'maps.thunderdome' }),
     Object.freeze({ match: /^mp_rr_district(?:_|$)/i, assetName: 'mp_rr_district.png', translationKey: 'maps.eDistrict' })

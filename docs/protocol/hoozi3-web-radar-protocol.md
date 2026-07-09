@@ -125,7 +125,7 @@ map unless a more specific rule is listed here. For example,
 | --- | --- | --- | --- | --- |
 | `mp_rr_canyonlands` | `mp_rr_canyonlands.png` | 诸王峡谷 | 王者峽谷 | Kings Canyon |
 | `mp_rr_desertlands` | `mp_rr_desertlands.png` | 世界尽头 | 世界邊緣 | World's Edge |
-| `mp_rr_olympus` | `mp_rr_mp_rr_olympus.png` | 奥林匹斯 | 奧林匹斯 | Olympus |
+| `mp_rr_olympus` | `mp_rr_olympus.png` | 奥林匹斯 | 奧林匹斯 | Olympus |
 | `mp_rr_divided_moon` | `mp_rr_divided_moon.png` | 残月 | 殘月 | Broken Moon |
 | `mp_rr_tropic_island` | `mp_rr_thunderdome.png` | 雷霆穹顶 | 雷霆穹頂 | Thunderdome |
 | `mp_rr_district` | `mp_rr_district.png` | 电气区 | 電流區 | E-District |

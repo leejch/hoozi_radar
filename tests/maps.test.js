@@ -9,7 +9,7 @@ const i18nSource = await readFile(new URL('../src/i18n.js', import.meta.url), 'u
 const knownMaps = [
     ['mp_rr_canyonlands', 'mp_rr_canyonlands.png', 'maps.kingsCanyon'],
     ['mp_rr_desertlands', 'mp_rr_desertlands.png', 'maps.worldsEdge'],
-    ['mp_rr_olympus', 'mp_rr_mp_rr_olympus.png', 'maps.olympus'],
+    ['mp_rr_olympus', 'mp_rr_olympus.png', 'maps.olympus'],
     ['mp_rr_divided_moon', 'mp_rr_divided_moon.png', 'maps.brokenMoon'],
     ['mp_rr_tropic_island', 'mp_rr_thunderdome.png', 'maps.thunderdome'],
     ['mp_rr_district', 'mp_rr_district.png', 'maps.eDistrict']
