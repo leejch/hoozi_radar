@@ -154,7 +154,7 @@ current page origin as the cross-origin image request referrer.
 | Field | JSON type | Unit/domain | Verified meaning and transformation | Frontend behavior |
 | --- | --- | --- | --- | --- |
 | `id` | string | — | Stable key chosen by Lua: `ix<index>`, else `uid<platform_uid>`, else `anon-<name>` | Entity identity, selection, interpolation, and keyed table updates. It is retained in exports but is not shown in the player table. |
-| `self` | boolean | — | Player index equals `game.localplayer.index` | Default focus and local-player marker styling. It is retained in exports but is not shown in the player table. |
+| `self` | boolean | — | Player index equals `game.localplayer.index` | Default focus and local-player marker styling: the fill keeps the player's team color while the outline is red. It is retained in exports but is not shown in the player table. |
 | `name` | string | — | `p.name`, fallback `"?"` | Labels, selector, and table. |
 | `index` | number or absent | entity index | `p.index` | Raw export metadata only; `id` remains the primary browser key. |
 | `team` | number | game team number | `p.team_num`, fallback `0` | Team color, teammate connection lines, selector/table sorting, and a table column with a team-colored dot before the numeric value. |
@@ -235,9 +235,9 @@ always shown on the map. Shield and health share one map-overlay toggle; roster
 tags, team links, and ring display remain independently toggleable. The player
 table DOM is rebuilt only when its visible fields or displayed values change.
 
-Player markers use the same four-pixel radius for local and remote players.
-Normal remote marker outlines are one-pixel dark lines. The local-player marker
-keeps a one-pixel `rgb(255, 0, 0)` outline. The selected focus player gets a
+Player markers use the same four-pixel radius and team-color fill for local and
+remote players. Normal remote marker outlines are one-pixel dark lines. The
+local-player marker keeps a one-pixel `rgb(255, 0, 0)` outline. The selected focus player gets a
 white one-pixel ring outside the normal marker border, with a one-pixel visual
 gap, and a white crosshair line pair through that selected position. Team links
 connect the selected focus player to players on the same team at 65% white

@@ -255,7 +255,7 @@ export function renderEntities(ctx, snapshot, settings, selectedPlayer, dimensio
         const alpha = player.is_dead ? 0.42 : 1;
         ctx.save();
         ctx.globalAlpha = alpha;
-        ctx.fillStyle = player.self ? '#FFFFFF' : teamColor;
+        ctx.fillStyle = teamColor;
         ctx.strokeStyle = player.self ? LOCAL_BORDER_COLOR : 'rgba(2, 6, 23, 0.95)';
         ctx.lineWidth = PLAYER_BORDER_WIDTH;
         ctx.beginPath();

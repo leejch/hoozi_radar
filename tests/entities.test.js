@@ -5,7 +5,7 @@ import { DEFAULT_SETTINGS, teamColorFor } from '../src/config.js';
 import { renderEntities, shieldBarStyle } from '../src/render/entities.js';
 
 function recordingContext() {
-    const records = { arcs: [], fills: [], strokes: [], strokeRects: [], outlinedText: [], filledText: [] };
+    const records = { arcs: [], markerFills: [], fills: [], strokes: [], strokeRects: [], outlinedText: [], filledText: [] };
     const stack = [];
     const ctx = {
         fillStyle: '',
@@ -33,7 +33,9 @@ function recordingContext() {
         arc(x, y, radius) {
             records.arcs.push({ x, y, radius });
         },
-        fill() {},
+        fill() {
+            records.markerFills.push({ style: this.fillStyle });
+        },
         stroke() {
             records.strokes.push({ style: this.strokeStyle, width: this.lineWidth });
         },
@@ -84,6 +86,7 @@ test('player markers and text use the reduced geometry', () => {
     assert.deepEqual(records.strokes[0], { style: 'rgba(255, 255, 255, 0.58)', width: 1 });
     assert.deepEqual(records.strokes[1], { style: 'rgb(255, 0, 0)', width: 1 });
     assert.deepEqual(records.strokes[2], { style: 'rgb(255, 255, 255)', width: 1 });
+    assert.deepEqual(records.markerFills, [{ style: teamColorFor(player.team) }]);
     assert.equal(records.outlinedText[0].width, 1);
     assert.equal(records.outlinedText[0].y, 506);
     assert.equal(records.outlinedText[0].baseline, 'top');
