@@ -71,7 +71,6 @@ export const DEFAULT_SETTINGS = Object.freeze({
     tableVitals: true,
     tableDead: true,
     tableDown: true,
-    tableDistance: true,
     tableUid: true,
     tableUidLong: true,
     // rank_color is preserved in normalized/exported state but no longer shown

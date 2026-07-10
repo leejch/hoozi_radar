@@ -160,6 +160,42 @@ test('dead players are hidden while downed players draw the red cross marker', (
     assert.ok(records.strokes.some((record) => record.style === '#FB7185' && record.width === 2));
 });
 
+test('downed players show health only, even when shield data is present', () => {
+    const { ctx, records } = recordingContext();
+    const player = {
+        id: 'down', self: false, name: 'Down', team: 3,
+        position: { x: 500, y: 500 }, is_dead: false, is_down: true,
+        hp: 20, max_hp: 100, shield: 75, max_shield: 75,
+        legend: '', level: 0, rank: '', kills: 0, damage: 0, roster: 0
+    };
+
+    renderEntities(ctx, { players: [player] }, { ...DEFAULT_SETTINGS, showTeamLinks: false }, null, { width: 1000, height: 1000 }, (key) => key);
+
+    assert.equal(records.strokeRects.length, 1);
+    assert.equal(records.fills.length, 1);
+    assert.equal(records.fills[0].style, '#FFFFFF');
+});
+
+test('team links use a clearly visible white opacity', () => {
+    const { ctx, records } = recordingContext();
+    const selected = {
+        id: 'selected', self: true, name: 'Selected', team: 2,
+        position: { x: 400, y: 400 }, is_dead: false, is_down: false,
+        hp: 100, max_hp: 100, shield: 0, max_shield: 0,
+        legend: '', level: 0, rank: '', kills: 0, damage: 0, roster: 0
+    };
+    const teammate = {
+        ...selected,
+        id: 'teammate',
+        self: false,
+        position: { x: 600, y: 600 }
+    };
+
+    renderEntities(ctx, { players: [selected, teammate] }, { ...DEFAULT_SETTINGS }, selected, { width: 1000, height: 1000 }, (key) => key);
+
+    assert.deepEqual(records.strokes[0], { style: 'rgba(255, 255, 255, 0.65)', width: 1 });
+});
+
 test('map labels use two lines without dot separators', () => {
     const { ctx, records } = recordingContext();
     const player = {

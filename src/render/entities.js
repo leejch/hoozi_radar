@@ -220,7 +220,7 @@ export function renderEntities(ctx, snapshot, settings, selectedPlayer, dimensio
     if (settings.showTeamLinks && selectedPlayer?.position) {
         const selectedPoint = mapPoint(selectedPlayer.position, width, height);
         ctx.save();
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.65)';
         ctx.lineWidth = 1;
         for (const player of visiblePlayers) {
             if (player.id === selectedPlayer.id || player.team !== selectedPlayer.team) continue;
@@ -288,8 +288,9 @@ export function renderEntities(ctx, snapshot, settings, selectedPlayer, dimensio
             ctx.stroke();
         }
 
-        const shieldStyle = settings.showVitals ? shieldBarStyle(player.max_shield) : null;
-        const visibleBarCount = settings.showVitals ? Number(Boolean(shieldStyle)) + 1 : 0;
+        const showHealthBar = settings.showVitals && !player.is_dead;
+        const shieldStyle = showHealthBar && !player.is_down ? shieldBarStyle(player.max_shield) : null;
+        const visibleBarCount = Number(Boolean(shieldStyle)) + Number(showHealthBar);
         let barY = point.y - PLAYER_RADIUS - PLAYER_DECORATION_GAP - visibleBarCount * BAR_HEIGHT;
         if (shieldStyle) {
             drawBar(
@@ -304,7 +305,7 @@ export function renderEntities(ctx, snapshot, settings, selectedPlayer, dimensio
             );
             barY += BAR_HEIGHT;
         }
-        if (settings.showVitals) {
+        if (showHealthBar) {
             drawBar(ctx, point.x - BAR_WIDTH / 2, barY, BAR_WIDTH, BAR_HEIGHT, player.hp, player.max_hp, '#FFFFFF');
         }
 

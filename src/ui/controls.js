@@ -155,7 +155,9 @@ function iconImage(kind, iconKey, altText) {
     image.alt = altText || '';
     image.loading = 'eager';
     image.decoding = 'async';
-    image.className = 'size-6 shrink-0 object-contain';
+    // text-sm uses a 20px line box. Keep icons within that same box so
+    // enabling an icon never changes the table row height.
+    image.className = 'size-5 shrink-0 object-contain';
     image.title = iconKey;
     return configureFallbackIconImage(image, kind, iconKey) ? image : null;
 }
@@ -211,11 +213,17 @@ function barSegment(width, fillWidth, color) {
 function vitalsCell(player) {
     const wrapper = document.createElement('div');
     wrapper.className = 'flex w-[70px] flex-col items-start gap-0.5';
-    wrapper.title = `${displayValue(player.shield)}/${displayValue(player.max_shield)} · ${displayValue(player.hp)}/${displayValue(player.max_hp)}`;
+
+    if (player.is_dead) return nodeCell(wrapper);
+
+    const showShield = !player.is_down;
+    wrapper.title = showShield
+        ? `${displayValue(player.shield)}/${displayValue(player.max_shield)} · ${displayValue(player.hp)}/${displayValue(player.max_hp)}`
+        : `${displayValue(player.hp)}/${displayValue(player.max_hp)}`;
 
     const maximumShield = Number(player.max_shield);
     const shieldStyle = shieldBarStyle(maximumShield);
-    if (shieldStyle && maximumShield > 0) {
+    if (showShield && shieldStyle && maximumShield > 0) {
         const shieldWidth = TABLE_VITALS_MAX_WIDTH * Math.min(1, maximumShield / 125);
         const shieldValue = Math.max(0, Number(player.shield) || 0);
         wrapper.appendChild(barSegment(
@@ -246,6 +254,7 @@ function downCell(player, t) {
 export function createUiController({ refs, store, settings, t, onReconnect, onViewModeChange, onImportPlayerData }) {
     let layoutFrame = 0;
     let activeLayoutOrientation = settings.layoutOrientation;
+    let lastTableRenderSignature = null;
 
     function layoutContentBox() {
         const style = window.getComputedStyle(refs.layout);
@@ -415,11 +424,24 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
     }
 
     const columns = [
-        { visible: () => settings.tableTeam, label: 'table.columns.team', render: (p) => teamCell(p) },
-        { visible: () => settings.tableName, label: 'table.columns.name', render: (p) => nameCell(p) },
-        { visible: () => settings.tableVitals, label: 'table.columns.vitals', render: (p) => vitalsCell(p) },
+        { key: 'team', visible: () => settings.tableTeam, signature: (p) => p.team, label: 'table.columns.team', render: (p) => teamCell(p) },
+        { key: 'name', visible: () => settings.tableName, signature: (p) => [p.name, p.roster], label: 'table.columns.name', render: (p) => nameCell(p) },
         {
+            key: 'vitals',
+            visible: () => settings.tableVitals,
+            signature: (p) => p.is_dead
+                ? ['dead']
+                : p.is_down
+                    ? ['down', p.hp, p.max_hp]
+                    : ['alive', p.shield, p.max_shield, p.hp, p.max_hp],
+            label: 'table.columns.vitals',
+            render: (p) => vitalsCell(p)
+        },
+        {
+            key: 'legend',
             visible: () => settings.tableLegend || settings.tableLegendIconKey,
+            settingsSignature: () => [settings.tableLegend, settings.tableLegendIconKey],
+            signature: (p) => [p.legend, p.legend_icon_key],
             label: 'table.columns.legend',
             render: (p) => iconTextCell({
                 kind: 'legend',
@@ -431,7 +453,10 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
             })
         },
         {
+            key: 'rank',
             visible: () => settings.tableRank || settings.tableRankIconKey,
+            settingsSignature: () => [settings.tableRank, settings.tableRankIconKey],
+            signature: (p) => [p.rank, p.rank_icon_key],
             label: 'table.columns.rank',
             render: (p) => iconTextCell({
                 kind: 'rank',
@@ -442,14 +467,13 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
                 showText: settings.tableRank
             })
         },
-        { visible: () => settings.tableLevel, label: 'table.columns.level', render: (p) => cell(displayValue(p.level)) },
-        { visible: () => settings.tableDamage, label: 'table.columns.damage', render: (p) => cell(displayValue(p.damage)) },
-        { visible: () => settings.tableKills, label: 'table.columns.kills', render: (p) => cell(displayValue(p.kills)) },
-        { visible: () => settings.tableDistance, label: 'table.columns.distance', render: (p) => cell(displayDistance(p.distance)) },
-        { visible: () => settings.tableUid, label: 'table.columns.uid', render: (p) => cell(displayValue(p.uid), 'font-mono') },
-        { visible: () => settings.tableUidLong, label: 'table.columns.uidLong', render: (p) => cell(displayValue(p.uid_long), 'font-mono') },
-        { visible: () => settings.tableDown, label: 'table.columns.down', render: (p) => downCell(p, t) },
-        { visible: () => settings.tableDead, label: 'table.columns.dead', render: (p) => deadCell(p, t) }
+        { key: 'level', visible: () => settings.tableLevel, signature: (p) => p.level, label: 'table.columns.level', render: (p) => cell(displayValue(p.level)) },
+        { key: 'damage', visible: () => settings.tableDamage, signature: (p) => p.damage, label: 'table.columns.damage', render: (p) => cell(displayValue(p.damage)) },
+        { key: 'kills', visible: () => settings.tableKills, signature: (p) => p.kills, label: 'table.columns.kills', render: (p) => cell(displayValue(p.kills)) },
+        { key: 'uid', visible: () => settings.tableUid, signature: (p) => p.uid, label: 'table.columns.uid', render: (p) => cell(displayValue(p.uid), 'font-mono') },
+        { key: 'uidLong', visible: () => settings.tableUidLong, signature: (p) => p.uid_long, label: 'table.columns.uidLong', render: (p) => cell(displayValue(p.uid_long), 'font-mono') },
+        { key: 'down', visible: () => settings.tableDown, signature: (p) => p.is_down, label: 'table.columns.down', render: (p) => downCell(p, t) },
+        { key: 'dead', visible: () => settings.tableDead, signature: (p) => p.is_dead, label: 'table.columns.dead', render: (p) => deadCell(p, t) }
 
         // Removed from the visible table by request. The raw state/export
         // payload still keeps these fields when the backend sends them.
@@ -463,8 +487,22 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
         // { visible: () => settings.tableMaxHp, label: 'table.columns.maxHp', render: (p) => cell(displayValue(p.max_hp)) }
     ];
 
+    function tableRenderSignature(sortedPlayers, activeColumns) {
+        return JSON.stringify({
+            columns: activeColumns.map((column) => [column.key, column.settingsSignature?.() || null]),
+            players: sortedPlayers.map((player) => ({
+                row: [Boolean(player.is_dead), Boolean(player.is_down)],
+                cells: activeColumns.map((column) => column.signature(player))
+            }))
+        });
+    }
+
     function renderTable(players) {
         const activeColumns = columns.filter((column) => column.visible());
+        const sortedPlayers = sortPlayersForTable(players);
+        const signature = tableRenderSignature(sortedPlayers, activeColumns);
+        if (signature === lastTableRenderSignature) return false;
+        lastTableRenderSignature = signature;
         refs.playerTableHeader.replaceChildren(...activeColumns.map(({ label }) => {
             const th = document.createElement('th');
             th.className = 'whitespace-nowrap px-2.5 py-2 text-left';
@@ -479,11 +517,11 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
             row.appendChild(empty);
             refs.playerTableBody.replaceChildren(row);
             scheduleLayoutSync();
-            return;
+            return true;
         }
         let currentTeam = null;
         let bandIndex = 0;
-        const rows = sortPlayersForTable(players)
+        const rows = sortedPlayers
             .map((player, index) => {
                 const team = teamSortValue(player.team);
                 if (index === 0) currentTeam = team;
@@ -500,6 +538,7 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
             });
         refs.playerTableBody.replaceChildren(...rows);
         scheduleLayoutSync();
+        return true;
     }
 
     function updateSnapshot(snapshot) {
@@ -570,7 +609,6 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
             saveSetting(key, settings[key]);
             if (key.startsWith('table')) {
                 renderTable(store.state.currentSnapshot?.players || []);
-                scheduleLayoutSync();
             }
         });
     }

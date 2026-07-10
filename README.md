@@ -272,8 +272,9 @@ present. Map labels color only the roster tag sequence by the leftmost tag,
 while the nickname and other label text keep the player marker color. The
 sentinel legend value `pilot_medium_empty` and rank value `None` display as
 empty. Shield quality, shield, and health are shown as one
-`SHIELD & HEALTH` bar column; when `max_shield` is `0`, only the shield bar is
-omitted.
+`SHIELD & HEALTH` bar column; when `max_shield` is `0` or the player is down,
+only the shield bar is omitted. Dead players show neither bar. The table DOM is
+rebuilt only when visible table content or selected table fields change.
 
 ## Development rules
 

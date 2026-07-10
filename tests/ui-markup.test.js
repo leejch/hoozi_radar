@@ -53,6 +53,7 @@ test('player filters are removed and table controls use the combined vitals fiel
     assert.doesNotMatch(indexHtml, /id="conf_showdead"|id="conf_showdown"/);
     assert.match(indexHtml, /data-setting="tableVitals"[\s\S]{0,120}data-i18n="table\.columns\.vitals"/);
     assert.doesNotMatch(indexHtml, /data-setting="tableRoster"/);
+    assert.doesNotMatch(indexHtml, /data-setting="tableDistance"|data-i18n="table\.columns\.distance"/);
     assert.doesNotMatch(indexHtml, /data-setting="tableMaxShield"|data-setting="tableShield"|data-setting="tableHp"/);
 });
 
@@ -66,7 +67,6 @@ test('player table columns and field toggles use the requested display order', (
         'table.columns.level',
         'table.columns.damage',
         'table.columns.kills',
-        'table.columns.distance',
         'table.columns.uid',
         'table.columns.uidLong',
         'table.columns.down',
@@ -100,6 +100,13 @@ test('the unloaded map image has no source and remains hidden', () => {
 test('table icon images load eagerly so hidden fallback images still request assets', () => {
     assert.match(controlsSource, /image\.loading = 'eager'/);
     assert.doesNotMatch(controlsSource, /image\.loading = 'lazy'/);
+    assert.match(controlsSource, /image\.className = 'size-5 shrink-0 object-contain'/);
+});
+
+test('table only rebuilds when its visible-content signature changes', () => {
+    assert.match(controlsSource, /let lastTableRenderSignature = null/);
+    assert.match(controlsSource, /const signature = tableRenderSignature\(sortedPlayers, activeColumns\)/);
+    assert.match(controlsSource, /if \(signature === lastTableRenderSignature\) return false/);
 });
 
 test('image-only map mode fits the image and suppresses coordinate drawing layers', () => {

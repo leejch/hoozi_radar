@@ -161,13 +161,13 @@ current page origin as the cross-origin image request referrer.
 | `squad` | number | teammate flag / squad identifier | `p.squad_id`, fallback `0` | Raw export metadata only; no table column is shown. |
 | `x`, `y` | number or absent | 0–1000 map pixels | Lua calls `math.WorldToMapPixel(worldX, worldY, 1000, 1000)` and applies a two-second sticky cache | Uniformly mapped onto a square drawing surface inside the observation port. Players without both values are retained in state but not plotted; coordinates are intentionally omitted from table controls. |
 | `yaw` | number | not specified by the checked API | `p.yaw` forwarded unchanged after finite-value validation | Retained in state/export only. It is not converted into a map heading because the reference does not define its unit/orientation contract. |
-| `hp` | number | health points | `p.health`, fallback `0` | Focus value, map health bar, and the merged table shield/health bar column. |
+| `hp` | number | health points | `p.health`, fallback `0` | Focus value, map health bar, and the merged table shield/health bar column. The bar is hidden for dead players. |
 | `max_hp` | number | health points | Literal `100` in Lua | Health ratio denominator; hidden from table controls because it is always 100 in observed backend data. |
-| `shield` | number | shield points | `p.shield`, fallback `0` | Focus value, map shield bar, and the merged table shield/health bar column. When `max_shield` is `0`, the shield bar is omitted while health remains visible. |
+| `shield` | number | shield points | `p.shield`, fallback `0` | Focus value, map shield bar, and the merged table shield/health bar column. The shield bar is omitted when `max_shield` is `0`, or when the player is down or dead. |
 | `max_shield` | number | shield points | `p.max_shield`, fallback `0` | Shield ratio denominator and shield-tier color/length selector. A zero value omits the shield bar on the map and in the merged table shield/health column. |
-| `distance` | number | meters | `p.distance`; API examples compare it to meter thresholds | Focus/table details. |
-| `is_dead` | boolean | — | `p.is_dead` | Dead players are retained in state/table data but are not plotted on the map. |
-| `is_down` | boolean | — | `p.is_down` | Downed players remain plotted and use the same red X marker style that the old dead marker used. |
+| `distance` | number | meters | `p.distance`; API examples compare it to meter thresholds | Focus details only; it is retained for export but is not a player-table field. |
+| `is_dead` | boolean | — | `p.is_dead` | Dead players are retained in state/table data but are not plotted on the map; their map/table vital bars are hidden. |
+| `is_down` | boolean | — | `p.is_down` | Downed players remain plotted and use the same red X marker style that the old dead marker used; their shield bar is hidden while health remains visible. |
 | `legend` | string | runtime label | `p.legend` | Map label and merged player-table legend column. The frontend displays `pilot_medium_empty` as an empty value. |
 | `legend_icon_key` | string | icon asset key | Forwarded from `p.legend_icon_key`; observed keys use paths such as `icon_legends/30px-Portrait_Lifeline_square` | Preserved in state/export. The player table strips the leading `icon_legends/` prefix and loads the transparent PNG from `https://img.hoozi.net/icon_legends/` or local `./res/icon_legends/` using the same source order as map images. |
 | `uid` | string | short platform UID | `p.platform_uid` | Displayed exactly as received in the short-UID column. The normalized state also derives `uid_long` for display only by XORing the short UID with `0xDEADBEEF1B4DF00D` as an unsigned 64-bit value. The raw exported server message still contains only the backend `uid` field. |
@@ -232,18 +232,21 @@ visibility, or page dimensions change.
 Map overlay defaults start with nickname, legend, level, rank, and kills/damage
 turned off. Dead players are always hidden on the map. Downed players are
 always shown on the map. Shield and health share one map-overlay toggle; roster
-tags, team links, and ring display remain independently toggleable.
+tags, team links, and ring display remain independently toggleable. The player
+table DOM is rebuilt only when its visible fields or displayed values change.
 
 Player markers use the same four-pixel radius for local and remote players.
 Normal remote marker outlines are one-pixel dark lines. The local-player marker
 keeps a one-pixel `rgb(255, 0, 0)` outline. The selected focus player gets a
 white one-pixel ring outside the normal marker border, with a one-pixel visual
 gap, and a white crosshair line pair through that selected position. Team links
-connect the selected focus player to players on the same team. The shield bar
-is drawn directly above the health bar with a shared edge; the stacked bars sit
-immediately above the player marker. The table shield/health column mirrors
-that stack with the 125-shield length treated as the full unit width; the
-100-health bar is therefore 80% of that width. Entity labels are placed
+connect the selected focus player to players on the same team at 65% white
+opacity. The shield bar is drawn directly above the health bar with a shared
+edge; the stacked bars sit immediately above the player marker. Downed players
+show only the health bar, and dead players show neither bar. The table
+shield/health column mirrors those visibility rules with the 125-shield length
+treated as the full unit width; the 100-health bar is therefore 80% of that
+width. Entity labels are placed
 immediately below the marker. Both bars use a 0.5-pixel dark border. Shield bar
 width is 50%, 75%, 100%, or 125% of the health-bar width for maximum shield
 values 50, 75, 100, or 125. Their fill colors are respectively

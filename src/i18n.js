@@ -29,7 +29,7 @@ const translations = {
                 self: '本机', id: '原始序号', index: '序号', team: '队伍', squad: '是否队友', name: '昵称',
                 x: 'X坐标', y: 'Y坐标', yaw: '视角朝向', legend: '传奇', legendIconKey: '传奇图标',
                 uid: '短UID', uidLong: '长UID', vitals: '护盾 & 血量', hp: '血量', maxHp: '最大血量', shield: '护盾',
-                maxShield: '护盾品质', distance: '距离', dead: '死亡', down: '倒地',
+                maxShield: '护盾品质', dead: '死亡', down: '倒地',
                 level: '等级', rank: '段位', rankIconKey: '段位图标', rankColor: '段位颜色', kills: '击杀',
                 damage: '伤害', roster: '标记'
             }
@@ -78,7 +78,7 @@ const translations = {
                 self: '本機', id: '原始序號', index: '序號', team: '隊伍', squad: '是否隊友', name: '暱稱',
                 x: 'X座標', y: 'Y座標', yaw: '視角朝向', legend: '傳奇', legendIconKey: '傳奇圖示',
                 uid: '短UID', uidLong: '長UID', vitals: '護盾 & 血量', hp: '血量', maxHp: '最大血量', shield: '護盾',
-                maxShield: '護盾品質', distance: '距離', dead: '死亡', down: '倒地',
+                maxShield: '護盾品質', dead: '死亡', down: '倒地',
                 level: '等級', rank: '段位', rankIconKey: '段位圖示', rankColor: '段位顏色', kills: '擊殺',
                 damage: '傷害', roster: '標記'
             }
@@ -127,7 +127,7 @@ const translations = {
                 self: 'Local', id: 'Original ID', index: 'Index', team: 'Team', squad: 'Teammate Flag', name: 'Nickname',
                 x: 'X Coordinate', y: 'Y Coordinate', yaw: 'View Direction', legend: 'Legend', legendIconKey: 'Legend Icon',
                 uid: 'Short UID', uidLong: 'Long UID', vitals: 'SHIELD & HEALTH', hp: 'Health', maxHp: 'Max Health', shield: 'Shield',
-                maxShield: 'Shield Quality', distance: 'Distance', dead: 'Death', down: 'Downed',
+                maxShield: 'Shield Quality', dead: 'Death', down: 'Downed',
                 level: 'Level', rank: 'Rank', rankIconKey: 'Rank Icon', rankColor: 'Rank Color', kills: 'Kills',
                 damage: 'Damage', roster: 'Marker'
             }
