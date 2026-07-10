@@ -111,8 +111,18 @@ test('table only rebuilds when its visible-content signature changes', () => {
 
 test('image-only map mode fits the image and suppresses coordinate drawing layers', () => {
     assert.match(indexHtml, /#mapViewport\[data-map-mode="image"\][\s\S]{0,180}width:\s*100% !important/);
-    assert.match(indexHtml, /#mapViewport\[data-map-mode="image"\] canvas[\s\S]{0,80}display:\s*none/);
+    assert.match(indexHtml, /#mapStage\[data-map-mode="image"\] #mapCanvas[\s\S]{0,80}display:\s*none/);
     assert.match(indexHtml, /id="mapViewport"[^>]+data-map-mode="radar"/);
+});
+
+test('canvas layers are siblings of the transformed map image', () => {
+    const viewportStart = indexHtml.indexOf('<div id="mapViewport"');
+    const viewportEnd = indexHtml.indexOf('</div>', viewportStart);
+    const zoneCanvas = indexHtml.indexOf('<canvas id="mapZoneCanvas"');
+    const playerCanvas = indexHtml.indexOf('<canvas id="mapCanvas"');
+    assert.ok(viewportStart >= 0 && viewportEnd >= 0);
+    assert.ok(zoneCanvas > viewportEnd);
+    assert.ok(playerCanvas > zoneCanvas);
 });
 
 test('footer disclaimer uses the trademark ownership wording', () => {

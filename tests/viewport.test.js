@@ -9,6 +9,7 @@ import {
     defaultScaleForMode
 } from '../src/config.js';
 import {
+    canvasTransformForViewport,
     mapPointAtObservationPoint,
     normalizeZoomScale,
     squareSurfaceForObservation,
@@ -27,6 +28,13 @@ test('a rectangular observation port creates a short-edge-fitted square map surf
         width: 540,
         height: 540
     });
+});
+
+test('screen-space canvas transform combines map zoom and physical-pixel density', () => {
+    assert.deepEqual(
+        canvasTransformForViewport({ scale: 1.5, translateX: -120, translateY: 80 }, 2),
+        { scale: 3, translateX: -240, translateY: 160 }
+    );
 });
 
 test('mode defaults are 150 percent follow and 100 percent free view', () => {

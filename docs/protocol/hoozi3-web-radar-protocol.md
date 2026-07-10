@@ -261,8 +261,12 @@ map dimension exactly reaches the corresponding port edge while the complete
 square remains visible; the longer observation axis may contain empty space.
 The surface is then retained when browser width, landscape/portrait layout,
 menu visibility, or player-table visibility changes, preventing map images,
-circles, and player geometry from being stretched. User-controlled zoom is
-clamped to 50%–300%
+circles, and player geometry from being stretched. The ring and entity canvases
+are screen-space siblings of the transformed map image: their backing buffers
+track the observation port at the current `devicePixelRatio`, and their drawing
+transforms include map zoom. This keeps vector overlays sharp across display
+densities and browser zoom changes without allocating a canvas proportional to
+the map zoom. User-controlled zoom is clamped to 50%–300%
 for buttons, wheel input, and two-pointer pinch input. Page load defaults to
 fixed follow at 150%. Selecting free view resets to a centered 100%; selecting
 fixed follow resets to 150% and re-centers the selected player.

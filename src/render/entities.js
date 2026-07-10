@@ -206,9 +206,9 @@ export function shieldBarStyle(maxShield) {
     return tier ? { width: BAR_WIDTH * tier.widthScale, color: tier.color } : null;
 }
 
-export function renderEntities(ctx, snapshot, settings, selectedPlayer, dimensions, t) {
+export function renderEntities(ctx, snapshot, settings, selectedPlayer, dimensions, t, { clear = true } = {}) {
     const { width, height } = dimensions;
-    ctx.clearRect(0, 0, width, height);
+    if (clear) ctx.clearRect(0, 0, width, height);
     if (!snapshot) return;
 
     const visiblePlayers = snapshot.players.filter((player) => {

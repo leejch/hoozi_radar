@@ -106,7 +106,10 @@ observation axis may contain empty space. The surface is then locked after the
 initial desktop column layout settles. This keeps map imagery, player
 coordinates, and ring circles on one uniform scale.
 Later window resizing or player-table visibility changes only alter the visible
-crop; they do not resize the map image, ring canvas, or player canvas.
+crop; they do not resize the map image or map-coordinate surface. The ring and
+player canvases instead cover the observation port at the active
+`devicePixelRatio`; their internal transforms include map zoom so browser and
+map scaling do not raster-enlarge player graphics.
 
 Radar zoom is strictly clamped to 50%–300%. Fixed follow is the page-load
 default and starts at 150%; selecting free view resets to a centered 100%, while

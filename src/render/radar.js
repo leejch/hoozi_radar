@@ -9,6 +9,7 @@ import { isImageOnlyMap } from '../assets/maps.js';
 import { renderEntities } from './entities.js';
 import { renderRingEffect } from './ring.js';
 import {
+    canvasTransformForViewport,
     mapPointAtObservationPoint,
     normalizeZoomScale,
     squareSurfaceForObservation,
@@ -43,10 +44,22 @@ export function createRadarRenderer({ refs, store, settings, t }) {
     }
 
     function clearDrawingLayers() {
-        zoneCtx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
-        zoneCtx.clearRect(0, 0, surface.width, surface.height);
-        ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
-        ctx.clearRect(0, 0, surface.width, surface.height);
+        for (const context of [zoneCtx, ctx]) {
+            context.setTransform(1, 0, 0, 1, 0, 0);
+            context.clearRect(0, 0, context.canvas.width, context.canvas.height);
+        }
+    }
+
+    function setDrawingTransform(context) {
+        const transform = canvasTransformForViewport(store.state.viewport, pixelRatio);
+        context.setTransform(
+            transform.scale,
+            0,
+            0,
+            transform.scale,
+            transform.translateX,
+            transform.translateY
+        );
     }
 
     function setMapMode(mode) {
@@ -69,10 +82,10 @@ export function createRadarRenderer({ refs, store, settings, t }) {
     }
 
     function resizeCanvases() {
-        if (!surface.width || !surface.height) return;
+        if (!viewportWidth || !viewportHeight) return;
         pixelRatio = Math.max(1, window.devicePixelRatio || 1);
-        const width = Math.max(1, Math.round(surface.width * pixelRatio));
-        const height = Math.max(1, Math.round(surface.height * pixelRatio));
+        const width = Math.max(1, Math.round(viewportWidth * pixelRatio));
+        const height = Math.max(1, Math.round(viewportHeight * pixelRatio));
         for (const canvas of [refs.mapZoneCanvas, refs.mapCanvas]) {
             if (canvas.width !== width) canvas.width = width;
             if (canvas.height !== height) canvas.height = height;
@@ -204,6 +217,9 @@ export function createRadarRenderer({ refs, store, settings, t }) {
     function renderFrame(now) {
         const snapshot = store.getRenderSnapshot(now);
         setMapMode(isImageOnlyMap(snapshot?.map) ? MAP_MODE_IMAGE : MAP_MODE_RADAR);
+        // Browser zoom and display-DPI changes do not consistently fire a
+        // ResizeObserver. This is a no-op unless the backing dimensions changed.
+        resizeCanvases();
         if (isImageMode()) {
             clearDrawingLayers();
             animationFrame = requestAnimationFrame(renderFrame);
@@ -211,10 +227,25 @@ export function createRadarRenderer({ refs, store, settings, t }) {
         }
         const selected = store.getSelectedPlayer(snapshot?.players);
         if (store.state.viewMode === VIEW_MODE_FOLLOW && selected?.position) centerOn(selected.position);
-        zoneCtx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
-        renderRingEffect(zoneCtx, snapshot?.ring, settings, { width: surface.width, height: surface.height });
-        ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
-        renderEntities(ctx, snapshot, settings, selected, { width: surface.width, height: surface.height }, t);
+        clearDrawingLayers();
+        setDrawingTransform(zoneCtx);
+        renderRingEffect(
+            zoneCtx,
+            snapshot?.ring,
+            settings,
+            { width: surface.width, height: surface.height },
+            { clear: false }
+        );
+        setDrawingTransform(ctx);
+        renderEntities(
+            ctx,
+            snapshot,
+            settings,
+            selected,
+            { width: surface.width, height: surface.height },
+            t,
+            { clear: false }
+        );
         animationFrame = requestAnimationFrame(renderFrame);
     }
 

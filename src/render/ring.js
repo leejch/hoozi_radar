@@ -10,9 +10,9 @@ function addOutsidePath(ctx, centerX, centerY, radius, width, height) {
     ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
 }
 
-export function renderRingEffect(ctx, ring, settings, dimensions) {
+export function renderRingEffect(ctx, ring, settings, dimensions, { clear = true } = {}) {
     const { width, height } = dimensions;
-    ctx.clearRect(0, 0, width, height);
+    if (clear) ctx.clearRect(0, 0, width, height);
     if (!settings.showRing || !ring || ring.radius <= 0) return;
 
     const mapScale = Math.min(width, height) / MAP_SIDE;

@@ -11,6 +11,18 @@ export function squareSurfaceForObservation(observation) {
     return { width: side, height: side };
 }
 
+export function canvasTransformForViewport(viewport, pixelRatio) {
+    const ratio = Number.isFinite(pixelRatio) && pixelRatio > 0 ? pixelRatio : 1;
+    const scale = Number.isFinite(viewport?.scale) ? normalizeZoomScale(viewport.scale) : 1;
+    const translateX = Number.isFinite(viewport?.translateX) ? viewport.translateX : 0;
+    const translateY = Number.isFinite(viewport?.translateY) ? viewport.translateY : 0;
+    return {
+        scale: ratio * scale,
+        translateX: ratio * translateX,
+        translateY: ratio * translateY
+    };
+}
+
 export function translationForCenteredSurface(surface, observation, scale) {
     if (![surface?.width, surface?.height, observation?.width, observation?.height].every(Number.isFinite)) {
         return null;
