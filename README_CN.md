@@ -205,8 +205,8 @@ npm run build
 已知 BR 地图按已确认的运行时前缀匹配，后续 `_mu1`、`_mu2` 等变体后缀会被接受。
 确认的资源为：`mp_rr_canyonlands.png`、`mp_rr_desertlands.png`、
 `mp_rr_olympus.png`、`mp_rr_divided_moon.png`、
-`mp_rr_thunderdome.png` 和 `mp_rr_district.png`。运行时前缀
-`mp_rr_tropic_island*` 使用雷霆穹顶资源 `mp_rr_thunderdome.png`；
+`mp_rr_tropic_island.png` 和 `mp_rr_district.png`。运行时前缀
+`mp_rr_tropic_island*` 使用风暴点资源 `mp_rr_tropic_island.png`；
 `mp_rr_thunderdome*` 不是实际地图前缀。`mp_rr_canyonlands_staging*`
 会先于普通 `mp_rr_canyonlands` 规则匹配，并使用 `mp_range.png`。`mp_lobby`
 开头的原始地图名使用 `mp_lobby.png`。大厅和射击场都会以居中、保持比例、不超过地图绘制区域宽高的方式显示，

@@ -11,7 +11,7 @@ const knownMaps = [
     ['mp_rr_desertlands', 'mp_rr_desertlands.png', 'maps.worldsEdge'],
     ['mp_rr_olympus', 'mp_rr_olympus.png', 'maps.olympus'],
     ['mp_rr_divided_moon', 'mp_rr_divided_moon.png', 'maps.brokenMoon'],
-    ['mp_rr_tropic_island', 'mp_rr_thunderdome.png', 'maps.thunderdome'],
+    ['mp_rr_tropic_island', 'mp_rr_tropic_island.png', 'maps.stormPoint'],
     ['mp_rr_district', 'mp_rr_district.png', 'maps.eDistrict']
 ];
 
@@ -28,7 +28,7 @@ test('map matching uses known runtime prefixes and accepts runtime suffixes', ()
     assert.equal(mapAssetName('mp_rr_canyonlands_hu_avt_uh'), 'mp_rr_canyonlands.png');
     assert.equal(mapAssetName('mp_rr_divided_moon_mu1'), 'mp_rr_divided_moon.png');
     assert.equal(mapAssetName('mp_rr_district_mu1'), 'mp_rr_district.png');
-    assert.equal(mapAssetName('mp_rr_tropic_island_mu2_landscape'), 'mp_rr_thunderdome.png');
+    assert.equal(mapAssetName('mp_rr_tropic_island_mu2_landscape'), 'mp_rr_tropic_island.png');
 });
 
 test('unknown raw map names do not request synthetic map assets', () => {
@@ -39,7 +39,7 @@ test('unknown raw map names do not request synthetic map assets', () => {
     assert.equal(mapDisplayName('mp_rr_unknown_br_mu1', t), 'mp_rr_unknown_br_mu1');
     assert.equal(mapDisplayName('mp_rr_thunderdome_mu2', t), 'mp_rr_thunderdome_mu2');
     assert.equal(mapDisplayName('mp_rr_district_mu1', t), 'translated:maps.eDistrict');
-    assert.equal(mapDisplayName('mp_rr_tropic_island_mu2_landscape', t), 'translated:maps.thunderdome');
+    assert.equal(mapDisplayName('mp_rr_tropic_island_mu2_landscape', t), 'translated:maps.stormPoint');
 });
 
 test('lobby map names use the dedicated lobby image without coordinate-map classification', () => {
@@ -64,9 +64,9 @@ test('canyonlands staging map names use the range image-only map', () => {
 
 test('all map names are present in all three supported languages', () => {
     for (const label of [
-        '诸王峡谷', '世界尽头', '奥林匹斯', '残月', '雷霆穹顶', '电气区',
-        '王者峽谷', '世界邊緣', '奧林匹斯', '殘月', '雷霆穹頂', '電流區',
-        'Kings Canyon', "World's Edge", 'Olympus', 'Broken Moon', 'Thunderdome', 'E-District',
+        '诸王峡谷', '世界尽头', '奥林匹斯', '残月', '风暴点', '电气区',
+        '王者峽谷', '世界邊緣', '奧林匹斯', '殘月', '暴風點', '電流區',
+        'Kings Canyon', "World's Edge", 'Olympus', 'Broken Moon', 'Storm Point', 'E-District',
         '大厅', '大廳', 'Lobby', '射击场', '射擊場', 'Firing Range'
     ]) {
         assert.ok(i18nSource.includes(label), `missing localized map label: ${label}`);
