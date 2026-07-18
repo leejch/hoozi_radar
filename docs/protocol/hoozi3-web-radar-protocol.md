@@ -203,6 +203,26 @@ BigInt.asUintN(64, BigInt(uid) ^ BigInt('0xDEADBEEF1B4DF00D')).toString()
 This value is not sent by `web_radar.lua`, is not written back to the raw
 exported server message, and is not used as player identity.
 
+### Local-team display and export privacy
+
+The browser identifies the local team from the player whose verified `self`
+field is `true`. That player and every player with the same numeric `team`
+value receive a presentation-only projection:
+
+- `name` is displayed as `HOOZi3.0` in the player table, follow selector, focus
+  UI, and map labels;
+- `legend`, `rank`, `level`, `uid`, and derived `uid_long` display as `-`;
+- `legend_icon_key` and `rank_icon_key` display as `-` in their merged table
+  columns without attempting an icon request.
+
+This projection is not protocol normalization and does not mutate the atomic
+snapshot. Raw values remain available to identity, selection, and interpolation.
+At the JSON export boundary, the same players use `name = "HOOZi3.0"`; existing
+`legend`, `legend_icon_key`, `rank`, `rank_icon_key`, `level`, `uid`, and
+`uid_long` fields become empty strings. An absent `uid_long` field is not added.
+If no explicit `self` player is present, the frontend does not guess a local
+team and applies no privacy projection to the UI or export.
+
 The visible player table columns default to the user-facing order: `team`,
 `name`, merged `max_shield`/`shield`/`hp` as the shield/health bar column,
 merged `legend`/`legend_icon_key`, merged `rank`/`rank_icon_key`, `level`,
@@ -327,10 +347,11 @@ The browser parser:
 - keeps a player in lists when coordinates are absent, but does not plot it;
 - treats an incomplete or non-finite ring as absent.
 
-The player-information toolbar exports the latest complete raw `state` message
-as JSON. The export recursively orders object keys by dictionary order, uses
-four spaces per indentation level, and orders players by ascending numeric
-`team` followed by dictionary-ordered `name`. Imported files must use a `.json`
+The player-information toolbar exports the latest complete `state` message as
+JSON after applying the local-team privacy projection documented above. The
+export recursively orders object keys by dictionary order, uses four spaces per
+indentation level, and orders players by ascending numeric `team`, then
+dictionary-ordered `name`, then stable `id`. Imported files must use a `.json`
 filename and must parse as a `state`
 message through this same boundary; `pong`, unknown kinds, invalid JSON, and a
 non-array `players` value are rejected without changing frontend state. An

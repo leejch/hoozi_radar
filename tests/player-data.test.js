@@ -57,3 +57,51 @@ test('player data export sorts players by team and then nickname', () => {
     assert.deepEqual(payload.players.map(({ id }) => id), ['1', '2', '3', '4']);
     assert.ok(json.includes('            "id": "1",\n            "name": "Alpha",\n            "team": 1'));
 });
+
+test('player data export empties private fields for the local team only', () => {
+    const source = {
+        kind: 'state',
+        players: [
+            {
+                id: 'self', self: true, team: 5, name: 'Local', legend: 'Wraith',
+                legend_icon_key: 'wraith', rank: 'Gold', rank_icon_key: 'gold',
+                level: 100, uid: '123', uid_long: '456'
+            },
+            {
+                id: 'mate', self: false, team: 5, name: 'Mate', legend: 'Loba',
+                legend_icon_key: 'loba', rank: 'Silver', rank_icon_key: 'silver',
+                level: 200, uid: '789'
+            },
+            {
+                id: 'enemy', self: false, team: 9, name: 'Enemy', legend: 'Ash',
+                legend_icon_key: 'ash', rank: 'Platinum', rank_icon_key: 'platinum',
+                level: 300, uid: '999', uid_long: '111'
+            }
+        ]
+    };
+
+    const payload = JSON.parse(formatPlayerExportJson(source));
+    const self = payload.players.find((player) => player.id === 'self');
+    const teammate = payload.players.find((player) => player.id === 'mate');
+    const enemy = payload.players.find((player) => player.id === 'enemy');
+
+    assert.deepEqual(payload.players.map((player) => player.id), ['mate', 'self', 'enemy']);
+    for (const player of [self, teammate]) {
+        assert.equal(player.name, 'HOOZi3.0');
+        for (const field of ['legend', 'legend_icon_key', 'rank', 'rank_icon_key', 'level', 'uid']) {
+            assert.equal(player[field], '');
+        }
+    }
+    assert.equal(self.uid_long, '');
+    assert.equal(Object.hasOwn(teammate, 'uid_long'), false);
+    assert.equal(enemy.name, 'Enemy');
+    assert.equal(enemy.legend, 'Ash');
+    assert.equal(enemy.uid_long, '111');
+    assert.equal(source.players[0].name, 'Local');
+    assert.equal(source.players[0].level, 100);
+});
+
+test('player data export does not guess a local team without self', () => {
+    const source = { kind: 'state', players: [{ id: 'p1', team: 5, name: 'Visible', uid: '123' }] };
+    assert.deepEqual(JSON.parse(formatPlayerExportJson(source)), source);
+});

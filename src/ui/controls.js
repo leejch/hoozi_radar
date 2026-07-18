@@ -11,6 +11,7 @@ import {
 import { configureFallbackIconImage } from '../assets/icons.js';
 import { mapDisplayName } from '../assets/maps.js';
 import { activeLanguage } from '../i18n.js';
+import { localPlayerTeam, playerForDisplay, playersForDisplay } from '../player-display.js';
 import { formatPlayerStatus, shieldBarStyle } from '../render/entities.js';
 import { formatRosterTags, rosterTags } from './roster.js';
 import { allocateDesktopLayout, resolveResponsiveLayoutOrientation } from './layout.js';
@@ -162,7 +163,8 @@ function iconImage(kind, iconKey, altText) {
     return configureFallbackIconImage(image, kind, iconKey) ? image : null;
 }
 
-function iconTextCell({ kind, iconKey, altText, text, showIcon, showText }) {
+function iconTextCell({ kind, iconKey, altText, text, showIcon, showText, redacted = false }) {
+    if (redacted) return cell('-', 'text-slate-500');
     const wrapper = document.createElement('div');
     wrapper.className = 'flex items-center gap-1.5';
     const image = showIcon ? iconImage(kind, iconKey, altText) : null;
@@ -255,6 +257,8 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
     let layoutFrame = 0;
     let activeLayoutOrientation = settings.layoutOrientation;
     let lastTableRenderSignature = null;
+    let lastTableColumnSignature = null;
+    const tableRowsByPlayerId = new Map();
 
     function layoutContentBox() {
         const style = window.getComputedStyle(refs.layout);
@@ -395,11 +399,13 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
 
     function populatePlayerSelect(players) {
         const selectedId = store.state.selectedPlayerId;
+        const localTeam = localPlayerTeam(players);
         const fragment = document.createDocumentFragment();
         for (const player of [...players].sort(comparePlayersByTeamAndName)) {
+            const displayPlayer = playerForDisplay(player, localTeam);
             const option = document.createElement('option');
             option.value = player.id;
-            option.textContent = `${player.self ? '★ ' : ''}${player.name} · T${player.team}`;
+            option.textContent = `${player.self ? '★ ' : ''}${displayPlayer.name} · T${player.team}`;
             option.style.color = teamColorFor(player.team);
             fragment.appendChild(option);
         }
@@ -408,13 +414,14 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
     }
 
     function updateFocus(players) {
-        const player = store.getSelectedPlayer(players);
-        if (!player) {
+        const selectedPlayer = store.getSelectedPlayer(players);
+        if (!selectedPlayer) {
             refs.focusName.textContent = '—';
             refs.focusTeamBadge.style.backgroundColor = '#64748B';
             refs.focusMeta.textContent = `${t('map.focusHealth')} — · ${t('map.focusShield')} — · ${t('map.focusKills')} —`;
             return;
         }
+        const player = playerForDisplay(selectedPlayer, localPlayerTeam(players));
         refs.focusName.textContent = `${player.self ? '★ ' : ''}${player.name}`;
         refs.focusName.style.color = teamColorFor(player.team);
         refs.focusTeamBadge.style.backgroundColor = teamColorFor(player.team);
@@ -449,7 +456,8 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
                 altText: p.legend,
                 text: p.legend,
                 showIcon: settings.tableLegendIconKey,
-                showText: settings.tableLegend
+                showText: settings.tableLegend,
+                redacted: p.displayRedacted
             })
         },
         {
@@ -464,7 +472,8 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
                 altText: p.rank,
                 text: p.rank,
                 showIcon: settings.tableRankIconKey,
-                showText: settings.tableRank
+                showText: settings.tableRank,
+                redacted: p.displayRedacted
             })
         },
         { key: 'level', visible: () => settings.tableLevel, signature: (p) => p.level, label: 'table.columns.level', render: (p) => cell(displayValue(p.level)) },
@@ -491,24 +500,76 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
         return JSON.stringify({
             columns: activeColumns.map((column) => [column.key, column.settingsSignature?.() || null]),
             players: sortedPlayers.map((player) => ({
+                id: player.id,
                 row: [Boolean(player.is_dead), Boolean(player.is_down)],
                 cells: activeColumns.map((column) => column.signature(player))
             }))
         });
     }
 
+    function tableColumnSignature(activeColumns) {
+        return JSON.stringify(activeColumns.map((column) => [
+            column.key,
+            column.settingsSignature?.() || null
+        ]));
+    }
+
+    function rowStateClassName(player, bandIndex) {
+        const classNames = ['player-table-row', `player-table-row-band-${bandIndex}`];
+        if (player.is_dead) classNames.push('player-table-row-dead');
+        else if (player.is_down) classNames.push('player-table-row-down');
+        return classNames.join(' ');
+    }
+
+    function renderPlayerRow(player, bandIndex, activeColumns, existing = null) {
+        const record = existing || {
+            element: document.createElement('tr'),
+            cells: new Map()
+        };
+        record.element.dataset.playerId = player.id;
+        record.element.className = rowStateClassName(player, bandIndex);
+
+        for (const column of activeColumns) {
+            const signature = JSON.stringify(column.signature(player));
+            const currentCell = record.cells.get(column.key);
+            if (currentCell?.signature === signature) continue;
+            const nextElement = column.render(player);
+            if (currentCell) currentCell.element.replaceWith(nextElement);
+            else record.element.appendChild(nextElement);
+            record.cells.set(column.key, { element: nextElement, signature });
+        }
+        return record;
+    }
+
+    function placeTableRows(rows) {
+        rows.forEach((row, index) => {
+            const current = refs.playerTableBody.children[index];
+            if (current !== row) refs.playerTableBody.insertBefore(row, current || null);
+        });
+        while (refs.playerTableBody.children.length > rows.length) {
+            refs.playerTableBody.lastElementChild.remove();
+        }
+    }
+
     function renderTable(players) {
+        const displayPlayers = playersForDisplay(players);
         const activeColumns = columns.filter((column) => column.visible());
-        const sortedPlayers = sortPlayersForTable(players);
+        const sortedPlayers = sortPlayersForTable(displayPlayers);
         const signature = tableRenderSignature(sortedPlayers, activeColumns);
         if (signature === lastTableRenderSignature) return false;
         lastTableRenderSignature = signature;
-        refs.playerTableHeader.replaceChildren(...activeColumns.map(({ label }) => {
-            const th = document.createElement('th');
-            th.className = 'whitespace-nowrap px-2.5 py-2 text-left';
-            th.textContent = t(label);
-            return th;
-        }));
+        const columnSignature = tableColumnSignature(activeColumns);
+        const columnsChanged = columnSignature !== lastTableColumnSignature;
+        if (columnsChanged) {
+            lastTableColumnSignature = columnSignature;
+            tableRowsByPlayerId.clear();
+            refs.playerTableHeader.replaceChildren(...activeColumns.map(({ label }) => {
+                const th = document.createElement('th');
+                th.className = 'whitespace-nowrap px-2.5 py-2 text-left';
+                th.textContent = t(label);
+                return th;
+            }));
+        }
         if (!players.length || !activeColumns.length) {
             const row = document.createElement('tr');
             const empty = cell(t('table.empty'));
@@ -516,28 +577,37 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
             empty.className = 'px-2.5 py-5 text-center text-xs text-slate-500';
             row.appendChild(empty);
             refs.playerTableBody.replaceChildren(row);
+            tableRowsByPlayerId.clear();
             scheduleLayoutSync();
             return true;
         }
         let currentTeam = null;
         let bandIndex = 0;
-        const rows = sortedPlayers
-            .map((player, index) => {
+        const previousPlayerIds = new Set(tableRowsByPlayerId.keys());
+        const playerSetChanged = sortedPlayers.length !== previousPlayerIds.size
+            || sortedPlayers.some((player) => !previousPlayerIds.has(player.id));
+        const rows = sortedPlayers.map((player, index) => {
                 const team = teamSortValue(player.team);
                 if (index === 0) currentTeam = team;
                 else if (team !== currentTeam) {
                     bandIndex = bandIndex === 0 ? 1 : 0;
                     currentTeam = team;
                 }
-                const row = document.createElement('tr');
-                row.className = `player-table-row player-table-row-band-${bandIndex}`;
-                if (player.is_dead) row.classList.add('player-table-row-dead');
-                else if (player.is_down) row.classList.add('player-table-row-down');
-                row.append(...activeColumns.map(({ render }) => render(player)));
-                return row;
+                const record = renderPlayerRow(
+                    player,
+                    bandIndex,
+                    activeColumns,
+                    tableRowsByPlayerId.get(player.id)
+                );
+                tableRowsByPlayerId.set(player.id, record);
+                previousPlayerIds.delete(player.id);
+                return record.element;
             });
-        refs.playerTableBody.replaceChildren(...rows);
-        scheduleLayoutSync();
+        for (const playerId of previousPlayerIds) tableRowsByPlayerId.delete(playerId);
+        placeTableRows(rows);
+        if (columnsChanged || playerSetChanged || previousPlayerIds.size > 0) {
+            scheduleLayoutSync();
+        }
         return true;
     }
 

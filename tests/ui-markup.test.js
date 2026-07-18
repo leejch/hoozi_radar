@@ -103,10 +103,21 @@ test('table icon images load eagerly so hidden fallback images still request ass
     assert.match(controlsSource, /image\.className = 'size-5 shrink-0 object-contain'/);
 });
 
-test('table only rebuilds when its visible-content signature changes', () => {
+test('table reuses keyed rows and replaces only visibly changed cells', () => {
     assert.match(controlsSource, /let lastTableRenderSignature = null/);
     assert.match(controlsSource, /const signature = tableRenderSignature\(sortedPlayers, activeColumns\)/);
     assert.match(controlsSource, /if \(signature === lastTableRenderSignature\) return false/);
+    assert.match(controlsSource, /const tableRowsByPlayerId = new Map\(\)/);
+    assert.match(controlsSource, /currentCell\.element\.replaceWith\(nextElement\)/);
+    assert.match(controlsSource, /tableRowsByPlayerId\.get\(player\.id\)/);
+    assert.match(controlsSource, /placeTableRows\(rows\)/);
+    assert.match(controlsSource, /if \(columnsChanged \|\| playerSetChanged \|\| previousPlayerIds\.size > 0\)/);
+});
+
+test('player table headers stay visible inside the scrolling table viewport', () => {
+    assert.match(indexHtml, /\.player-table thead th\s*\{[\s\S]{0,160}position:\s*sticky/);
+    assert.match(indexHtml, /\.player-table thead th\s*\{[\s\S]{0,160}top:\s*0/);
+    assert.match(indexHtml, /\.player-table thead th\s*\{[\s\S]{0,160}z-index:\s*2/);
 });
 
 test('image-only map mode fits the image and suppresses coordinate drawing layers', () => {

@@ -1,5 +1,6 @@
 import { MAP_SIDE, teamColorFor } from '../config.js';
 import { activeLanguage } from '../i18n.js';
+import { localPlayerTeam, playerForDisplay } from '../player-display.js';
 import { rosterTags } from '../ui/roster.js';
 
 const PLAYER_RADIUS = 4;
@@ -86,7 +87,7 @@ function mapInfoLinesZhHans(player, settings) {
     }
     if (settings.showLevel) {
         const level = compactValue(player.level);
-        if (level) second.push(`Lv.${level}`);
+        if (level) second.push(player.displayRedacted ? level : `Lv.${level}`);
     }
     if (settings.showRank) pushIfValue(second, player.rank);
     if (settings.showRoster) pushRosterIfValue(second, player.roster);
@@ -106,7 +107,7 @@ function mapInfoLinesZhHant(player, settings) {
     }
     if (settings.showLevel) {
         const level = compactValue(player.level);
-        if (level) second.push(`Lv.${level}`);
+        if (level) second.push(player.displayRedacted ? level : `Lv.${level}`);
     }
     if (settings.showRank) pushIfValue(second, player.rank);
     if (settings.showRoster) pushRosterIfValue(second, player.roster);
@@ -126,7 +127,7 @@ function mapInfoLinesEn(player, settings) {
     }
     if (settings.showLevel) {
         const level = compactValue(player.level);
-        if (level) second.push(`Lv.${level}`);
+        if (level) second.push(player.displayRedacted ? level : `Lv.${level}`);
     }
     if (settings.showRank) pushIfValue(second, player.rank);
     if (settings.showRoster) pushRosterIfValue(second, player.roster);
@@ -210,6 +211,7 @@ export function renderEntities(ctx, snapshot, settings, selectedPlayer, dimensio
     const { width, height } = dimensions;
     if (clear) ctx.clearRect(0, 0, width, height);
     if (!snapshot) return;
+    const localTeam = localPlayerTeam(snapshot.players);
 
     const visiblePlayers = snapshot.players.filter((player) => {
         if (!player.position) return false;
@@ -309,7 +311,7 @@ export function renderEntities(ctx, snapshot, settings, selectedPlayer, dimensio
             drawBar(ctx, point.x - BAR_WIDTH / 2, barY, BAR_WIDTH, BAR_HEIGHT, player.hp, player.max_hp, '#FFFFFF');
         }
 
-        const lines = mapInfoLines(player, settings);
+        const lines = mapInfoLines(playerForDisplay(player, localTeam), settings);
         if (lines.length) labels.push({ point, color: player.self ? '#FFFFFF' : teamColor, lines, alpha, player });
         ctx.restore();
     }

@@ -261,6 +261,37 @@ test('map roster tags use the highest-priority tag color without recoloring the 
     assert.equal(rosterFill?.align, 'left');
 });
 
+test('map labels redact the local player and teammates without changing enemies', () => {
+    const { ctx, records } = recordingContext();
+    const base = {
+        position: { x: 500, y: 500 }, is_dead: false, is_down: false,
+        hp: 100, max_hp: 100, shield: 0, max_shield: 0,
+        legend: 'Wraith', level: 100, rank: 'Gold', kills: 0, damage: 0, roster: 0
+    };
+    const self = { ...base, id: 'self', self: true, name: 'Local', team: 5 };
+    const teammate = { ...base, id: 'mate', self: false, name: 'Mate', team: 5, position: { x: 550, y: 550 } };
+    const enemy = { ...base, id: 'enemy', self: false, name: 'Enemy', team: 9, position: { x: 600, y: 600 } };
+    const settings = {
+        ...DEFAULT_SETTINGS,
+        showTeamLinks: false,
+        showVitals: false,
+        showName: true,
+        showLegend: true,
+        showLevel: true,
+        showRank: true,
+        showCombat: false,
+        showRoster: false
+    };
+
+    renderEntities(ctx, { players: [self, teammate, enemy] }, settings, self, { width: 1000, height: 1000 }, (key) => key);
+
+    assert.deepEqual(records.outlinedText.map((record) => record.text), [
+        'HOOZi3.0 -', '- -',
+        'HOOZi3.0 -', '- -',
+        'Enemy Wraith', 'Lv.100 Gold'
+    ]);
+});
+
 test('second-line-only map labels draw in the first line position', () => {
     const { ctx, records } = recordingContext();
     const player = {

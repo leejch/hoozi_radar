@@ -34,6 +34,10 @@ The HOOZi 3.0 version follows the checked-in Lua script instead:
 - independent map-overlay switches and player-table columns in the current
   HOOZi 3.0 display order, with raw-only fields retained for exports but hidden
   from the controls
+- display-only local-team privacy: the explicit `self` player and players with
+  the same `team` show the name `HOOZi3.0`, while legend/rank icons and labels,
+  level, short UID, and long UID are replaced by `-`; the same fields are empty
+  strings in JSON exports
 - a fixed square radar drawing surface behind a responsive observation port, with
   50%–300% button, wheel, and pinch zoom
 - validated JSON import and export of the current HOOZi `state` player data
@@ -72,6 +76,7 @@ hoozi_radar/
 ├── src/
 │   ├── main.js                   Bootstrap and WebSocket lifecycle
 │   ├── config.js                 Constants, settings, and targets
+│   ├── player-display.js         Display-only local-team privacy projection
 │   ├── i18n.js                   zh-Hans, zh-Hant, and English strings
 │   ├── protocol/hoozi3.js        Protocol validation and normalization
 │   ├── state/store.js            Snapshots, selection, and interpolation
@@ -138,12 +143,16 @@ stage uses a `1:1.12` width-to-height ratio unless it is the only visible body
 panel. Header buttons independently show or hide the menu and player list in
 either layout. The portrait player list grows to show every row and only its
 intrinsic columns scroll horizontally. The same allocation runs after window
-resizing, layout changes, table field changes, snapshot content changes, and
-menu/player-table visibility changes.
+resizing, layout changes, table field changes, player-set changes, and
+menu/player-table visibility changes. Ordinary cell-value updates reuse the
+existing table geometry and do not request a new panel allocation.
 
 The player-information toolbar exports the latest complete `state` JSON as the
 current player data. Exported object keys use dictionary order with four-space
-indentation; players are ordered by ascending team number and then nickname.
+indentation; players are ordered by ascending team number, nickname, and stable
+`id`. Before formatting, the explicit `self` player's team is privacy-filtered:
+names become `HOOZi3.0`, while legend/rank labels and icon keys, level, short
+UID, and an existing long UID field become empty strings.
 The adjacent import control accepts `.json` files only and
 runs them through the same HOOZi 3.0 protocol validator before applying them.
 Invalid JSON, non-`state` messages, and malformed player arrays do not modify
@@ -274,10 +283,18 @@ marker colors; the player name uses the leftmost tag color when tags are
 present. Map labels color only the roster tag sequence by the leftmost tag,
 while the nickname and other label text keep the player marker color. The
 sentinel legend value `pilot_medium_empty` and rank value `None` display as
-empty. Shield quality, shield, and health are shown as one
+empty. The explicit `self` player's whole team uses a display-only privacy
+projection across the table, selector, focus UI, and map labels: names become
+`HOOZi3.0`; legend, rank, level, short UID, and long UID become `-`; and the two
+icon fields do not request assets. Raw normalized state remains unchanged; at
+the export boundary, local-team privacy fields use empty strings. Shield
+quality, shield, and health are shown as one
 `SHIELD & HEALTH` bar column; when `max_shield` is `0` or the player is down,
-only the shield bar is omitted. Dead players show neither bar. The table DOM is
-rebuilt only when visible table content or selected table fields change.
+only the shield bar is omitted. Dead players show neither bar. Table headers
+are rebuilt only when the selected column structure changes. Rows remain keyed
+by player `id`, and an ordinary snapshot replaces only cells whose visible
+signatures changed.
+The player-table header remains sticky at the top of its scrolling viewport.
 
 ## Development rules
 
