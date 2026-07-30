@@ -1,0 +1,105 @@
+{
+    "description": "Reduced HOOZi 3.0 state messages derived from the checked-in real WebSocket captures. Each example file is directly importable as one state message.",
+    "examples": [
+        {
+            "file": "01-entering-match-self-dead.json",
+            "source": "../hoozi3-current-players-2026-07-07T10-00-50.422Z进入游戏对局前.json",
+            "playerIds": [
+                "ix53",
+                "ix30"
+            ]
+        },
+        {
+            "file": "02-entering-match-self-alive.json",
+            "source": "../hoozi3-current-players-2026-07-07T10-03-05.570Z落地后.json",
+            "playerIds": [
+                "ix22",
+                "ix53",
+                "ix30"
+            ]
+        },
+        {
+            "file": "03-self-changed-old-id-remains.json",
+            "source": "../hoozi3-current-players-2026-07-07T10-05-56.744Z测试名册.json",
+            "playerIds": [
+                "ix22",
+                "ix53",
+                "ix30"
+            ]
+        },
+        {
+            "file": "04-self-dead-spectating.json",
+            "source": "../hoozi3-current-players-2026-07-23T18-16-58.780Z死亡后观战队友.json",
+            "playerIds": [
+                "ix54",
+                "ix5",
+                "ix24"
+            ]
+        },
+        {
+            "file": "05-next-match-index-reused.json",
+            "source": "../hoozi3-current-players-2026-07-23T18-21-08.085Z新的一局重定向到T5_bweet.json",
+            "playerIds": [
+                "ix5",
+                "ix24",
+                "ix54"
+            ]
+        },
+        {
+            "file": "06-no-self.json",
+            "source": "../hoozi3-current-players-2026-07-28T15-18-30.057Z焦点不在自己.json",
+            "playerIds": [
+                "ix18",
+                "ix27",
+                "ix24"
+            ]
+        },
+        {
+            "file": "07-self-returns.json",
+            "source": "../hoozi3-current-players-2026-07-12T10-07-56.423Z电力区真实排位.json",
+            "playerIds": [
+                "ix24",
+                "ix18",
+                "ix27"
+            ],
+            "timestampOverride": 7213.23
+        }
+    ],
+    "sequences": [
+        {
+            "id": "match-entry-and-self-change",
+            "files": [
+                "01-entering-match-self-dead.json",
+                "02-entering-match-self-alive.json",
+                "03-self-changed-old-id-remains.json"
+            ],
+            "expectedAutomaticFocus": [
+                "ix53",
+                "ix53",
+                "ix30"
+            ]
+        },
+        {
+            "id": "death-to-next-match",
+            "files": [
+                "04-self-dead-spectating.json",
+                "05-next-match-index-reused.json"
+            ],
+            "expectedAutomaticFocus": [
+                "ix54",
+                "ix24"
+            ]
+        },
+        {
+            "id": "self-missing-and-returning",
+            "files": [
+                "06-no-self.json",
+                "07-self-returns.json"
+            ],
+            "expectedAutomaticFocus": [
+                "",
+                "ix27"
+            ]
+        }
+    ]
+}
