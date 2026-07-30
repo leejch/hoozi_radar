@@ -5,7 +5,8 @@ const translations = {
             title: 'HOOZi 3.0 网页雷达', connectionStatusLabel: '连接状态',
             layoutLandscape: '横屏', layoutPortrait: '竖屏',
             showMenu: '显示菜单栏', showPlayerTable: '显示玩家信息列表',
-            viewModeFree: '自由视角', viewModeFollow: '固定跟随'
+            viewModeFree: '自由视角', viewModeFollow: '固定跟随',
+            playerAutoFollow: '自动跟随本人'
         },
         config: {
             connection: '连接配置', connectionAuto: '自动', connectionManual: '手动', protocol: '协议',
@@ -54,7 +55,8 @@ const translations = {
             title: 'HOOZi 3.0 網頁雷達', connectionStatusLabel: '連線狀態',
             layoutLandscape: '橫屏', layoutPortrait: '豎屏',
             showMenu: '顯示選單列', showPlayerTable: '顯示玩家資訊列表',
-            viewModeFree: '自由視角', viewModeFollow: '固定跟隨'
+            viewModeFree: '自由視角', viewModeFollow: '固定跟隨',
+            playerAutoFollow: '自動跟隨本人'
         },
         config: {
             connection: '連線設定', connectionAuto: '自動', connectionManual: '手動', protocol: '協議',
@@ -103,7 +105,8 @@ const translations = {
             title: 'HOOZi 3.0 Web Radar', connectionStatusLabel: 'Connection',
             layoutLandscape: 'Landscape', layoutPortrait: 'Portrait',
             showMenu: 'Show Menu', showPlayerTable: 'Show Player List',
-            viewModeFree: 'Free', viewModeFollow: 'Follow'
+            viewModeFree: 'Free', viewModeFollow: 'Follow',
+            playerAutoFollow: 'Auto-follow self'
         },
         config: {
             connection: 'Connection', connectionAuto: 'Auto', connectionManual: 'Manual', protocol: 'Protocol',

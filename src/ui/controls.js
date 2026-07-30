@@ -401,6 +401,10 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
         const selectedId = store.state.selectedPlayerId;
         const localTeam = localPlayerTeam(players);
         const fragment = document.createDocumentFragment();
+        const automaticOption = document.createElement('option');
+        automaticOption.value = '';
+        automaticOption.textContent = t('header.playerAutoFollow');
+        fragment.appendChild(automaticOption);
         for (const player of [...players].sort(comparePlayersByTeamAndName)) {
             const displayPlayer = playerForDisplay(player, localTeam);
             const option = document.createElement('option');
@@ -410,13 +414,15 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
             fragment.appendChild(option);
         }
         refs.playerSelect.replaceChildren(fragment);
-        refs.playerSelect.value = selectedId;
+        refs.playerSelect.value = store.state.selectionMode === 'manual' ? selectedId : '';
     }
 
     function updateFocus(players) {
         const selectedPlayer = store.getSelectedPlayer(players);
         if (!selectedPlayer) {
             refs.focusName.textContent = '—';
+            refs.focusName.style.color = '';
+            refs.focusName.title = '';
             refs.focusTeamBadge.style.backgroundColor = '#64748B';
             refs.focusMeta.textContent = `${t('map.focusHealth')} — · ${t('map.focusShield')} — · ${t('map.focusKills')} —`;
             return;
@@ -690,9 +696,9 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
     });
     refs.playerSelect.addEventListener('change', () => {
         store.selectPlayer(refs.playerSelect.value);
-        settings.selectedPlayerId = store.state.selectedPlayerId;
-        saveSetting('selectedPlayerId', settings.selectedPlayerId);
-        updateFocus(store.state.currentSnapshot?.players || []);
+        const players = store.state.currentSnapshot?.players || [];
+        populatePlayerSelect(players);
+        updateFocus(players);
     });
     refs.viewModeFreeButton.addEventListener('click', () => {
         onViewModeChange(VIEW_MODE_FREE);

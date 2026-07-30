@@ -153,8 +153,8 @@ current page origin as the cross-origin image request referrer.
 
 | Field | JSON type | Unit/domain | Verified meaning and transformation | Frontend behavior |
 | --- | --- | --- | --- | --- |
-| `id` | string | — | Stable key chosen by Lua: `ix<index>`, else `uid<platform_uid>`, else `anon-<name>` | Entity identity, selection, interpolation, and keyed table updates. It is retained in exports but is not shown in the player table. |
-| `self` | boolean | — | Player index equals `game.localplayer.index` | Default focus and local-player marker styling: the fill keeps the player's team color while the outline is red. It is retained in exports but is not shown in the player table. |
+| `id` | string | — | Match-local key chosen by Lua: `ix<index>`, else `uid<platform_uid>`, else `anon-<name>`; real captures show `ix<index>` values can be reused by another player in a later match | Entity identity, selection, interpolation, and keyed table updates inside the current snapshot lifecycle. It is retained in exports but is not shown in the player table. |
+| `self` | boolean | — | Player index equals `game.localplayer.index` | Automatic focus is resolved from this field on every accepted snapshot; it also controls local-player marker styling, where the fill keeps the player's team color while the outline is red. It is retained in exports but is not shown in the player table. |
 | `name` | string | — | `p.name`, fallback `"?"` | Labels, selector, and table. |
 | `index` | number or absent | entity index | `p.index` | Raw export metadata only; `id` remains the primary browser key. |
 | `team` | number | game team number | `p.team_num`, fallback `0` | Team color, teammate connection lines, selector/table sorting, and a table column with a team-colored dot before the numeric value. |
@@ -202,6 +202,30 @@ BigInt.asUintN(64, BigInt(uid) ^ BigInt('0xDEADBEEF1B4DF00D')).toString()
 
 This value is not sent by `web_radar.lua`, is not written back to the raw
 exported server message, and is not used as player identity.
+
+### Focus selection lifecycle
+
+The page starts each session in automatic focus mode. Every accepted complete
+`state` snapshot resolves the focus from its current `self: true` player,
+including when that player is dead. A formerly selected ID remaining in the
+array with `self: false` does not prevent switching to the new self. This is
+required for entry, death/respawn transitions, and later matches where entity
+indices can be reassigned.
+
+If every player has `self: false`, automatic selection becomes empty. The
+renderer keeps the existing viewport transform but performs no fixed-follow
+re-centering and draws no selected-player crosshair/ring until self appears.
+It does not guess from array order.
+
+The selector's `Auto-follow self` option represents automatic mode. Explicitly
+selecting a non-self player enters manual mode and overrides later self values
+while the selected identity remains available. Because `id = ix<index>` is only
+match-local, manual continuity requires the same ID and rejects conflicting
+non-empty UIDs; when a UID is unavailable, a conflicting non-placeholder name
+also rejects the match. A missing or conflicting manual target returns to
+automatic mode. Selecting the current self player also returns to automatic
+mode. Manual selection is session-only rather than restored from persisted
+browser settings.
 
 ### Local-team display and export privacy
 
@@ -289,7 +313,9 @@ densities and browser zoom changes without allocating a canvas proportional to
 the map zoom. User-controlled zoom is clamped to 50%–300%
 for buttons, wheel input, and two-pointer pinch input. Page load defaults to
 fixed follow at 150%. Selecting free view resets to a centered 100%; selecting
-fixed follow resets to 150% and re-centers the selected player.
+fixed follow resets to 150% and re-centers the selected player when one exists.
+Automatic focus has no selected player while all `self` values are false, so
+fixed-follow re-centering is suspended until self returns.
 
 The map image has no initial `src` and stays hidden until one of the configured
 static asset sources loads successfully. Empty, loading, and missing-map states

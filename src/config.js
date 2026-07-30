@@ -86,7 +86,6 @@ export const DEFAULT_SETTINGS = Object.freeze({
     // tableY: true,
     // tableYaw: true,
     // tableMaxHp: true,
-    selectedPlayerId: '',
     viewMode: VIEW_MODE_FOLLOW,
     layoutOrientation: LAYOUT_ORIENTATION_LANDSCAPE
 });

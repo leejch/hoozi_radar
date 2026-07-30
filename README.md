@@ -93,6 +93,7 @@ hoozi_radar/
 │   └── assets/icons.js           Legend/rank icon fallback
 ├── static/                       Local fallback images
 ├── res/                          Local legend, rank, and item icon assets
+├── tests/fixtures/focus-examples/ Reduced real focus-lifecycle state messages
 ├── docs/protocol/                Project-owned protocol documentation
 └── references/                   Read-only HOOZi 3.0 Lua reference snapshot
 ```
@@ -122,6 +123,17 @@ selecting fixed follow resets to 150% and re-centers the selected player. The
 bottom-right minus/percentage/plus control, mouse wheel, and two-pointer pinch
 gesture all use the same bounded scale calculation. Free view keeps the map
 point under the gesture anchor stable.
+
+Focus starts in `Auto-follow self` mode and is resolved again from every
+accepted full snapshot. A previous entity `id` never outranks the current
+`self: true` player, because observed captures show that indices can remain in
+the roster or be reused by another player in a later match. When no player has
+`self: true`, automatic focus is empty and fixed-follow stops re-centering until
+self returns; it never falls back to the first player. Explicitly selecting a
+non-self player overrides automatic focus while that same `id` plus UID/name
+identity remains available. Selecting `Auto-follow self` (or the current self
+player), or losing that manual identity, resumes automatic focus. Manual focus
+is session-only and is not restored from an older browser setting.
 
 The selected focus player is marked with full-map white crosshair lines and a
 white ring outside the player dot. The local-player red marker outline remains
