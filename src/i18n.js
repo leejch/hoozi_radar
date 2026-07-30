@@ -11,7 +11,7 @@ const translations = {
         config: {
             connection: '连接配置', connectionAuto: '自动', connectionManual: '手动', protocol: '协议',
             host: 'IP地址 / 域名', port: '端口', path: '路径(默认 /ws)', toggles: '地图绘制信息',
-            toggleName: '昵称', toggleLegend: '传奇', toggleVitals: '护盾 & 血量', toggleHealth: '血量', toggleShield: '护盾',
+            toggleTeam: '队伍', toggleName: '昵称', toggleLegend: '传奇', toggleVitals: '护盾 & 血量', toggleHealth: '血量', toggleShield: '护盾',
             toggleLevel: '等级', toggleRank: '段位', toggleCombat: '击杀/伤害', toggleRoster: '标记',
             toggleTeamLinks: '同队连线', toggleRing: '安全区', filters: '玩家过滤', showDead: '显示死亡玩家',
             showDown: '显示倒地玩家', fontSize: '字体大小', importPlayerData: '导入玩家数据',
@@ -61,7 +61,7 @@ const translations = {
         config: {
             connection: '連線設定', connectionAuto: '自動', connectionManual: '手動', protocol: '協議',
             host: 'IP地址 / 網域', port: '連接埠', path: '路徑(預設 /ws)', toggles: '地圖繪製資訊',
-            toggleName: '暱稱', toggleLegend: '傳奇', toggleVitals: '護盾 & 血量', toggleHealth: '血量', toggleShield: '護盾',
+            toggleTeam: '隊伍', toggleName: '暱稱', toggleLegend: '傳奇', toggleVitals: '護盾 & 血量', toggleHealth: '血量', toggleShield: '護盾',
             toggleLevel: '等級', toggleRank: '段位', toggleCombat: '擊殺/傷害', toggleRoster: '標記',
             toggleTeamLinks: '同隊連線', toggleRing: '安全區', filters: '玩家篩選', showDead: '顯示死亡玩家',
             showDown: '顯示倒地玩家', fontSize: '字體大小', importPlayerData: '匯入玩家資料',
@@ -111,7 +111,7 @@ const translations = {
         config: {
             connection: 'Connection', connectionAuto: 'Auto', connectionManual: 'Manual', protocol: 'Protocol',
             host: 'IP address / domain', port: 'Port', path: 'Path (default /ws)', toggles: 'Map overlays',
-            toggleName: 'Name', toggleLegend: 'Legend', toggleVitals: 'SHIELD & HEALTH', toggleHealth: 'Health', toggleShield: 'Shield',
+            toggleTeam: 'Team', toggleName: 'Name', toggleLegend: 'Legend', toggleVitals: 'SHIELD & HEALTH', toggleHealth: 'Health', toggleShield: 'Shield',
             toggleLevel: 'Level', toggleRank: 'Rank', toggleCombat: 'Kills/Damage', toggleRoster: 'Marker',
             toggleTeamLinks: 'Team links', toggleRing: 'Ring', filters: 'Player filters', showDead: 'Show dead players',
             showDown: 'Show downed players', fontSize: 'Font size', importPlayerData: 'Import player data',

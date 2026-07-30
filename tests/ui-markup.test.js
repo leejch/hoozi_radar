@@ -39,11 +39,16 @@ test('player list visibility moved from menu checkbox to top controls', () => {
 
 test('map options merge shield and health and own the font-size input', () => {
     const togglesPosition = indexHtml.indexOf('data-i18n="config.toggles"');
+    const teamPosition = indexHtml.indexOf('id="conf_showteam"');
+    const namePosition = indexHtml.indexOf('id="conf_showname"');
     const vitalsPosition = indexHtml.indexOf('id="conf_showvitals"');
     const fontSizePosition = indexHtml.indexOf('id="conf_fontsize"');
+    assert.match(indexHtml, /id="conf_showteam"[^>]+data-setting="showTeam"/);
     assert.match(indexHtml, /id="conf_showvitals"[^>]+data-setting="showVitals"/);
     assert.doesNotMatch(indexHtml, /id="conf_showhealth"/);
     assert.doesNotMatch(indexHtml, /id="conf_showshield"/);
+    assert.ok(teamPosition > togglesPosition);
+    assert.ok(namePosition > teamPosition);
     assert.ok(vitalsPosition > togglesPosition);
     assert.ok(fontSizePosition > vitalsPosition);
 });

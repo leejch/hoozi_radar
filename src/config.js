@@ -46,6 +46,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
     manualPort: DEFAULT_WS_PORT,
     manualPath: DEFAULT_WS_PATH,
     fontSize: 10,
+    showTeam: true,
     showName: false,
     showLegend: false,
     showVitals: true,
@@ -93,6 +94,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
 const STORAGE_PREFIX = 'hoozi3_radar_';
 const SETTINGS_SCHEMA_VERSION = '6';
 const RESET_TO_DEFAULT_ON_SCHEMA_UPDATE = Object.freeze([
+    'showTeam',
     'showName',
     'showLegend',
     'showVitals',

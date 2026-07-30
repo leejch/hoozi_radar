@@ -63,7 +63,8 @@ test('static asset order is local-first outside HTTPS and remote-first on HTTPS'
     assert.deepEqual(staticSourceOrderForLocation({ protocol: 'https:' }), ['remote', 'local']);
 });
 
-test('requested map overlay defaults start disabled', () => {
+test('requested map overlay defaults keep team numbers and vitals enabled', () => {
+    assert.equal(DEFAULT_SETTINGS.showTeam, true);
     assert.equal(DEFAULT_SETTINGS.showName, false);
     assert.equal(DEFAULT_SETTINGS.showLegend, false);
     assert.equal(DEFAULT_SETTINGS.showVitals, true);

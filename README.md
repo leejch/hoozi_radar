@@ -31,9 +31,9 @@ The HOOZi 3.0 version follows the checked-in Lua script instead:
 - a landscape desktop layout that keeps table columns intrinsically sized and
   horizontally scrollable while guaranteeing that the map viewport is never
   narrower than it is tall
-- independent map-overlay switches and player-table columns in the current
-  HOOZi 3.0 display order, with raw-only fields retained for exports but hidden
-  from the controls
+- independent map-overlay switches, with the team-number overlay enabled by
+  default and drawn immediately before the nickname, plus player-table columns
+  in the current HOOZi 3.0 display order; raw-only fields remain export-only
 - display-only local-team privacy: the explicit `self` player and players with
   the same `team` show the name `HOOZi3.0`, while legend/rank icons and labels,
   level, short UID, and long UID are replaced by `-`; the same fields are empty
@@ -288,7 +288,9 @@ icon base URL. These PNGs are drawn directly with their transparent
 backgrounds. `rank_color` is preserved in state/export only and is not exposed
 as a visible table field.
 
-Roster values are rendered as four bit flags: friend `8`, cheater `4`,
+The map team-number overlay is enabled by default and places the raw numeric
+`team` value immediately before the nickname; its switch is independent of the
+nickname switch. Roster values are rendered as four bit flags: friend `8`, cheater `4`,
 pro/permission `1`, and celebrity `2`. The table renders the localized
 bracket tags in the Nickname column before the player name with the configured
 marker colors; the player name uses the leftmost tag color when tags are

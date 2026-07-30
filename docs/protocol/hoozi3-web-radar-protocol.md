@@ -157,7 +157,7 @@ current page origin as the cross-origin image request referrer.
 | `self` | boolean | — | Player index equals `game.localplayer.index` | Automatic focus is resolved from this field on every accepted snapshot; it also controls local-player marker styling, where the fill keeps the player's team color while the outline is red. It is retained in exports but is not shown in the player table. |
 | `name` | string | — | `p.name`, fallback `"?"` | Labels, selector, and table. |
 | `index` | number or absent | entity index | `p.index` | Raw export metadata only; `id` remains the primary browser key. |
-| `team` | number | game team number | `p.team_num`, fallback `0` | Team color, teammate connection lines, selector/table sorting, and a table column with a team-colored dot before the numeric value. |
+| `team` | number | game team number | `p.team_num`, fallback `0` | Team color, teammate connection lines, selector/table sorting, a table column with a team-colored dot before the numeric value, and an independently toggleable numeric map label placed immediately before the nickname. |
 | `squad` | number | teammate flag / squad identifier | `p.squad_id`, fallback `0` | Raw export metadata only; no table column is shown. |
 | `x`, `y` | number or absent | 0–1000 map pixels | Lua calls `math.WorldToMapPixel(worldX, worldY, 1000, 1000)` and applies a two-second sticky cache | Uniformly mapped onto a square drawing surface inside the observation port. Players without both values are retained in state but not plotted; coordinates are intentionally omitted from table controls. |
 | `yaw` | number | not specified by the checked API | `p.yaw` forwarded unchanged after finite-value validation | Retained in state/export only. It is not converted into a map heading because the reference does not define its unit/orientation contract. |
@@ -273,11 +273,14 @@ scrollbar. Content beyond the table panel scrolls horizontally. This allocation
 is repeated after table content, field visibility, table visibility, menu
 visibility, or page dimensions change.
 
-Map overlay defaults start with nickname, legend, level, rank, and kills/damage
-turned off. Dead players are always hidden on the map. Downed players are
-always shown on the map. Shield and health share one map-overlay toggle; roster
-tags, team links, and ring display remain independently toggleable. The player
-table DOM is rebuilt only when its visible fields or displayed values change.
+Map overlay defaults start with the numeric team label and vitals turned on.
+The team-label switch is the first map-overlay control, and the value is drawn
+immediately before the nickname when both are enabled. Nickname, legend, level,
+rank, and kills/damage start turned off. Dead players are always hidden on the
+map. Downed players are always shown on the map. Shield and health share one
+map-overlay toggle; roster tags, team links, and ring display remain
+independently toggleable. The player table DOM is rebuilt only when its visible
+fields or displayed values change.
 
 Player markers use the same four-pixel radius and team-color fill for local and
 remote players. Normal remote marker outlines are one-pixel dark lines. The

@@ -222,7 +222,7 @@ test('map labels use two lines without dot separators', () => {
     renderEntities(ctx, { players: [player] }, settings, null, { width: 1000, height: 1000 }, (key) => key);
 
     assert.equal(records.outlinedText.length, 2);
-    assert.match(records.outlinedText[0].text, /^Local Wraith (DMG|伤)200 K\.3$/);
+    assert.match(records.outlinedText[0].text, /^2 Local Wraith (DMG|伤)200 K\.3$/);
     assert.match(
         records.outlinedText[1].text,
         /^Lv\.100 Silver4 (\[Friend\]\[Cheater\]\[Pro\]\[Celebrity\]|\[友\]\[作弊\]\[权\]\[名人\]|\[友\]\[作弊\]\[權\]\[名人\])$/
@@ -261,6 +261,41 @@ test('map roster tags use the highest-priority tag color without recoloring the 
     assert.equal(rosterFill?.align, 'left');
 });
 
+test('map team number is drawn before the nickname and has an independent switch', () => {
+    const player = {
+        id: 'p1', self: false, name: 'Local', team: 12,
+        position: { x: 500, y: 500 }, is_dead: false, is_down: false,
+        hp: 100, max_hp: 100, shield: 0, max_shield: 0,
+        legend: '', level: 0, rank: '', kills: 0, damage: 0, roster: 0
+    };
+    const settings = {
+        ...DEFAULT_SETTINGS,
+        showTeamLinks: false,
+        showVitals: false,
+        showTeam: true,
+        showName: true,
+        showLegend: false,
+        showLevel: false,
+        showRank: false,
+        showCombat: false,
+        showRoster: false
+    };
+    const enabled = recordingContext();
+    renderEntities(enabled.ctx, { players: [player] }, settings, null, { width: 1000, height: 1000 }, (key) => key);
+    assert.equal(enabled.records.outlinedText[0].text, '12 Local');
+
+    const disabled = recordingContext();
+    renderEntities(
+        disabled.ctx,
+        { players: [player] },
+        { ...settings, showTeam: false },
+        null,
+        { width: 1000, height: 1000 },
+        (key) => key
+    );
+    assert.equal(disabled.records.outlinedText[0].text, 'Local');
+});
+
 test('map labels redact the local player and teammates without changing enemies', () => {
     const { ctx, records } = recordingContext();
     const base = {
@@ -286,9 +321,9 @@ test('map labels redact the local player and teammates without changing enemies'
     renderEntities(ctx, { players: [self, teammate, enemy] }, settings, self, { width: 1000, height: 1000 }, (key) => key);
 
     assert.deepEqual(records.outlinedText.map((record) => record.text), [
-        'HOOZi3.0 -', '- -',
-        'HOOZi3.0 -', '- -',
-        'Enemy Wraith', 'Lv.100 Gold'
+        '5 HOOZi3.0 -', '- -',
+        '5 HOOZi3.0 -', '- -',
+        '9 Enemy Wraith', 'Lv.100 Gold'
     ]);
 });
 
@@ -304,6 +339,7 @@ test('second-line-only map labels draw in the first line position', () => {
         ...DEFAULT_SETTINGS,
         showTeamLinks: false,
         showVitals: false,
+        showTeam: false,
         showName: false,
         showLegend: false,
         showCombat: false,

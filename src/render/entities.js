@@ -77,6 +77,7 @@ function lineFromParts(parts) {
 function mapInfoLinesZhHans(player, settings) {
     const first = [];
     const second = [];
+    if (settings.showTeam) pushIfValue(first, player.team);
     if (settings.showName) pushIfValue(first, player.name);
     if (settings.showLegend) pushIfValue(first, player.legend);
     if (settings.showCombat) {
@@ -97,6 +98,7 @@ function mapInfoLinesZhHans(player, settings) {
 function mapInfoLinesZhHant(player, settings) {
     const first = [];
     const second = [];
+    if (settings.showTeam) pushIfValue(first, player.team);
     if (settings.showName) pushIfValue(first, player.name);
     if (settings.showLegend) pushIfValue(first, player.legend);
     if (settings.showCombat) {
@@ -117,6 +119,7 @@ function mapInfoLinesZhHant(player, settings) {
 function mapInfoLinesEn(player, settings) {
     const first = [];
     const second = [];
+    if (settings.showTeam) pushIfValue(first, player.team);
     if (settings.showName) pushIfValue(first, player.name);
     if (settings.showLegend) pushIfValue(first, player.legend);
     if (settings.showCombat) {
