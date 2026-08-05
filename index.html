@@ -8,7 +8,7 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HOOZi 网页雷达</title>
+    <title>HOOZi 3.0 网页雷达</title>
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <meta name="theme-color" content="#020617">
     <link href="./styles.css" rel="stylesheet">
@@ -48,6 +48,7 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
             cursor: grab;
             max-width: 100%;
             max-height: 100%;
+            aspect-ratio: 1 / 1;
         }
 
         #mapStage.dragging {
@@ -56,12 +57,15 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
 
         #mapViewport {
             position: absolute;
-            inset: 0;
+            top: 0;
+            left: 0;
             transform-origin: top left;
+            will-change: transform;
         }
 
         #mapViewport img,
-        #mapViewport canvas {
+        #mapZoneCanvas,
+        #mapCanvas {
             position: absolute;
             inset: 0;
         }
@@ -72,16 +76,38 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
             object-fit: contain;
             user-select: none;
             pointer-events: none;
+            z-index: 0;
         }
 
-        #mapViewport canvas {
+        #mapViewport[data-map-mode="image"] {
+            inset: 0;
+            width: 100% !important;
+            height: 100% !important;
+            transform: none !important;
+        }
+
+        #mapStage[data-map-mode="image"] #mapZoneCanvas,
+        #mapStage[data-map-mode="image"] #mapCanvas {
+            display: none;
+        }
+
+        #mapZoneCanvas,
+        #mapCanvas {
             width: 100%;
             height: 100%;
             pointer-events: none;
+        }
+
+        #mapZoneCanvas {
             z-index: 1;
         }
 
+        #mapCanvas {
+            z-index: 2;
+        }
+
         #mapOverlay {
+            z-index: 3;
             transition: opacity 220ms ease, visibility 220ms ease;
         }
 
@@ -109,15 +135,121 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
 
         .three-column-layout {
             display: flex;
-            flex-direction: column-reverse;
             gap: 4px;
             width: 100%;
             flex: 1;
             min-height: 0;
+            overflow: hidden;
         }
 
         .three-column-layout > * {
             min-width: 0;
+        }
+
+        .three-column-layout[data-layout-orientation="landscape"] {
+            display: grid;
+            grid-template-columns: minmax(260px, 300px) minmax(320px, 1fr) minmax(240px, 320px);
+            align-items: stretch;
+            overflow: auto;
+        }
+
+        .three-column-layout[data-layout-orientation="landscape"][data-menu-visible="false"] {
+            grid-template-columns: minmax(320px, 1fr) minmax(240px, 320px);
+        }
+
+        .three-column-layout[data-layout-orientation="landscape"][data-table-visible="false"] {
+            grid-template-columns: minmax(260px, 300px) minmax(320px, 1fr);
+        }
+
+        .three-column-layout[data-layout-orientation="landscape"][data-menu-visible="false"][data-table-visible="false"] {
+            grid-template-columns: minmax(320px, 1fr);
+        }
+
+        .three-column-layout[data-layout-orientation="portrait"] {
+            flex-direction: column;
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+
+        .three-column-layout[data-layout-orientation="portrait"] .map-shell {
+            order: 1;
+            flex: 0 0 auto;
+            width: 100%;
+        }
+
+        .three-column-layout[data-layout-orientation="portrait"] .map-stage-container {
+            align-items: stretch;
+            width: 100%;
+        }
+
+        .three-column-layout[data-layout-orientation="portrait"] #mapStage {
+            width: 100%;
+            aspect-ratio: 1 / 1.12;
+        }
+
+        .three-column-layout[data-layout-orientation="portrait"] [data-role="player-table-section"] {
+            order: 2;
+            flex: 0 0 auto;
+            height: auto;
+            min-height: 0;
+        }
+
+        .three-column-layout[data-layout-orientation="portrait"] .player-table-shell,
+        .three-column-layout[data-layout-orientation="portrait"] .player-table-wrapper,
+        .three-column-layout[data-layout-orientation="portrait"] [data-role="player-table-scroll"] {
+            height: auto;
+            min-height: 0;
+        }
+
+        .three-column-layout[data-layout-orientation="portrait"] .player-table-wrapper {
+            flex: 0 0 auto;
+            overflow-x: hidden;
+            overflow-y: visible;
+        }
+
+        .three-column-layout[data-layout-orientation="portrait"] [data-role="player-table-scroll"] {
+            overflow-x: auto;
+            overflow-y: hidden;
+        }
+
+        .three-column-layout[data-layout-orientation="portrait"] .config-column {
+            order: 3;
+            flex: 0 0 auto;
+        }
+
+        .three-column-layout[data-menu-visible="false"] .config-column,
+        .three-column-layout[data-table-visible="false"] [data-role="player-table-section"] {
+            display: none !important;
+        }
+
+        .three-column-layout[data-layout-orientation="portrait"][data-menu-visible="false"][data-table-visible="false"] {
+            overflow: hidden;
+        }
+
+        .three-column-layout[data-layout-orientation="portrait"][data-menu-visible="false"][data-table-visible="false"] .map-shell {
+            flex: 1 1 auto;
+            min-height: 0;
+        }
+
+        .three-column-layout[data-layout-orientation="portrait"][data-menu-visible="false"][data-table-visible="false"] .map-stage-container {
+            position: relative;
+            height: 100%;
+            min-height: 0;
+        }
+
+        .three-column-layout[data-layout-orientation="portrait"][data-menu-visible="false"][data-table-visible="false"] #mapStage {
+            height: 100%;
+            aspect-ratio: auto;
+        }
+
+        .three-column-layout[data-layout-orientation="portrait"][data-menu-visible="false"][data-table-visible="false"] .map-controls-outlet {
+            position: absolute;
+            left: 0.75rem;
+            right: 0.75rem;
+            bottom: 0.75rem;
+            z-index: 2;
+            margin-top: 0;
+            width: auto;
         }
 
         .map-stage-container {
@@ -137,85 +269,93 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
         }
 
         @media (min-width: 1024px) {
-            [data-role="player-table-section"].player-table-hidden {
-                display: none !important;
-            }
-
-            .three-column-layout {
+            .three-column-layout[data-layout-orientation="landscape"] {
                 display: grid;
-                grid-template-columns: 320px auto minmax(320px, 1fr);
+                grid-template-columns: 300px minmax(0, 1fr) 320px;
                 column-gap: 5px;
                 row-gap: 5px;
                 align-items: stretch;
-            }
-
-            .three-column-layout.player-table-hidden {
-                grid-template-columns: 300px minmax(0, 1fr);
+                height: 100%;
             }
 
             .three-column-layout > * {
                 min-height: 0;
             }
 
-            .config-column {
+            .three-column-layout[data-layout-orientation="landscape"] .config-column {
                 display: flex;
                 flex-direction: column;
                 min-height: 0;
-                max-height: 100vh;
+                height: 100%;
             }
 
-            .config-stack {
+            .three-column-layout[data-layout-orientation="landscape"] .config-stack {
                 flex: 1;
                 overflow-y: visible;
                 scrollbar-width: thin;
                 min-height: 0;
             }
 
-            .map-shell {
+            .three-column-layout[data-layout-orientation="landscape"] .map-shell {
                 display: flex;
-                align-items: flex-start;
-                justify-content: center;
+                align-items: stretch;
+                justify-content: stretch;
+                width: 100%;
+                height: 100%;
                 min-height: 0;
+                overflow: hidden;
             }
 
-            .map-stage-container {
+            .three-column-layout[data-layout-orientation="landscape"] .map-stage-container {
                 position: relative;
                 display: flex;
                 flex-direction: column;
-                align-items: center;
+                align-items: stretch;
                 gap: 0;
-            }
-
-            .player-table-shell {
+                width: 100%;
                 height: 100%;
-                overflow: hidden;
-                max-height: 100vh;
+                min-height: 0;
             }
 
-            .player-table-wrapper {
+            .three-column-layout[data-layout-orientation="landscape"] #mapStage {
+                width: 100%;
+                height: 100%;
+                min-height: 0;
+                aspect-ratio: auto;
+            }
+
+            .three-column-layout[data-layout-orientation="landscape"] .player-table-shell {
+                height: 100%;
+                min-width: 0;
+                overflow: hidden;
+            }
+
+            .three-column-layout[data-layout-orientation="landscape"] .player-table-wrapper {
                 display: flex;
                 flex: 1;
                 flex-direction: column;
                 min-height: 0;
             }
 
-            .player-table-scroll {
+            .three-column-layout[data-layout-orientation="landscape"] [data-role="player-table-scroll"] {
                 flex: 1;
                 min-height: 0;
             }
 
-            .map-controls-outlet {
-                margin-top: 0;
-            }
-
-            #mapStage #mapControls {
+            .three-column-layout[data-layout-orientation="landscape"] .map-controls-outlet {
                 position: absolute;
                 left: 1rem;
                 bottom: 1rem;
-                margin: 0;
+                margin-top: 0;
+                width: auto;
                 max-width: calc(100% - 2rem);
-                transform: none;
                 z-index: 2;
+            }
+
+            .three-column-layout[data-layout-orientation="landscape"] .map-controls-outlet #mapControls {
+                margin: 0;
+                max-width: 100%;
+                transform: none;
             }
         }
 
@@ -240,7 +380,15 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
             border: 1px solid rgba(71, 85, 105, 0.55);
         }
 
+        .player-table {
+            width: max-content;
+            min-width: 100%;
+        }
+
         .player-table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 2;
             background: linear-gradient(180deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.88));
             color: rgb(226, 232, 240);
             font-size: 0.7rem;
@@ -263,6 +411,30 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
         .player-table-row:hover {
             background-color: rgba(34, 197, 94, 0.12);
         }
+
+        .player-table-row-dead {
+            background-color: rgba(96, 36, 24, 0.74);
+        }
+
+        .player-table-row-dead td {
+            color: rgb(254, 215, 170);
+        }
+
+        .player-table-row-dead:hover {
+            background-color: rgba(124, 45, 18, 0.82);
+        }
+
+        .player-table-row-down {
+            background-color: rgba(51, 65, 85, 0.86);
+        }
+
+        .player-table-row-down td {
+            color: rgb(148, 163, 184);
+        }
+
+        .player-table-row-down:hover {
+            background-color: rgba(71, 85, 105, 0.9);
+        }
     </style>
 </head>
 
@@ -274,7 +446,7 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
                 <img data-role="brand-logo" data-asset-name="default.png" alt="HOOZi" class="h-8 w-8 object-contain" draggable="false" referrerpolicy="origin">
             </div>
             <div class="space-y-1">
-                <h1 class="text-2xl font-semibold text-white sm:text-3xl" data-i18n="header.title">HOOZi 网页雷达</h1>
+                <h1 class="text-2xl font-semibold text-white sm:text-3xl" data-i18n="header.title">HOOZi 3.0 网页雷达</h1>
                 <div class="flex items-center gap-1.5 text-[0.7rem] text-slate-400">
                     <span data-i18n="header.connectionStatusLabel">连接状态</span>
                     <span data-role="status-indicator"
@@ -286,19 +458,41 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
             </div>
         </div>
         <div class="flex w-full flex-col gap-3 sm:flex-row sm:items-end sm:justify-end lg:ml-auto lg:w-auto">
-            <div class="flex w-full flex-nowrap items-end gap-2 overflow-x-auto sm:w-auto sm:justify-end">
+            <div class="flex w-full flex-wrap items-center justify-end gap-2 lg:flex-nowrap">
+                <div class="flex shrink-0 items-center gap-1 rounded-2xl border border-slate-800/70 bg-slate-950/60 p-1.5 shadow-inner shadow-black/10">
+                    <button id="layoutOrientationLandscape" type="button"
+                            aria-pressed="true" data-selected="true"
+                            class="rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-1 text-xs font-semibold text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60 data-[selected=true]:border-emerald-400 data-[selected=true]:bg-emerald-500/10 data-[selected=true]:text-emerald-300"
+                            data-i18n="header.layoutLandscape">横屏</button>
+                    <button id="layoutOrientationPortrait" type="button"
+                            aria-pressed="false" data-selected="false"
+                            class="rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-1 text-xs font-semibold text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60 data-[selected=true]:border-emerald-400 data-[selected=true]:bg-emerald-500/10 data-[selected=true]:text-emerald-300"
+                            data-i18n="header.layoutPortrait">竖屏</button>
+                </div>
+                <div class="flex shrink-0 items-center gap-1 rounded-2xl border border-slate-800/70 bg-slate-950/60 p-1.5 shadow-inner shadow-black/10">
+                    <button id="menuVisibleToggle" type="button"
+                            aria-pressed="true" data-selected="true"
+                            class="rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-1 text-xs font-semibold text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60 data-[selected=true]:border-emerald-400 data-[selected=true]:bg-emerald-500/10 data-[selected=true]:text-emerald-300"
+                            data-i18n="header.showMenu">显示菜单栏</button>
+                    <button id="playerTableVisibleToggle" type="button"
+                            aria-pressed="true" data-selected="true"
+                            class="rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-1 text-xs font-semibold text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60 data-[selected=true]:border-emerald-400 data-[selected=true]:bg-emerald-500/10 data-[selected=true]:text-emerald-300"
+                            data-i18n="header.showPlayerTable">显示玩家信息列表</button>
+                </div>
                 <div class="flex shrink-0 items-center gap-1 rounded-2xl border border-slate-800/70 bg-slate-950/60 p-1.5 shadow-inner shadow-black/10">
                     <button id="viewModeFree" type="button"
-                            class="rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-1 text-xs font-semibold text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60"
+                            aria-pressed="false" data-selected="false"
+                            class="rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-1 text-xs font-semibold text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60 data-[selected=true]:border-emerald-400 data-[selected=true]:bg-emerald-500/10 data-[selected=true]:text-emerald-300"
                             data-i18n="header.viewModeFree">自由视角</button>
                     <button id="viewModeFollow" type="button"
-                            class="rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-1 text-xs font-semibold text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60"
+                            aria-pressed="true" data-selected="true"
+                            class="rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-1 text-xs font-semibold text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60 data-[selected=true]:border-emerald-400 data-[selected=true]:bg-emerald-500/10 data-[selected=true]:text-emerald-300"
                             data-i18n="header.viewModeFollow">固定跟随</button>
                 </div>
                 <div class="flex w-[160px] shrink-0">
                     <select id="sel_player" autocomplete="off"
                             class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm font-medium text-slate-100 outline-none focus:border-emerald-400/70 focus:ring-2 focus:ring-emerald-500/40">
-                        <option value="<hoozi>">hoozi</option>
+                        <option value="" data-i18n="header.playerAutoFollow">自动跟随本人</option>
                     </select>
                 </div>
             </div>
@@ -306,7 +500,8 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
     </div>
 </header>
 <main class="w-full flex-1">
-    <div class="three-column-layout mx-auto w-full px-1 pb-1 sm:px-2" data-role="layout">
+    <div class="three-column-layout mx-auto w-full px-1 pb-1 sm:px-2"
+         data-role="layout" data-layout-orientation="landscape" data-menu-visible="true" data-table-visible="true">
         <aside class="config-column w-full overflow-y-auto overscroll-auto">
             <div class="config-stack flex flex-1 flex-col space-y-2">
                 <section class="glass-panel rounded-3xl py-2 px-4" data-role="connection-config">
@@ -315,10 +510,12 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
                         <div class="flex flex-wrap items-center gap-2">
                             <div class="flex shrink-0 items-center gap-1 rounded-2xl border border-slate-800/70 bg-slate-950/60 p-1.5 shadow-inner shadow-black/10">
                                 <button id="connectionModeAuto" type="button"
-                                        class="rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-1 text-xs font-semibold text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60"
+                                        aria-pressed="true" data-selected="true"
+                                        class="rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-1 text-xs font-semibold text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60 data-[selected=true]:border-emerald-400 data-[selected=true]:bg-emerald-500/10 data-[selected=true]:text-emerald-300"
                                         data-i18n="config.connectionAuto">自动</button>
                                 <button id="connectionModeManual" type="button"
-                                        class="rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-1 text-xs font-semibold text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60"
+                                        aria-pressed="false" data-selected="false"
+                                        class="rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-1 text-xs font-semibold text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60 data-[selected=true]:border-emerald-400 data-[selected=true]:bg-emerald-500/10 data-[selected=true]:text-emerald-300"
                                         data-i18n="config.connectionManual">手动</button>
                             </div>
                             <button id="configReconnectButton" type="button"
@@ -336,14 +533,10 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
                                         <option value="ws">ws</option>
                                         <option value="wss">wss</option>
                                     </select>
-                                    <div id="conf_protocol_readonly"
-                                         class="hidden w-full rounded-xl border border-slate-700/70 bg-slate-950/70 px-3 py-2 text-sm font-medium text-slate-100">
-                                        wss
-                                    </div>
                                 </div>
                             </label>
                             <label class="col-span-2 space-y-1.5">
-                                <span class="block text-xs font-semibold uppercase tracking-wide text-slate-400" data-i18n="config.host">IP地址/域名</span>
+                                <span class="block text-xs font-semibold uppercase tracking-wide text-slate-400" data-i18n="config.host">IP地址 / 域名</span>
                                 <input id="conf_host" type="text" autocomplete="off"
                                        class="w-full rounded-xl border border-slate-700/70 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:border-emerald-400/70 focus:outline-none focus:ring-2 focus:ring-emerald-500/40">
                             </label>
@@ -353,7 +546,7 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
                                        class="w-full rounded-xl border border-slate-700/70 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:border-emerald-400/70 focus:outline-none focus:ring-2 focus:ring-emerald-500/40">
                             </label>
                             <label class="col-span-2 space-y-1.5">
-                                <span class="block text-xs font-semibold uppercase tracking-wide text-slate-400" data-i18n="config.path">路径</span>
+                                <span class="block text-xs font-semibold tracking-wide text-slate-400" data-i18n="config.path">路径(默认 /ws)</span>
                                 <input id="conf_path" type="text" autocomplete="off"
                                        class="w-full rounded-xl border border-slate-700/70 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 focus:border-emerald-400/70 focus:outline-none focus:ring-2 focus:ring-emerald-500/40">
                             </label>
@@ -363,128 +556,90 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
                 <section class="glass-panel rounded-3xl py-2 px-4">
                     <h2 class="text-sm font-semibold uppercase text-slate-300" data-i18n="config.toggles">信息开关</h2>
                     <div class="mt-3 space-y-2">
-                        <div class="grid grid-cols-3 gap-1.5 text-sm text-slate-200">
+                        <div class="grid grid-cols-2 gap-1.5 text-sm text-slate-200">
                             <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
-                                <input id="conf_showname" type="checkbox"
+                                <input id="conf_showteam" type="checkbox" data-setting="showTeam"
+                                       class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
+                                <span data-i18n="config.toggleTeam">队伍</span>
+                            </label>
+                            <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
+                                <input id="conf_showname" type="checkbox" data-setting="showName"
                                        class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
                                 <span data-i18n="config.toggleName">昵称</span>
                             </label>
                             <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
-                                <input id="conf_showlprefix" type="checkbox"
+                                <input id="conf_showlegend" type="checkbox" data-setting="showLegend"
+                                       class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
+                                <span data-i18n="config.toggleLegend">传奇</span>
+                            </label>
+                            <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
+                                <input id="conf_showvitals" type="checkbox" data-setting="showVitals"
+                                       class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
+                                <span data-i18n="config.toggleVitals">护盾 &amp; 血量</span>
+                            </label>
+                            <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
+                                <input id="conf_showlevel" type="checkbox" data-setting="showLevel"
                                        class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
                                 <span data-i18n="config.toggleLevel">等级</span>
                             </label>
+                        </div>
+                        <div class="grid grid-cols-2 gap-1.5 text-sm text-slate-200">
                             <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
-                                <input id="conf_showrankprefix" type="checkbox"
+                                <input id="conf_showrank" type="checkbox" data-setting="showRank"
                                        class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
                                 <span data-i18n="config.toggleRank">段位</span>
                             </label>
-                        </div>
-                        <div class="grid grid-cols-3 gap-1.5 text-sm text-slate-200">
                             <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
-                                <input id="conf_showkprefix" type="checkbox"
+                                <input id="conf_showcombat" type="checkbox" data-setting="showCombat"
                                        class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                                <span data-i18n="config.toggleKills">击杀</span>
+                                <span data-i18n="config.toggleCombat">战绩</span>
                             </label>
                             <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
-                                <input id="conf_showmprefix" type="checkbox"
+                                <input id="conf_showroster" type="checkbox" data-setting="showRoster"
                                        class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
                                 <span data-i18n="config.toggleRoster">名册</span>
                             </label>
                             <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
-                                <input id="conf_showsprefix" type="checkbox"
+                                <input id="conf_showteamlinks" type="checkbox" data-setting="showTeamLinks"
                                        class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                                <span data-i18n="config.toggleSuspect">嫌疑</span>
+                                <span data-i18n="config.toggleTeamLinks">同队连线</span>
+                            </label>
+                            <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
+                                <input id="conf_showring" type="checkbox" data-setting="showRing"
+                                       class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
+                                <span data-i18n="config.toggleRing">安全区</span>
                             </label>
                         </div>
-                    </div>
-                </section>
-                <section class="glass-panel rounded-3xl py-2 px-4">
-                    <h2 class="text-sm font-semibold uppercase text-slate-300" data-i18n="config.quickFilter">快捷过滤</h2>
-                    <div class="mt-3 space-y-2.5">
-                        <label class="flex items-center gap-3 rounded-2xl border border-slate-800/70 bg-slate-950/40 px-3 py-1.5 text-sm transition hover:border-emerald-400/60">
-                            <input id="conf_showmp" type="checkbox"
-                                   class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                            <span class="text-slate-200" data-i18n="config.filterOnlyMarks">仅显示 权 / 作弊 / 白</span>
-                        </label>
-                        <label class="flex items-center gap-3 rounded-2xl border border-slate-800/70 bg-slate-950/40 px-3 py-1.5 text-sm transition hover:border-emerald-400/60">
-                            <input id="conf_showsp" type="checkbox"
-                                   class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                            <span class="text-slate-200" data-i18n="config.filterOnlySuspicious">仅显示 低等级 / 高击杀</span>
-                        </label>
-                        <div class="grid grid-cols-3 gap-2.5 text-[0.7rem] uppercase text-slate-500">
+                        <div class="grid grid-cols-1 gap-2.5 text-[0.7rem] text-slate-500">
                             <label class="space-y-2">
                                 <span data-i18n="config.fontSize">字体大小</span>
                                 <input id="conf_fontsize" type="number" min="6" max="48" step="1"
                                        class="w-full rounded-xl border border-slate-700/70 bg-slate-950/70 px-3 py-1.5 text-sm text-slate-100 focus:border-emerald-400/70 focus:outline-none focus:ring-2 focus:ring-emerald-500/40">
                             </label>
-                            <label class="space-y-2">
-                                <span data-i18n="config.killsAtLeast">击杀达到</span>
-                                <input id="conf_gkill" type="number" min="0" step="1"
-                                       class="w-full rounded-xl border border-slate-700/70 bg-slate-950/70 px-3 py-1.5 text-sm text-slate-100 focus:border-emerald-400/70 focus:outline-none focus:ring-2 focus:ring-emerald-500/40">
-                            </label>
-                            <label class="space-y-2">
-                                <span data-i18n="config.levelBelow">等级低于</span>
-                                <input id="conf_glevel" type="number" min="0" step="1"
-                                       class="w-full rounded-xl border border-slate-700/70 bg-slate-950/70 px-3 py-1.5 text-sm text-slate-100 focus:border-emerald-400/70 focus:outline-none focus:ring-2 focus:ring-emerald-500/40">
-                            </label>
                         </div>
                     </div>
                 </section>
-                <section class="glass-panel hidden rounded-3xl py-2 px-4 lg:block" data-role="player-table-menu">
+                <section class="glass-panel rounded-3xl py-2 px-4" data-role="player-table-menu">
                     <div class="flex items-center justify-between gap-3">
                         <span class="text-sm font-semibold uppercase text-slate-300" data-i18n="config.playerTable">玩家信息列表</span>
-                        <label class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-slate-400">
-                            <input id="conf_table_visible" type="checkbox"
-                                   class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                            <span data-role="player-table-toggle-label" data-i18n="config.playerTableShow">显示</span>
-                        </label>
                     </div>
-                    <div class="mt-3 space-y-2 text-sm text-slate-200">
-                        <div class="grid grid-cols-3 gap-1.5">
-                            <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
-                                <input id="conf_table_team" type="checkbox"
-                                       class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                                <span data-i18n="table.columns.team">队伍</span>
-                            </label>
-                            <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
-                                <input id="conf_table_name" type="checkbox"
-                                       class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                                <span data-i18n="table.columns.name">昵称</span>
-                            </label>
-                            <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
-                                <input id="conf_table_level" type="checkbox"
-                                       class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                                <span data-i18n="table.columns.level">等级</span>
-                            </label>
-                            <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
-                                <input id="conf_table_rank" type="checkbox"
-                                       class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                                <span data-i18n="table.columns.rank">段位</span>
-                            </label>
-                            <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
-                                <input id="conf_table_kills" type="checkbox"
-                                       class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                                <span data-i18n="table.columns.kills">击杀</span>
-                            </label>
-                            <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
-                                <input id="conf_table_marks" type="checkbox"
-                                       class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                                <span data-i18n="table.columns.marks">标记</span>
-                            </label>
-                        </div>
-                        <div class="grid grid-cols-2 gap-1.5">
-                            <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
-                                <input id="conf_table_uid_short" type="checkbox"
-                                       class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                                <span data-i18n="table.columns.uidShort">短UID</span>
-                            </label>
-                            <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
-                                <input id="conf_table_uid_long" type="checkbox"
-                                       class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                                <span data-i18n="table.columns.uidLong">长UID</span>
-                            </label>
-                        </div>
+                    <div class="mt-3 grid grid-cols-2 gap-1.5 text-xs text-slate-200">
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableTeam" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.team">队伍</span></label>
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableName" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.name">昵称</span></label>
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableVitals" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.vitals">护盾 &amp; 血量</span></label>
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableLegend" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.legend">传奇</span></label>
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableLegendIconKey" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.legendIconKey">传奇图标</span></label>
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableRank" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.rank">段位</span></label>
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableRankIconKey" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.rankIconKey">段位图标</span></label>
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableLevel" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.level">等级</span></label>
+                        <!-- rank_color is preserved in JSON state/export but no longer exposed as a table field. -->
+                        <!-- <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableRankColor" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.rankColor">段位颜色</span></label> -->
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableDamage" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.damage">伤害</span></label>
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableKills" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.kills">击杀</span></label>
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableUid" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.uid">短UID</span></label>
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableUidLong" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.uidLong">长UID</span></label>
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableDown" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.down">倒地</span></label>
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableDead" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.dead">死亡</span></label>
                     </div>
                 </section>
             </div>
@@ -492,11 +647,12 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
         <section class="map-shell">
             <div class="map-stage-container relative flex flex-1 flex-col">
                 <div id="mapStage"
-                     class="glass-panel relative aspect-square w-full overflow-hidden rounded-[1.75rem] border border-slate-800/80">
-                    <div id="mapViewport" class="absolute inset-0">
-                        <img id="mapImage" src="" alt="" draggable="false" referrerpolicy="origin">
-                        <canvas id="mapCanvas"></canvas>
+                     class="glass-panel relative w-full overflow-hidden rounded-[1.75rem] border border-slate-800/80">
+                    <div id="mapViewport" class="absolute inset-0" data-map-mode="radar">
+                        <img id="mapImage" hidden alt="" draggable="false" referrerpolicy="origin">
                     </div>
+                    <canvas id="mapZoneCanvas" aria-hidden="true"></canvas>
+                    <canvas id="mapCanvas"></canvas>
                     <div id="mapOverlay" data-state="loading" data-reconnect="false"
                          class="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-950/70 text-slate-200"
                          role="status" aria-live="polite">
@@ -512,42 +668,65 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
                             <p id="overlaySubtitle" class="text-sm text-slate-400" data-i18n="overlay.waitingSubtitle">正在尝试与服务器建立通信</p>
                         </div>
                     </div>
-                    <div
-                            class="absolute top-3 right-3 flex items-center gap-1.5 rounded-full border border-slate-700 bg-slate-950/70 px-2 py-0.5 text-[0.7rem] uppercase text-slate-300">
-                        <span data-i18n="map.playerCountLabel">玩家</span>
-                        <span id="playerCount" class="text-sm font-semibold text-white">0</span>
+                    <div class="absolute top-3 right-3 flex max-w-[calc(100%_-_1.5rem)] items-center gap-2">
+                        <div class="flex min-w-0 items-center gap-1.5 rounded-full border border-slate-700 bg-slate-950/70 px-2 py-0.5 text-[0.7rem] uppercase text-slate-300">
+                            <span data-i18n="map.mapLabel">地图</span>
+                            <span id="mapName" class="max-w-52 truncate text-sm font-semibold normal-case text-white" title="—">—</span>
+                        </div>
+                        <div class="flex shrink-0 items-center gap-1.5 rounded-full border border-slate-700 bg-slate-950/70 px-2 py-0.5 text-[0.7rem] uppercase text-slate-300">
+                            <span data-i18n="map.aliveLabel">存活</span>
+                            <span id="aliveCount" class="text-sm font-semibold text-white">0</span>
+                        </div>
+                    </div>
+                    <div id="mapZoomControls"
+                         class="absolute right-3 bottom-3 z-20 flex items-center gap-1 rounded-full border border-slate-700/80 bg-slate-950/85 p-1 text-xs text-slate-100 shadow-lg shadow-black/30 backdrop-blur-sm"
+                         role="group" aria-labelledby="zoomControlsLabel">
+                        <span id="zoomControlsLabel" class="sr-only" data-i18n="map.zoomControls">地图缩放</span>
+                        <button id="zoomOut" type="button"
+                                class="flex size-7 items-center justify-center rounded-full border border-slate-700 bg-slate-900/80 text-base font-semibold leading-none transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60 disabled:cursor-not-allowed disabled:opacity-35">
+                            <span aria-hidden="true">−</span>
+                            <span class="sr-only" data-i18n="map.zoomOut">缩小</span>
+                        </button>
+                        <output id="zoomValue" class="min-w-12 text-center font-mono text-[0.7rem] font-semibold tabular-nums text-slate-100"
+                                aria-live="polite">100%</output>
+                        <button id="zoomIn" type="button"
+                                class="flex size-7 items-center justify-center rounded-full border border-slate-700 bg-slate-900/80 text-base font-semibold leading-none transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60 disabled:cursor-not-allowed disabled:opacity-35">
+                            <span aria-hidden="true">+</span>
+                            <span class="sr-only" data-i18n="map.zoomIn">放大</span>
+                        </button>
                     </div>
                 </div>
                 <div class="map-controls-outlet" data-role="map-controls-outlet">
                     <div id="mapControls"
                          class="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-slate-700/70 bg-slate-950/80 px-2.5 py-1.5 text-xs text-slate-200 lg:border-slate-700/60 lg:bg-slate-950/60">
-                        <div class="map-zoom-panel flex shrink-0 items-center gap-1.5">
-                            <button id="zoomReset" type="button"
-                                    class="rounded-full border border-slate-700 bg-slate-950/70 px-2.5 py-0.5 text-xs text-slate-200 transition hover:border-emerald-400/70 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/60">
-                                <span data-i18n="map.zoomReset">重置</span>
-                            </button>
-                        </div>
                         <div id="focusPanel" class="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
                             <span class="text-[0.6rem] uppercase text-slate-500" data-i18n="map.focusLabel">焦点</span>
                             <span id="focusTeamBadge" class="size-2 rounded-full bg-slate-500"></span>
                             <span id="focusPlayerName" class="max-w-[140px] truncate text-sm font-semibold text-white sm:max-w-[240px]">—</span>
                             <span id="focusMeta"
                                   class="rounded-full border border-slate-700/70 bg-slate-900/70 px-2 py-0.5 text-[0.65rem] font-medium text-slate-200">
-                                    Lv — · K —
+                                    血量 — · 护盾 — · 击杀 —
                                 </span>
                         </div>
                     </div>
                 </div>
             </div>
         </section>
-        <section class="hidden lg:flex lg:h-full lg:flex-shrink-0" data-role="player-table-section">
+        <section class="flex min-w-0 flex-col lg:h-full lg:flex-shrink-0" data-role="player-table-section">
             <div class="player-table-shell glass-panel flex h-full w-full flex-col rounded-3xl p-2" data-role="player-table-shell">
-                <div class="flex items-center justify-between">
-                    <h2 class="pl-2 text-sm font-semibold uppercase text-slate-300" data-i18n="table.title">玩家信息</h2>
-                    <button id="downloadLatestButton" type="button" disabled
-                            class="rounded-full border border-slate-700/70 bg-slate-900/60 px-3 py-1 text-[0.7rem] font-semibold text-slate-300 transition hover:border-slate-500/60 hover:text-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-500/30 disabled:cursor-not-allowed disabled:opacity-50"
-                            data-i18n="config.downloadLatest">导出玩家列表</button>
+                <div class="relative z-10 flex items-center justify-between gap-3 overflow-x-auto py-1" data-role="player-table-toolbar">
+                    <h2 class="shrink-0 pl-2 text-sm font-semibold uppercase text-slate-300" data-i18n="table.title">玩家信息列表</h2>
+                    <div class="flex shrink-0 items-center gap-1.5">
+                        <input id="importPlayerDataInput" type="file" accept=".json,application/json" class="hidden">
+                        <button id="importPlayerDataButton" type="button"
+                                class="shrink-0 rounded-full border border-slate-700/70 bg-slate-900/60 px-3 py-1 text-[0.7rem] font-semibold text-slate-300 transition hover:border-emerald-400/60 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                                data-i18n="config.importPlayerData">导入玩家数据</button>
+                        <button id="exportPlayerDataButton" type="button" disabled
+                                class="shrink-0 rounded-full border border-slate-700/70 bg-slate-900/60 px-3 py-1 text-[0.7rem] font-semibold text-slate-300 transition hover:border-slate-500/60 hover:text-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-500/30 disabled:cursor-not-allowed disabled:opacity-50"
+                                data-i18n="config.exportCurrentPlayers">导出当前玩家信息</button>
+                    </div>
                 </div>
+                <p id="playerDataMessage" hidden role="status" aria-live="polite"></p>
                 <div class="player-table-wrapper mt-3 flex-1 overflow-hidden rounded-2xl" data-role="player-table-wrapper">
                     <div class="h-full overflow-auto" data-role="player-table-scroll">
                         <table class="player-table w-full text-sm text-slate-200">
@@ -573,7 +752,49 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
     </div>
 </footer>
 
-<script src="./app.js"></script>
+<script type="module" data-app-bootstrap>
+    if (window.location.protocol === 'file:') {
+        const language = navigator.language || 'en';
+        const traditional = language.startsWith('zh-TW') || language.startsWith('zh-HK') || language.startsWith('zh-MO');
+        const simplified = language.startsWith('zh') && !traditional;
+        const copy = traditional
+            ? {
+                title: '需要本機 HTTP 伺服器',
+                subtitle: '瀏覽器不允許透過 file:// 載入 ES Modules。請在專案目錄執行 npm start，然後開啟 http://127.0.0.1:8080/。',
+                status: '啟動方式錯誤'
+            }
+            : simplified
+                ? {
+                    title: '需要本地 HTTP 服务器',
+                    subtitle: '浏览器不允许通过 file:// 加载 ES Modules。请在项目目录执行 npm start，然后打开 http://127.0.0.1:8080/。',
+                    status: '启动方式错误'
+                }
+                : {
+                    title: 'Local HTTP server required',
+                    subtitle: 'Browsers cannot load ES Modules through file://. Run npm start in the project directory, then open http://127.0.0.1:8080/.',
+                    status: 'Invalid launch method'
+                };
+        const overlay = document.getElementById('mapOverlay');
+        overlay.dataset.state = 'info';
+        overlay.dataset.reconnect = 'false';
+        document.getElementById('overlayTitle').textContent = copy.title;
+        document.getElementById('overlaySubtitle').textContent = copy.subtitle;
+        document.querySelector('[data-role="status-text"]').textContent = copy.status;
+        const indicator = document.querySelector('[data-role="status-indicator"]');
+        indicator.classList.remove('bg-slate-500');
+        indicator.classList.add('bg-rose-500');
+        console.info(copy.subtitle);
+    } else {
+        import('./src/main.js').catch((error) => {
+            console.error('Failed to load HOOZi radar modules', error);
+            const overlay = document.getElementById('mapOverlay');
+            overlay.dataset.state = 'info';
+            overlay.dataset.reconnect = 'false';
+            document.getElementById('overlayTitle').textContent = 'Module load failed';
+            document.getElementById('overlaySubtitle').textContent = error instanceof Error ? error.message : String(error);
+        });
+    }
+</script>
 
 </body>
 </html>

@@ -1,0 +1,332 @@
+# HOOZi 3.0 Web Radar
+
+This repository contains the browser frontend for the HOOZi web radar. The
+current implementation consumes the local WebSocket state stream produced by
+the HOOZi 3.0 `web_radar.lua` script.
+
+The frontend is a static site built with native browser ES modules and Tailwind
+CSS v4. It has no JavaScript bundler and no production runtime dependencies.
+
+## HOOZi 3.0 migration
+
+The previous frontend was written around a HOOZi 2.0 transport and a monolithic
+`app.js`. That design assumed port 2334, nested player positions, numeric map
+identifiers, name-based local-player detection, a cropped legacy coordinate
+space, roster flags, and a derived long UID.
+
+The HOOZi 3.0 version follows the checked-in Lua script instead:
+
+- automatic WebSocket target: `ws://127.0.0.1:9001/ws` on local/non-HTTPS access, or `wss://<current-hostname>/ws` on HTTPS
+- full `state` snapshots selected by `kind`
+- raw `game.world.map_name` strings with verified map aliases plus image-only `mp_lobby*` and `mp_rr_canyonlands_staging*` handling
+- flat `x`/`y` coordinates in a 1000×1000 map domain
+- stable player `id` and explicit `self`
+- health, shield, down/dead state, legend, UID, level, kills, damage, rank,
+  squad/team, roster bit markers, and an optional ring
+- a display-only long UID derived from the backend short UID with the approved
+  unsigned 64-bit XOR mask
+- optional browser `ping` and Lua `pong`
+- header controls for landscape/portrait layout, menu visibility, player-list
+  visibility, and free/fixed-follow map view
+- a landscape desktop layout that keeps table columns intrinsically sized and
+  horizontally scrollable while guaranteeing that the map viewport is never
+  narrower than it is tall
+- independent map-overlay switches, with the team-number overlay enabled by
+  default and drawn immediately before the nickname, plus player-table columns
+  in the current HOOZi 3.0 display order; raw-only fields remain export-only
+- display-only local-team privacy: the explicit `self` player and players with
+  the same `team` show the name `HOOZi3.0`, while legend/rank icons and labels,
+  level, short UID, and long UID are replaced by `-`; the same fields are empty
+  strings in JSON exports
+- a fixed square radar drawing surface behind a responsive observation port, with
+  50%–300% button, wheel, and pinch zoom
+- validated JSON import and export of the current HOOZi `state` player data
+
+Player positions and ring geometry are interpolated between Lua snapshots for
+the browser render loop. Unsupported HOOZi 2.0 fields are not synthesized.
+
+## Data flow
+
+```text
+HOOZi 3.0 runtime game data
+        ↓
+web_radar.lua snapshot + map conversion
+        ↓ WebSocket JSON on 127.0.0.1:9001
+src/protocol/hoozi3.js validation and normalization
+        ↓
+src/state/store.js snapshot state and interpolation
+        ↓
+canvas radar, player table, focus UI, and controls
+```
+
+`web_radar.lua` binds only to loopback. If the radar is exposed through a
+separate HClient relay, configure that `ws` or `wss` endpoint with Manual mode.
+Relay authentication is outside this repository and outside the Lua protocol.
+
+The exact message and field contract is documented in
+[`docs/protocol/hoozi3-web-radar-protocol.md`](docs/protocol/hoozi3-web-radar-protocol.md).
+
+## Project layout
+
+```text
+hoozi_radar/
+├── index.html                    Static page and Tailwind-based UI
+├── input.css                     Tailwind CSS v4 input
+├── styles.css                    Generated stylesheet
+├── src/
+│   ├── main.js                   Bootstrap and WebSocket lifecycle
+│   ├── config.js                 Constants, settings, and targets
+│   ├── player-display.js         Display-only local-team privacy projection
+│   ├── i18n.js                   zh-Hans, zh-Hant, and English strings
+│   ├── protocol/hoozi3.js        Protocol validation and normalization
+│   ├── state/store.js            Snapshots, selection, and interpolation
+│   ├── render/ring.js            Map-only outside-ring filter and boundary
+│   ├── render/entities.js        Player canvas rendering above map effects
+│   ├── render/viewport.js        Pure zoom, anchor, resize, and follow math
+│   ├── render/radar.js           Render loop, sizing, follow, pan, and zoom
+│   ├── ui/layout.js              Map-first landscape column allocation
+│   ├── ui/player-data.js         JSON import/export filename rules
+│   ├── ui/player-sort.js         Player table sorting rules
+│   ├── ui/roster.js              Roster bit labels and marker colors
+│   ├── ui/controls.js            Controls, focus UI, and player table
+│   ├── assets/maps.js            Protocol-aware R2/local image fallback
+│   └── assets/icons.js           Legend/rank icon fallback
+├── static/                       Local fallback images
+├── res/                          Local legend, rank, and item icon assets
+├── tests/fixtures/focus-examples/ Reduced real focus-lifecycle state messages
+├── docs/protocol/                Project-owned protocol documentation
+└── references/                   Read-only HOOZi 3.0 Lua reference snapshot
+```
+
+The old `app.js` monolith is removed. An inline module bootstrap in
+`index.html` detects unsupported `file://` launches and otherwise imports
+`./src/main.js` as the only application entry.
+
+## Radar observation port and zoom
+
+The responsive map panel is an observation port, not a drawing-scale input.
+The drawing surface uses equal width and height. Its side is the smaller initial
+observation-port dimension, so at 100% one map dimension exactly reaches the
+corresponding port edge while the complete square remains visible. The longer
+observation axis may contain empty space. The surface is then locked after the
+initial desktop column layout settles. This keeps map imagery, player
+coordinates, and ring circles on one uniform scale.
+Later window resizing or player-table visibility changes only alter the visible
+crop; they do not resize the map image or map-coordinate surface. The ring and
+player canvases instead cover the observation port at the active
+`devicePixelRatio`; their internal transforms include map zoom so browser and
+map scaling do not raster-enlarge player graphics.
+
+Radar zoom is strictly clamped to 50%–300%. Fixed follow is the page-load
+default and starts at 150%; selecting free view resets to a centered 100%, while
+selecting fixed follow resets to 150% and re-centers the selected player. The
+bottom-right minus/percentage/plus control, mouse wheel, and two-pointer pinch
+gesture all use the same bounded scale calculation. Free view keeps the map
+point under the gesture anchor stable.
+
+Focus starts in `Auto-follow self` mode and is resolved again from every
+accepted full snapshot. A previous entity `id` never outranks the current
+`self: true` player, because observed captures show that indices can remain in
+the roster or be reused by another player in a later match. When no player has
+`self: true`, automatic focus is empty and fixed-follow stops re-centering until
+self returns; it never falls back to the first player. Explicitly selecting a
+non-self player overrides automatic focus while that same `id` plus UID/name
+identity remains available. Selecting `Auto-follow self` (or the current self
+player), or losing that manual identity, resumes automatic focus. Manual focus
+is session-only and is not restored from an older browser setting.
+
+The selected focus player is marked with full-map white crosshair lines and a
+white ring outside the player dot. The local-player red marker outline remains
+independent of selection.
+
+The map `<img>` has no initial `src` and remains hidden while disconnected,
+while trying fallbacks, or after a missing asset. It becomes visible only after
+one configured static source loads successfully, so no broken-image placeholder
+is shown.
+
+Viewport ratios of at least `1.12` automatically use landscape layout, and
+ratios at or below `0.893` automatically use portrait layout. Ratios between
+those thresholds keep the user's header-button choice. In landscape layout, the
+player-table panel expands toward its current intrinsic content width, but
+never beyond 25% of the page content width. The map first receives enough width
+to remain at least as wide as it is tall. In portrait layout, the page stacks
+the map, player information list, and menu from top to bottom, and the map
+stage uses a `1:1.12` width-to-height ratio unless it is the only visible body
+panel. Header buttons independently show or hide the menu and player list in
+either layout. The portrait player list grows to show every row and only its
+intrinsic columns scroll horizontally. The same allocation runs after window
+resizing, layout changes, table field changes, player-set changes, and
+menu/player-table visibility changes. Ordinary cell-value updates reuse the
+existing table geometry and do not request a new panel allocation.
+
+The player-information toolbar exports the latest complete `state` JSON as the
+current player data. Exported object keys use dictionary order with four-space
+indentation; players are ordered by ascending team number, nickname, and stable
+`id`. Before formatting, the explicit `self` player's team is privacy-filtered:
+names become `HOOZi3.0`, while legend/rank labels and icon keys, level, short
+UID, and an existing long UID field become empty strings.
+The adjacent import control accepts `.json` files only and
+runs them through the same HOOZi 3.0 protocol validator before applying them.
+Invalid JSON, non-`state` messages, and malformed player arrays do not modify
+the current radar state. A valid import enters offline preview, stops the active
+socket, cancels a not-yet-run initial attempt, and remains stable until the user
+explicitly connects again. Imported test data does not alter live WebSocket
+timestamp ordering; the next valid live snapshot can take over normally.
+
+## Running locally
+
+Browser ES modules must be served over HTTP. Directly double-clicking
+`index.html` creates a `file://` URL and browsers will block its module imports.
+
+From the repository root, use the built-in server:
+
+```powershell
+npm start
+```
+
+This serves the project at `http://127.0.0.1:8080/` and opens it in the default
+browser. To start the server without opening a browser, run `npm run serve`.
+
+Any equivalent static HTTP server also works, for example:
+
+```powershell
+python -m http.server 8080
+```
+
+Open `http://127.0.0.1:8080/` and ensure HOOZi 3.0 has loaded
+`web_radar.lua` with its server enabled. After the page `load` event, local auto
+mode attempts `ws://127.0.0.1:9001/ws` exactly once. The checked-in Lua server
+listens on the loopback port and does not define a separate payload protocol by
+path. A failed or later-closed connection is not retried automatically; use the
+connection/reconnect control for another attempt.
+
+When the page itself is hosted over HTTPS, auto mode uses
+`wss://<current-hostname>/ws` with no explicit port. Full manual `ws://` or
+`wss://` targets remain available for LAN backends or custom relays, and an
+empty/manual `auto` input falls back to the same automatic target.
+
+## Installing, development CSS, and production build
+
+Install the pinned development dependencies:
+
+```powershell
+npm install
+```
+
+Regenerate Tailwind CSS after changing utility classes in `index.html` or JavaScript:
+
+```powershell
+npx @tailwindcss/cli -i ./input.css -o ./styles.css
+```
+
+Development remains unbundled: `npm start` serves the native ES-module graph.
+For public deployment, build the complete obfuscated site with:
+
+```powershell
+npm run build
+```
+
+The command regenerates minified Tailwind CSS, bundles the application into one
+minified browser IIFE with esbuild, applies the balanced profile in
+`obfuscator.config.mjs`, and writes deployable `index.html`, `styles.css`,
+`assets/app.<content-hash>.js`, `static/`, and `res/` files to `dist/`. It deliberately
+emits no source map. Verify the production output locally with `npm run preview`.
+
+The default profile uses a no-`eval` browser target, RC4-encoded string arrays,
+moderate control-flow flattening, low-ratio dead code, and self-defending output.
+Property/global renaming and DevTools-freezing debug protection stay disabled
+because they create disproportionate compatibility and performance risks. Do
+not run another formatter or minifier over the generated `dist/assets/app.*.js`
+after this build; self-defending output is intentionally sensitive to later
+rewriting. HTTP gzip/Brotli compression is safe, but CDN JavaScript auto-minify,
+script rewriting, and injection features should be disabled for this asset. The
+content hash supports long-lived immutable caching without serving stale code.
+
+Optional domain locking makes direct redeployment harder. Supply one or more
+comma-separated hosts at build time (a leading dot includes subdomains):
+
+```powershell
+$env:HOOZI_DOMAIN_LOCK='.example.com,www.example.net'
+npm run build
+```
+
+Only enable this after the final production hosts are known; a locked bundle
+will not run on omitted preview or staging hosts. Obfuscation raises the cost of
+copying and reverse engineering, but browser-delivered code remains recoverable
+in principle. Never put private keys, relay secrets, or trust decisions in it.
+
+## Map and static assets
+
+Static image loading uses two sources: `https://img.hoozi.net/static/` and
+`static/`.
+
+Local/non-HTTPS access tries `static/` first and falls back to R2. HTTPS access
+tries R2 first and falls back to `static/`. Image elements use
+`referrerPolicy="origin"` so cross-origin R2 image requests send the current
+page origin as the browser referrer.
+
+Known BR maps are classified by verified runtime prefixes. Later runtime
+suffixes such as `_mu1` and `_mu2` are accepted after those prefixes. The
+verified assets are `mp_rr_canyonlands.png`, `mp_rr_desertlands.png`,
+`mp_rr_olympus.png`, `mp_rr_divided_moon.png`,
+`mp_rr_tropic_island.png`, and `mp_rr_district.png`.
+The runtime prefix `mp_rr_tropic_island*` uses the Storm Point asset
+`mp_rr_tropic_island.png`; `mp_rr_thunderdome*` is not a runtime map prefix.
+`mp_rr_canyonlands_staging*` is checked before the generic canyonlands rule and
+uses `mp_range.png`. Raw names beginning with `mp_lobby` use `mp_lobby.png`.
+Lobby and firing range maps render as centered, aspect-preserving images
+without coordinate-based player/ring plotting. Unknown raw names show an
+unsupported-map message instead of requesting `<map>.png`.
+
+Legend and rank icon keys are preserved in normalized state and exported
+snapshots. Non-empty keys are displayed in the merged Legend and Rank table
+columns through the same source order as map images. Legend icons resolve under
+`https://img.hoozi.net/icon_legends/` or local `./res/icon_legends/`; rank icons
+resolve under `https://img.hoozi.net/icon_rank/` or local `./res/icon_rank/`.
+For example, `icon_rank/rookie1` becomes `rookie1.png` inside the selected rank
+icon base URL. These PNGs are drawn directly with their transparent
+backgrounds. `rank_color` is preserved in state/export only and is not exposed
+as a visible table field.
+
+The map team-number overlay is enabled by default and places the raw numeric
+`team` value immediately before the nickname; its switch is independent of the
+nickname switch. Roster values are rendered as four bit flags: friend `8`, cheater `4`,
+pro/permission `1`, and celebrity `2`. The table renders the localized
+bracket tags in the Nickname column before the player name with the configured
+marker colors; the player name uses the leftmost tag color when tags are
+present. Map labels color only the roster tag sequence by the leftmost tag,
+while the nickname and other label text keep the player marker color. The
+sentinel legend value `pilot_medium_empty` and rank value `None` display as
+empty. The explicit `self` player's whole team uses a display-only privacy
+projection across the table, selector, focus UI, and map labels: names become
+`HOOZi3.0`; legend, rank, level, short UID, and long UID become `-`; and the two
+icon fields do not request assets. Raw normalized state remains unchanged; at
+the export boundary, local-team privacy fields use empty strings. Shield
+quality, shield, and health are shown as one
+`SHIELD & HEALTH` bar column; when `max_shield` is `0` or the player is down,
+only the shield bar is omitted. Dead players show neither bar. Table headers
+are rebuilt only when the selected column structure changes. Rows remain keyed
+by player `id`, and an ordinary snapshot replaces only cells whose visible
+signatures changed.
+The player-table header remains sticky at the top of its scrolling viewport.
+
+## Development rules
+
+- Read the root `AGENTS.md` and required reference files before changing the
+  protocol or rendering semantics.
+- Treat `references/hapex3-lua-script-factory/` as read-only.
+- Use `web_radar.lua` as the primary source of truth; do not infer HOOZi 3.0
+  semantics from the old frontend.
+- Keep protocol parsing, state, canvas rendering, DOM controls, and asset
+  fallback in their existing modules.
+- Update Simplified Chinese, Traditional Chinese, and English strings together.
+- Do not add a bundler or production dependency without explicit approval.
+- Regenerate `styles.css` whenever Tailwind class usage changes.
+
+## Known protocol limits
+
+The checked-in Lua script does not send loot or projectile arrays, so the
+frontend cannot render them. It also does not document yaw orientation. The
+frontend retains yaw without drawing a directional arrow; see the protocol
+document for the full uncertainty list.
+

@@ -80,3 +80,6 @@ typings/
 *.zip
 *.tar.gz
 *.rar
+
+.codex/
+.agents/
