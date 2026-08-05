@@ -10,6 +10,10 @@ const STATIC_SOURCE_URLS = {
 };
 const isHttpsAccess = typeof window !== 'undefined' && window.location && window.location.protocol === 'https:';
 const STATIC_SOURCE_ORDER = isHttpsAccess ? ['remote', 'local'] : ['local', 'remote'];
+const STATIC_SOURCES = Object.freeze(STATIC_SOURCE_ORDER.map((key) => Object.freeze({
+    key,
+    baseUrl: STATIC_SOURCE_URLS[key]
+})));
 const DEFAULT_LOCAL_WS_TARGET = 'ws://127.0.0.1:2334/ws';
 const CURRENT_HOSTNAME = typeof window !== 'undefined' && window.location ? window.location.hostname : '';
 const CURRENT_HOST_WITH_PORT = typeof window !== 'undefined' && window.location ? window.location.host : '';
@@ -92,8 +96,8 @@ const translations = {
             noDataSubtitle: '当前地图暂无玩家数据或尚未同步',
             mapLoadingTitle: '加载高清地图资源',
             mapLoadingSubtitle: '由全球加速节点提供支持, 首次加载可能较慢',
-            mapMissingTitle: '地图资源缺失',
-            mapMissingSubtitle: '未找到地图文件',
+            mapMissingTitle: '地图不支持',
+            mapMissingSubtitle: '当前地图 {map} 无网页雷达，只能在大逃杀模式的地图里使用。',
             noTransferTitle: '未检测到对局数据',
             noTransferSubtitle: '已成功连接数据服务, 当前尚未进入大逃杀模式对局'
         },
@@ -117,13 +121,15 @@ const translations = {
             lowLevel: '[低级]',
             none: '—'
         },
-        mapNames: {
-            '1': '诸王峡谷',
-            '2': '世界尽头',
-            '3': '奥林匹斯',
-            '4': '残月',
-            '5': '风暴点',
-            '6': '电气区'
+        maps: {
+            kingsCanyon: '诸王峡谷',
+            worldsEdge: '世界尽头',
+            olympus: '奥林匹斯',
+            brokenMoon: '残月',
+            stormPoint: '风暴点',
+            eDistrict: '电气区',
+            lobby: '大厅',
+            range: '射击场'
         }
     },
     'zh-Hant': {
@@ -198,8 +204,8 @@ const translations = {
             noDataSubtitle: '目前地圖暫無玩家資料或尚未同步',
             mapLoadingTitle: '載入高畫質地圖資源',
             mapLoadingSubtitle: '由全球加速網路提供支援, 首次載入可能稍慢',
-            mapMissingTitle: '地圖資源缺失',
-            mapMissingSubtitle: '找不到地圖檔案',
+            mapMissingTitle: '地圖不支援',
+            mapMissingSubtitle: '目前地圖 {map} 沒有網頁雷達，只能在大逃殺模式的地圖中使用。',
             noTransferTitle: '未偵測到對局資料',
             noTransferSubtitle: '已成功連線資料服務, 目前尚未進入大逃殺模式對局'
         },
@@ -223,13 +229,15 @@ const translations = {
             lowLevel: '[低級]',
             none: '—'
         },
-        mapNames: {
-            '1': '王者峽谷',
-            '2': '世界邊緣',
-            '3': '奧林匹斯',
-            '4': '殘月',
-            '5': '暴風點',
-            '6': '電流區'
+        maps: {
+            kingsCanyon: '王者峽谷',
+            worldsEdge: '世界邊緣',
+            olympus: '奧林匹斯',
+            brokenMoon: '殘月',
+            stormPoint: '暴風點',
+            eDistrict: '電流區',
+            lobby: '大廳',
+            range: '射擊場'
         }
     },
     en: {
@@ -304,8 +312,8 @@ const translations = {
             noDataSubtitle: 'No player data available or not yet synced for this map',
             mapLoadingTitle: 'Loading High-Resolution Map',
             mapLoadingSubtitle: 'Delivery is optimized through a global acceleration network',
-            mapMissingTitle: 'Map Asset Missing',
-            mapMissingSubtitle: 'No Map file found',
+            mapMissingTitle: 'Map not supported',
+            mapMissingSubtitle: 'The current map {map} has no web radar and can only be used on Battle Royale maps.',
             noTransferTitle: 'No Match Data Detected',
             noTransferSubtitle: 'Connected successfully, but you are not in a Battle Royale match yet'
         },
@@ -329,13 +337,15 @@ const translations = {
             lowLevel: '[Low Level]',
             none: '—'
         },
-        mapNames: {
-            '1': 'Kings Canyon',
-            '2': "World's Edge",
-            '3': 'Olympus',
-            '4': 'Broken Moon',
-            '5': 'Storm Point',
-            '6': 'E-District'
+        maps: {
+            kingsCanyon: 'Kings Canyon',
+            worldsEdge: "World's Edge",
+            olympus: 'Olympus',
+            brokenMoon: 'Broken Moon',
+            stormPoint: 'Storm Point',
+            eDistrict: 'E-District',
+            lobby: 'Lobby',
+            range: 'Firing Range'
         }
     }
 };
@@ -407,7 +417,20 @@ function getEffectivePixelRatio() {
     return Math.max(1, baseRatio * viewportScale);
 }
 
-function normalizeMapId(value) {
+const RADAR_MAP_DEFINITIONS = Object.freeze([
+    Object.freeze({ match: /^mp_rr_canyonlands(?:_|$)/i, assetName: 'mp_rr_canyonlands.png', translationKey: 'maps.kingsCanyon' }),
+    Object.freeze({ match: /^mp_rr_desertlands(?:_|$)/i, assetName: 'mp_rr_desertlands.png', translationKey: 'maps.worldsEdge' }),
+    Object.freeze({ match: /^mp_rr_olympus(?:_|$)/i, assetName: 'mp_rr_olympus.png', translationKey: 'maps.olympus' }),
+    Object.freeze({ match: /^mp_rr_divided_moon(?:_|$)/i, assetName: 'mp_rr_divided_moon.png', translationKey: 'maps.brokenMoon' }),
+    Object.freeze({ match: /^mp_rr_tropic_island(?:_|$)/i, assetName: 'mp_rr_tropic_island.png', translationKey: 'maps.stormPoint' }),
+    Object.freeze({ match: /^mp_rr_district(?:_|$)/i, assetName: 'mp_rr_district.png', translationKey: 'maps.eDistrict' })
+]);
+
+const LOBBY_MAP_DEFINITION = Object.freeze({ assetName: 'mp_lobby.png', translationKey: 'maps.lobby', imageOnly: true, lobby: true });
+const RANGE_MAP_DEFINITION = Object.freeze({ assetName: 'mp_range.png', translationKey: 'maps.range', imageOnly: true, range: true });
+const RANGE_MAP_NAME_RE = /^mp_rr_canyonlands_staging(?:_|$)/i;
+
+function normalizeMapName(value) {
     if (value === null || value === undefined) {
         return null;
     }
@@ -415,8 +438,40 @@ function normalizeMapId(value) {
     return str === '' ? null : str;
 }
 
-function isNoTransferMapId(mapId) {
-    return mapId === '-1' || mapId === '0';
+function isLobbyMap(mapName) {
+    return /^mp_lobby/i.test(String(mapName || '').trim());
+}
+
+function isRangeMap(mapName) {
+    return RANGE_MAP_NAME_RE.test(String(mapName || '').trim());
+}
+
+function isImageOnlyMap(mapName) {
+    return isLobbyMap(mapName) || isRangeMap(mapName);
+}
+
+function mapDefinition(mapName) {
+    const normalized = String(mapName || '').trim();
+    if (isLobbyMap(normalized)) {
+        return LOBBY_MAP_DEFINITION;
+    }
+    if (isRangeMap(normalized)) {
+        return RANGE_MAP_DEFINITION;
+    }
+    return RADAR_MAP_DEFINITIONS.find((definition) => definition.match.test(normalized)) || null;
+}
+
+function mapAssetName(mapName) {
+    const normalized = String(mapName || '').trim();
+    if (!normalized) return '';
+    return mapDefinition(normalized)?.assetName || '';
+}
+
+function mapDisplayName(mapName) {
+    const normalized = String(mapName || '').trim();
+    if (!normalized) return '—';
+    const definition = mapDefinition(normalized);
+    return definition ? t(definition.translationKey) : normalized;
 }
 
 const refs = {
@@ -594,7 +649,7 @@ const markLabels = {
 const state = {
     socket: null,
     players: [],
-    mapId: null,
+    mapName: null,
     mapLoaded: false,
     canvasCssWidth: 0,
     canvasCssHeight: 0,
@@ -1078,11 +1133,10 @@ function connect() {
         setOverlayState('info', t('overlay.instructionsTitle'), t('overlay.instructionsSubtitle'), { showReconnect: true });
         state.mapLoaded = false;
         state.players = [];
-        state.mapId = null;
-        refs.mapImage.removeAttribute('src');
-        delete refs.mapImage.dataset.assetName;
-        delete refs.mapImage.dataset.assetSource;
-        delete refs.mapImage.dataset.assetSourceIndex;
+        state.mapName = null;
+        refs.mapImage.dataset.mapName = '';
+        setMapMode(null);
+        mapLoader.clear();
         refs.playerCount.textContent = '0';
         updatePlayerInfo();
         renderPlayers();
@@ -1324,6 +1378,10 @@ function resizeCanvas() {
 }
 
 function applyTransform() {
+    if (isImageOnlyMap(state.mapName)) {
+        refs.mapViewport.style.transform = 'none';
+        return;
+    }
     const scale = clampScale(state.viewport.scale);
     state.viewport.scale = scale;
     const { translateX, translateY } = state.viewport;
@@ -1331,6 +1389,17 @@ function applyTransform() {
     const alignedX = Math.round(translateX * ratio) / ratio;
     const alignedY = Math.round(translateY * ratio) / ratio;
     refs.mapViewport.style.transform = `translate3d(${alignedX}px, ${alignedY}px, 0) scale(${scale})`;
+}
+
+function setMapMode(mapName) {
+    const mode = isImageOnlyMap(mapName) ? 'image' : 'radar';
+    refs.mapViewport.dataset.mapMode = mode;
+    refs.mapStage.dataset.mapMode = mode;
+    if (mode === 'image') {
+        refs.mapViewport.style.transform = 'none';
+    } else {
+        applyTransform();
+    }
 }
 
 function resetViewport() {
@@ -1344,6 +1413,9 @@ function resetViewport() {
 }
 
 function zoomAt(point, factor) {
+    if (isImageOnlyMap(state.mapName)) {
+        return;
+    }
     const previous = clampScale(state.viewport.scale);
     state.viewport.scale = previous;
     let next = previous * factor;
@@ -1489,6 +1561,9 @@ function getMapDisplayRect(width, height) {
 }
 
 function followSelectedPlayer() {
+    if (isImageOnlyMap(state.mapName)) {
+        return;
+    }
     if (state.viewMode !== VIEW_MODE_FOLLOW) {
         return;
     }
@@ -1604,7 +1679,11 @@ function renderPlayers() {
     mapCtx.setTransform(1, 0, 0, 1, 0, 0);
     mapCtx.clearRect(0, 0, refs.mapCanvas.width, refs.mapCanvas.height);
 
-    if (!state.mapLoaded || !state.players.length || !state.canvasCssWidth || !state.canvasCssHeight) {
+    if (isImageOnlyMap(state.mapName)
+        || !state.mapLoaded
+        || !state.players.length
+        || !state.canvasCssWidth
+        || !state.canvasCssHeight) {
         return;
     }
 
@@ -1990,8 +2069,8 @@ function handleMessage(raw) {
     updateDownloadButtonState();
 
     if (Object.prototype.hasOwnProperty.call(payload, 'map')) {
-        const incomingMapId = normalizeMapId(payload.map);
-        updateMap(incomingMapId);
+        const incomingMapName = normalizeMapName(payload.map);
+        updateMap(incomingMapName);
     }
     if (Array.isArray(payload.players)) {
         updatePlayers(payload.players);
@@ -2024,68 +2103,119 @@ function downloadLatestMessage() {
     URL.revokeObjectURL(url);
 }
 
-function getStaticSourceKey(index) {
-    return STATIC_SOURCE_ORDER[index] ?? null;
+function assetUrl(baseUrl, assetName) {
+    return `${baseUrl}${encodeURIComponent(assetName)}`;
 }
 
-function getStaticAssetUrl(assetName, source) {
-    const base = STATIC_SOURCE_URLS[source] || STATIC_SOURCE_URLS.remote;
-    return `${base}${assetName}`;
+function createFallbackImageLoader(image, { onLoad, onMissing } = {}) {
+    let requestToken = 0;
+    let currentAsset = '';
+    let sourceIndex = 0;
+
+    if ('referrerPolicy' in image) image.referrerPolicy = 'origin';
+
+    const loadSource = () => {
+        const source = STATIC_SOURCES[sourceIndex];
+        if (!source || !currentAsset) {
+            image.hidden = true;
+            image.removeAttribute('src');
+            onMissing?.(currentAsset);
+            return;
+        }
+        image.dataset.assetSource = source.key;
+        image.src = assetUrl(source.baseUrl, currentAsset);
+    };
+
+    image.addEventListener('load', () => {
+        image.hidden = false;
+        onLoad?.(currentAsset, image.dataset.assetSource);
+    });
+    image.addEventListener('error', () => {
+        if (!currentAsset) return;
+        image.hidden = true;
+        sourceIndex += 1;
+        loadSource();
+    });
+
+    return {
+        load(assetName) {
+            const normalized = String(assetName || '').trim();
+            requestToken += 1;
+            currentAsset = normalized;
+            sourceIndex = 0;
+            image.hidden = true;
+            image.dataset.assetRequest = String(requestToken);
+            if (!normalized) {
+                image.removeAttribute('src');
+                return;
+            }
+            loadSource();
+        },
+        clear() {
+            requestToken += 1;
+            currentAsset = '';
+            image.hidden = true;
+            image.removeAttribute('src');
+            delete image.dataset.assetSource;
+        }
+    };
 }
 
-function applyStaticImageSource(target, assetName, sourceIndex) {
-    const sourceKey = getStaticSourceKey(sourceIndex);
-    if (!sourceKey) {
-        return false;
-    }
-    target.dataset.assetName = assetName;
-    target.dataset.assetSource = sourceKey;
-    target.dataset.assetSourceIndex = String(sourceIndex);
-    target.src = getStaticAssetUrl(assetName, sourceKey);
-    return true;
-}
-
-function updateMap(mapId) {
-    if (!mapId) return;
-
-    if (isNoTransferMapId(mapId)) {
-        state.mapId = null;
+const mapLoader = createFallbackImageLoader(refs.mapImage, {
+    onLoad() {
+        onMapReady();
+    },
+    onMissing() {
         state.mapLoaded = false;
-        refs.mapImage.removeAttribute('src');
-        delete refs.mapImage.dataset.assetName;
-        delete refs.mapImage.dataset.assetSource;
-        delete refs.mapImage.dataset.assetSourceIndex;
+        const missingMapName = state.mapName ?? 'unknown';
+        setOverlayState(
+            'info',
+            t('overlay.mapMissingTitle'),
+            t('overlay.mapMissingSubtitle', { map: missingMapName })
+        );
+        renderPlayers();
+    }
+});
+
+function updateMap(mapName) {
+    if (!mapName) {
+        state.mapName = null;
+        state.mapLoaded = false;
+        refs.mapImage.dataset.mapName = '';
+        refs.mapImage.alt = '';
+        refs.mapImage.removeAttribute('title');
+        setMapMode(null);
+        mapLoader.clear();
         setOverlayState('info', t('overlay.noTransferTitle'), t('overlay.noTransferSubtitle'));
         renderPlayers();
         return;
     }
 
-    if (state.mapId === mapId && state.mapLoaded) {
+    if (refs.mapImage.dataset.mapName === mapName) {
         return;
     }
-    state.mapId = mapId;
+
+    state.mapName = mapName;
     state.mapLoaded = false;
-    setOverlayState('loading', t('overlay.mapLoadingTitle'), t('overlay.mapLoadingSubtitle'));
-    const assetName = `${mapId}.png`;
-    const currentAsset = refs.mapImage.dataset.assetName;
-    const currentSource = refs.mapImage.dataset.assetSource;
-    const currentSrc = refs.mapImage.getAttribute('src');
-    const isSameAssetLoading = currentAsset === assetName && currentSrc && !refs.mapImage.complete;
-    if (isSameAssetLoading) {
+    refs.mapImage.dataset.mapName = mapName;
+    refs.mapImage.alt = mapDisplayName(mapName);
+    refs.mapImage.title = mapName;
+    setMapMode(mapName);
+
+    const assetName = mapAssetName(mapName);
+    if (!assetName) {
+        mapLoader.clear();
+        setOverlayState(
+            'info',
+            t('overlay.mapMissingTitle'),
+            t('overlay.mapMissingSubtitle', { map: mapName })
+        );
+        renderPlayers();
         return;
     }
-    const isSameAssetReady = currentAsset === assetName
-        && currentSource
-        && currentSrc
-        && refs.mapImage.complete
-        && refs.mapImage.naturalWidth
-        && refs.mapImage.naturalHeight;
-    if (isSameAssetReady) {
-        onMapReady();
-    } else if (!applyStaticImageSource(refs.mapImage, assetName, 0)) {
-        const missingMapId = state.mapId ?? 'unknown';
-        setOverlayState('info', t('overlay.mapMissingTitle'), t('overlay.mapMissingSubtitle', { mapId: missingMapId }));
-    }
+
+    setOverlayState('loading', t('overlay.mapLoadingTitle'), t('overlay.mapLoadingSubtitle'));
+    mapLoader.load(assetName);
 }
 
 function updatePlayers(players) {
@@ -2096,11 +2226,9 @@ function updatePlayers(players) {
     refs.playerCount.textContent = normalizedPlayers.length.toString();
     if (normalizedPlayers.length) {
         populatePlayerSelect(normalizedPlayers);
-        if (state.mapLoaded) {
-            setOverlayState('hidden');
-        }
-    } else if (state.mapLoaded) {
-        setOverlayState('info', t('overlay.noDataTitle'), t('overlay.noDataSubtitle'));
+    }
+    if (state.mapLoaded) {
+        setOverlayState('hidden');
     }
     updatePlayerInfo();
     followSelectedPlayer();
@@ -2117,39 +2245,14 @@ function onMapReady() {
     resizeCanvas();
     resetViewport();
     state.mapLoaded = true;
-    if (state.players.length) {
-        setOverlayState('hidden');
-    } else {
-        setOverlayState('info', t('overlay.noDataTitle'), t('overlay.noDataSubtitle'));
-    }
+    setOverlayState('hidden');
     renderPlayers();
     followSelectedPlayer();
 }
 
-refs.mapImage.addEventListener('load', onMapReady);
-refs.mapImage.addEventListener('error', () => {
-    const assetName = refs.mapImage.dataset.assetName;
-    const currentIndex = Number(refs.mapImage.dataset.assetSourceIndex || '0');
-    if (assetName && applyStaticImageSource(refs.mapImage, assetName, currentIndex + 1)) {
-        return;
-    }
-    const missingMapId = state.mapId ?? 'unknown';
-    setOverlayState('info', t('overlay.mapMissingTitle'), t('overlay.mapMissingSubtitle', { mapId: missingMapId }));
-});
-
 if (refs.brandLogo) {
     const brandAssetName = refs.brandLogo.dataset.assetName || 'default.png';
-    if (!applyStaticImageSource(refs.brandLogo, brandAssetName, 0)) {
-        refs.brandLogo.removeAttribute('src');
-    }
-    refs.brandLogo.addEventListener('error', () => {
-        const assetName = refs.brandLogo.dataset.assetName;
-        const currentIndex = Number(refs.brandLogo.dataset.assetSourceIndex || '0');
-        if (assetName && applyStaticImageSource(refs.brandLogo, assetName, currentIndex + 1)) {
-            return;
-        }
-        refs.brandLogo.removeAttribute('src');
-    });
+    createFallbackImageLoader(refs.brandLogo).load(brandAssetName);
 }
 
 refs.playerSelect.addEventListener('focus', () => {
@@ -2361,11 +2464,11 @@ function createPinchState() {
 }
 
 function isPanningAllowed() {
-    return state.viewMode !== VIEW_MODE_FOLLOW;
+    return !isImageOnlyMap(state.mapName) && state.viewMode !== VIEW_MODE_FOLLOW;
 }
 
 refs.mapStage.addEventListener('pointerdown', (event) => {
-    if (isOverlayBlocking()) return;
+    if (isOverlayBlocking() || isImageOnlyMap(state.mapName)) return;
     if (refs.mapControls && refs.mapControls.contains(event.target)) {
         return;
     }
@@ -2452,7 +2555,7 @@ refs.mapStage.addEventListener('pointercancel', releasePointer);
 refs.mapStage.addEventListener('lostpointercapture', releasePointer);
 
 refs.mapStage.addEventListener('wheel', (event) => {
-    if (isOverlayBlocking()) return;
+    if (isOverlayBlocking() || isImageOnlyMap(state.mapName)) return;
     event.preventDefault();
     const rect = refs.mapStage.getBoundingClientRect();
     const point = {
@@ -2464,7 +2567,7 @@ refs.mapStage.addEventListener('wheel', (event) => {
 }, { passive: false });
 
 refs.mapStage.addEventListener('dblclick', (event) => {
-    if (isOverlayBlocking()) return;
+    if (isOverlayBlocking() || isImageOnlyMap(state.mapName)) return;
     const rect = refs.mapStage.getBoundingClientRect();
     const point = {
         x: event.clientX - rect.left,

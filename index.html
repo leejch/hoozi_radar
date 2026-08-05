@@ -74,6 +74,21 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
             pointer-events: none;
         }
 
+        #mapViewport[data-map-mode="image"] {
+            inset: 0;
+            width: 100% !important;
+            height: 100% !important;
+            transform: none !important;
+        }
+
+        #mapStage[data-map-mode="image"] {
+            cursor: default;
+        }
+
+        #mapViewport[data-map-mode="image"] canvas {
+            display: none;
+        }
+
         #mapViewport canvas {
             width: 100%;
             height: 100%;
@@ -493,8 +508,8 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
             <div class="map-stage-container relative flex flex-1 flex-col">
                 <div id="mapStage"
                      class="glass-panel relative aspect-square w-full overflow-hidden rounded-[1.75rem] border border-slate-800/80">
-                    <div id="mapViewport" class="absolute inset-0">
-                        <img id="mapImage" src="" alt="" draggable="false" referrerpolicy="origin">
+                    <div id="mapViewport" class="absolute inset-0" data-map-mode="radar">
+                        <img id="mapImage" hidden alt="" draggable="false" referrerpolicy="origin">
                         <canvas id="mapCanvas"></canvas>
                     </div>
                     <div id="mapOverlay" data-state="loading" data-reconnect="false"
