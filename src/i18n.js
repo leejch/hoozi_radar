@@ -38,7 +38,7 @@ const translations = {
         overlay: {
             waitingTitle: '等待连接', waitingSubtitle: '正在尝试连接 HOOZi 3.0 本机数据桥',
             connectingTitle: '正在连接', connectingSubtitle: '正在连接 {target}', instructionsTitle: '未连接',
-            instructionsSubtitle: '请启动 HOOZi 3.0、加载 web_radar.lua，并确认网页雷达 server 已启用',
+            instructionsSubtitle: '①启动 HOOZi 3.0；②杂项-网页雷达-打开；③检查连接信息是否正确',
             noDataTitle: '等待对局数据', noDataSubtitle: '连接成功，等待 state 快照',
             mapLoadingTitle: '加载地图资源', mapLoadingSubtitle: '本地访问优先使用 static，HTTPS 访问优先使用 HOOZi R2',
             mapMissingTitle: '地图不支持', mapMissingSubtitle: '当前地图 {map} 无网页雷达，只能在大逃杀模式的地图里使用。',
@@ -86,7 +86,7 @@ const translations = {
         overlay: {
             waitingTitle: '等待連線', waitingSubtitle: '正在嘗試連線 HOOZi 3.0 本機資料橋',
             connectingTitle: '正在連線', connectingSubtitle: '正在連線 {target}', instructionsTitle: '未連線',
-            instructionsSubtitle: '請啟動 HOOZi 3.0、載入 web_radar.lua，並確認網頁雷達 server 已啟用',
+            instructionsSubtitle: '①啟動 HOOZi 3.0；②雜項-網頁雷達-開啟；③檢查連線資訊是否正確',
             noDataTitle: '等待對局資料', noDataSubtitle: '連線成功，等待 state 快照',
             mapLoadingTitle: '載入地圖資源', mapLoadingSubtitle: '本機存取優先使用 static，HTTPS 存取優先使用 HOOZi R2',
             mapMissingTitle: '地圖不支援', mapMissingSubtitle: '目前地圖 {map} 沒有網頁雷達，只能在大逃殺模式的地圖中使用。',
@@ -134,7 +134,7 @@ const translations = {
         overlay: {
             waitingTitle: 'Waiting to connect', waitingSubtitle: 'Trying the local HOOZi 3.0 data bridge',
             connectingTitle: 'Connecting', connectingSubtitle: 'Connecting to {target}', instructionsTitle: 'Not connected',
-            instructionsSubtitle: 'Start HOOZi 3.0, load web_radar.lua, and enable its Web Radar server',
+            instructionsSubtitle: '①Start HOOZi 3.0; ②Miscellaneous - Web Radar - Open; ③Check that the connection information is correct',
             noDataTitle: 'Waiting for match data', noDataSubtitle: 'Connected; waiting for a state snapshot',
             mapLoadingTitle: 'Loading map asset', mapLoadingSubtitle: 'Local access tries static first; HTTPS access tries HOOZi R2 first',
             mapMissingTitle: 'Map not supported', mapMissingSubtitle: 'The current map {map} has no web radar and can only be used on Battle Royale maps.',
