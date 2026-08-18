@@ -36,9 +36,9 @@ function comparePlayers(left, right) {
     return nameOrder || compareDictionaryOrder(left?.id, right?.id);
 }
 
-function redactLocalTeamForExport(payload) {
+function redactLocalTeamForExport(payload, localPlayerUid) {
     if (!payload || typeof payload !== 'object' || !Array.isArray(payload.players)) return payload;
-    const localTeam = localPlayerTeam(payload.players);
+    const localTeam = localPlayerTeam(payload.players, localPlayerUid);
     if (localTeam === null) return payload;
 
     return {
@@ -69,7 +69,13 @@ function sortJsonValue(value, parentKey = '') {
         }, {});
 }
 
-export function formatPlayerExportJson(raw) {
+export function formatPlayerExportJson(
+    raw,
+    { anonymizeLocalTeam = false, localPlayerUid = '' } = {}
+) {
     const payload = typeof raw === 'string' ? JSON.parse(raw) : raw;
-    return JSON.stringify(sortJsonValue(redactLocalTeamForExport(payload)), null, 4);
+    const exportPayload = anonymizeLocalTeam
+        ? redactLocalTeamForExport(payload, localPlayerUid)
+        : payload;
+    return JSON.stringify(sortJsonValue(exportPayload), null, 4);
 }

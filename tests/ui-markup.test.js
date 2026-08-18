@@ -37,36 +37,34 @@ test('player list visibility moved from menu checkbox to top controls', () => {
     assert.match(indexHtml, /id="playerTableVisibleToggle"/);
 });
 
-test('map options merge shield and health and own the font-size input', () => {
+test('menu exposes opt-in local-team anonymity and no removed vitals options', () => {
     const togglesPosition = indexHtml.indexOf('data-i18n="config.toggles"');
+    const anonymityPosition = indexHtml.indexOf('id="conf_anonymizelocalteam"');
     const teamPosition = indexHtml.indexOf('id="conf_showteam"');
     const namePosition = indexHtml.indexOf('id="conf_showname"');
-    const vitalsPosition = indexHtml.indexOf('id="conf_showvitals"');
     const fontSizePosition = indexHtml.indexOf('id="conf_fontsize"');
+    assert.match(indexHtml, /id="conf_anonymizelocalteam"[^>]+data-setting="anonymizeLocalTeam"/);
     assert.match(indexHtml, /id="conf_showteam"[^>]+data-setting="showTeam"/);
-    assert.match(indexHtml, /id="conf_showvitals"[^>]+data-setting="showVitals"/);
-    assert.doesNotMatch(indexHtml, /id="conf_showhealth"/);
-    assert.doesNotMatch(indexHtml, /id="conf_showshield"/);
+    assert.doesNotMatch(indexHtml, /conf_showvitals|conf_showhealth|conf_showshield/);
+    assert.ok(anonymityPosition > togglesPosition);
     assert.ok(teamPosition > togglesPosition);
     assert.ok(namePosition > teamPosition);
-    assert.ok(vitalsPosition > togglesPosition);
-    assert.ok(fontSizePosition > vitalsPosition);
+    assert.ok(fontSizePosition > teamPosition);
 });
 
-test('player filters are removed and table controls use the combined vitals field', () => {
+test('removed backend fields have no menu or table controls', () => {
     assert.doesNotMatch(indexHtml, /data-i18n="config\.filters"/);
     assert.doesNotMatch(indexHtml, /id="conf_showdead"|id="conf_showdown"/);
-    assert.match(indexHtml, /data-setting="tableVitals"[\s\S]{0,120}data-i18n="table\.columns\.vitals"/);
+    assert.doesNotMatch(indexHtml, /data-setting="tableVitals"|data-setting="tableDown"/);
     assert.doesNotMatch(indexHtml, /data-setting="tableRoster"/);
     assert.doesNotMatch(indexHtml, /data-setting="tableDistance"|data-i18n="table\.columns\.distance"/);
-    assert.doesNotMatch(indexHtml, /data-setting="tableMaxShield"|data-setting="tableShield"|data-setting="tableHp"/);
+    assert.doesNotMatch(indexHtml, /tableMaxShield|tableShield|tableHp|tableSquad/);
 });
 
 test('player table columns and field toggles use the requested display order', () => {
     const expectedOrder = [
         'table.columns.team',
         'table.columns.name',
-        'table.columns.vitals',
         'table.columns.legend',
         'table.columns.rank',
         'table.columns.level',
@@ -74,12 +72,11 @@ test('player table columns and field toggles use the requested display order', (
         'table.columns.kills',
         'table.columns.uid',
         'table.columns.uidLong',
-        'table.columns.down',
         'table.columns.dead'
     ];
     const liveColumnsSource = controlsSource.slice(
         controlsSource.indexOf('const columns = ['),
-        controlsSource.indexOf('// Removed from the visible table by request.')
+        controlsSource.indexOf('function tableRenderSignature')
     );
     const columnIndexes = expectedOrder.map((key) => liveColumnsSource.indexOf(`label: '${key}'`));
     assert.deepEqual(columnIndexes, [...columnIndexes].sort((a, b) => a - b));

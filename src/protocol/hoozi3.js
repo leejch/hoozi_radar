@@ -3,8 +3,7 @@ const PLAYER_STRING_FIELDS = Object.freeze([
 ]);
 
 const PLAYER_NUMBER_FIELDS = Object.freeze([
-    'index', 'team', 'squad', 'x', 'y', 'yaw', 'hp', 'max_hp', 'shield', 'max_shield',
-    'distance', 'level', 'kills', 'damage', 'roster'
+    'index', 'team', 'x', 'y', 'distance', 'level', 'kills', 'damage', 'roster'
 ]);
 
 const UID_MASK = BigInt('0xDEADBEEF1B4DF00D');
@@ -33,6 +32,12 @@ function optionalFiniteNumber(value) {
 
 function nonNegativeNumber(value, fallback = 0) {
     return Math.max(0, finiteNumber(value, fallback));
+}
+
+export function normalizeYaw(value) {
+    const yaw = finiteNumber(value);
+    const normalized = ((yaw + 180) % 360 + 360) % 360 - 180;
+    return normalized === -180 ? 180 : normalized;
 }
 
 function stringValue(value, fallback = '') {
@@ -86,19 +91,13 @@ function normalizePlayer(rawPlayer, position) {
     normalized.rank = normalizedRank(rawPlayer.rank);
     normalized.self = rawPlayer.self === true;
     normalized.team = normalized.team ?? 0;
-    normalized.squad = normalized.squad ?? 0;
-    normalized.yaw = normalized.yaw ?? 0;
-    normalized.hp = nonNegativeNumber(rawPlayer.hp);
-    normalized.max_hp = nonNegativeNumber(rawPlayer.max_hp, 100);
-    normalized.shield = nonNegativeNumber(rawPlayer.shield);
-    normalized.max_shield = nonNegativeNumber(rawPlayer.max_shield);
+    normalized.yaw = normalizeYaw(rawPlayer.yaw);
     normalized.distance = nonNegativeNumber(rawPlayer.distance);
     normalized.level = nonNegativeNumber(rawPlayer.level);
     normalized.kills = nonNegativeNumber(rawPlayer.kills);
     normalized.damage = nonNegativeNumber(rawPlayer.damage);
     normalized.roster = finiteNumber(rawPlayer.roster ?? rawPlayer.rosters);
     normalized.is_dead = rawPlayer.is_dead === true;
-    normalized.is_down = rawPlayer.is_down === true;
     normalized.position = normalized.x !== null && normalized.y !== null
         ? Object.freeze({ x: normalized.x, y: normalized.y })
         : null;

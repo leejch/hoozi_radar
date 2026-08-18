@@ -10,26 +10,29 @@ import {
 } from '../src/player-display.js';
 
 const localPlayer = Object.freeze({
-    id: 'self', self: true, team: 5, name: 'Local', legend: 'Wraith',
+    id: 'local', uid: 'local-uid', self: false, team: 5, name: 'Local', legend: 'Wraith',
     legend_icon_key: 'wraith', rank: 'Gold', rank_icon_key: 'gold',
-    level: 100, uid: '123', uid_long: '456'
+    level: 100, uid_long: '456'
 });
-const teammate = Object.freeze({
-    ...localPlayer,
-    id: 'mate',
-    self: false,
-    name: 'Teammate'
-});
-const enemy = Object.freeze({
-    ...localPlayer,
-    id: 'enemy',
-    self: false,
-    team: 9,
-    name: 'Enemy'
+const teammate = Object.freeze({ ...localPlayer, id: 'mate', uid: 'mate-uid', name: 'Teammate' });
+const spectatedEnemy = Object.freeze({
+    ...localPlayer, id: 'enemy', uid: 'enemy-uid', self: true, team: 9, name: 'Enemy'
 });
 
-test('local player and teammates use the display-only HOOZi identity', () => {
-    const displayed = playersForDisplay([localPlayer, teammate, enemy]);
+test('local-team anonymity is disabled unless explicitly requested', () => {
+    const localTeam = localPlayerTeam([localPlayer, teammate, spectatedEnemy], 'local-uid');
+    assert.equal(localTeam, 5);
+    assert.equal(playerForDisplay(localPlayer, localTeam), localPlayer);
+    assert.deepEqual(
+        playersForDisplay([localPlayer, teammate, spectatedEnemy], localTeam),
+        [localPlayer, teammate, spectatedEnemy]
+    );
+});
+
+test('enabled anonymity redacts only the UID-anchored local team', () => {
+    const players = [localPlayer, teammate, spectatedEnemy];
+    const localTeam = localPlayerTeam(players, 'local-uid');
+    const displayed = playersForDisplay(players, localTeam, true);
 
     for (const player of displayed.slice(0, 2)) {
         assert.equal(player.name, LOCAL_TEAM_DISPLAY_NAME);
@@ -42,13 +45,15 @@ test('local player and teammates use the display-only HOOZi identity', () => {
         assert.equal(player.uid_long, REDACTED_DISPLAY_VALUE);
         assert.equal(player.displayRedacted, true);
     }
-    assert.equal(displayed[2], enemy);
-    assert.equal(localPlayer.name, 'Local');
-    assert.equal(teammate.legend, 'Wraith');
+    assert.equal(displayed[2], spectatedEnemy);
 });
 
-test('display redaction needs an explicit self player to identify the local team', () => {
-    assert.equal(localPlayerTeam([teammate, enemy]), null);
-    assert.equal(playerForDisplay(teammate, null), teammate);
-    assert.deepEqual(playersForDisplay([teammate, enemy]), [teammate, enemy]);
+test('a spectated self player does not redefine the known local team', () => {
+    const players = [localPlayer, teammate, spectatedEnemy];
+    assert.equal(localPlayerTeam(players, 'local-uid'), 5);
+    assert.equal(localPlayerTeam(players), 9);
+});
+
+test('an absent known UID yields no local team instead of falling back to self', () => {
+    assert.equal(localPlayerTeam([spectatedEnemy], 'local-uid'), null);
 });

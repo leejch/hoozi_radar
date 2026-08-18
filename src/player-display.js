@@ -13,17 +13,24 @@ const REDACTED_FIELDS = Object.freeze({
     displayRedacted: true
 });
 
-export function localPlayerTeam(players) {
-    const selfPlayer = players?.find((player) => player.self === true);
+function normalizedUid(value) {
+    const uid = String(value ?? '').trim();
+    return uid && uid !== '0' ? uid : '';
+}
+
+export function localPlayerTeam(players, localPlayerUid = '') {
+    const uid = normalizedUid(localPlayerUid);
+    const selfPlayer = uid
+        ? players?.find((player) => normalizedUid(player.uid) === uid)
+        : players?.find((player) => player.self === true);
     return selfPlayer ? selfPlayer.team : null;
 }
 
-export function playerForDisplay(player, localTeam) {
-    if (!player || localTeam === null || player.team !== localTeam) return player;
+export function playerForDisplay(player, localTeam, anonymizeLocalTeam = false) {
+    if (!anonymizeLocalTeam || !player || localTeam === null || player.team !== localTeam) return player;
     return Object.freeze({ ...player, ...REDACTED_FIELDS });
 }
 
-export function playersForDisplay(players = []) {
-    const localTeam = localPlayerTeam(players);
-    return players.map((player) => playerForDisplay(player, localTeam));
+export function playersForDisplay(players = [], localTeam = null, anonymizeLocalTeam = false) {
+    return players.map((player) => playerForDisplay(player, localTeam, anonymizeLocalTeam));
 }

@@ -63,16 +63,18 @@ test('static asset order is local-first outside HTTPS and remote-first on HTTPS'
     assert.deepEqual(staticSourceOrderForLocation({ protocol: 'https:' }), ['remote', 'local']);
 });
 
-test('requested map overlay defaults keep team numbers and vitals enabled', () => {
+test('local-team anonymity defaults off and removed-field settings are absent', () => {
+    assert.equal(DEFAULT_SETTINGS.anonymizeLocalTeam, false);
     assert.equal(DEFAULT_SETTINGS.showTeam, true);
     assert.equal(DEFAULT_SETTINGS.showName, false);
     assert.equal(DEFAULT_SETTINGS.showLegend, false);
-    assert.equal(DEFAULT_SETTINGS.showVitals, true);
     assert.equal(DEFAULT_SETTINGS.showLevel, false);
     assert.equal(DEFAULT_SETTINGS.showRank, false);
     assert.equal(DEFAULT_SETTINGS.showCombat, false);
-    assert.equal(DEFAULT_SETTINGS.showDead, false);
-    assert.equal(DEFAULT_SETTINGS.showDown, true);
+    assert.equal(Object.hasOwn(DEFAULT_SETTINGS, 'showVitals'), false);
+    assert.equal(Object.hasOwn(DEFAULT_SETTINGS, 'showDown'), false);
+    assert.equal(Object.hasOwn(DEFAULT_SETTINGS, 'tableVitals'), false);
+    assert.equal(Object.hasOwn(DEFAULT_SETTINGS, 'tableDown'), false);
 });
 
 test('cancelling the initial connection gate prevents its only attempt', () => {

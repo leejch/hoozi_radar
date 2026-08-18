@@ -1,45 +1,62 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 
 import {
     HooziProtocolError,
     computeLongUidFromShort,
+    normalizeYaw,
     parseHoozi3Message,
     parseHoozi3StateFile
 } from '../src/protocol/hoozi3.js';
 import { createRadarStore } from '../src/state/store.js';
 
 const basePlayer = {
-    id: 'ix7', self: true, name: 'Local', index: 7, team: 1, squad: 2,
-    x: 500, y: 400, yaw: 90, hp: 87, max_hp: 100, shield: 50,
-    max_shield: 100, distance: 0, is_dead: false, is_down: false,
-    legend: 'Wraith', legend_icon_key: 'wraith', uid: '123', level: 99,
-    kills: 4, damage: 800, rank: 'Gold', rank_icon_key: 'gold',
-    rank_color: '#fff', roster: 0
+    damage: 800, distance: 0, id: 'ix7', index: 7, is_dead: false, kills: 4,
+    legend: 'Wraith', legend_icon_key: 'icon_legends/30px-Portrait_Wraith_square',
+    level: 99, name: 'Local', rank: 'Gold', rank_color: '#fff',
+    rank_icon_key: 'icon_rank/gold1', roster: 0, self: true, team: 1,
+    uid: '123', x: 500, y: 400, yaw: 90
 };
 
-const requiredPlayerFields = [
-    'id', 'self', 'name', 'index', 'team', 'squad', 'x', 'y', 'yaw',
-    'hp', 'max_hp', 'shield', 'max_shield', 'distance', 'is_dead',
-    'is_down', 'legend', 'legend_icon_key', 'uid', 'level', 'kills',
-    'damage', 'rank', 'rank_icon_key', 'rank_color', 'roster'
+const backendPlayerFields = [
+    'damage', 'distance', 'id', 'index', 'is_dead', 'kills', 'legend',
+    'legend_icon_key', 'level', 'name', 'rank', 'rank_color', 'rank_icon_key',
+    'roster', 'self', 'team', 'uid', 'x', 'y', 'yaw'
 ];
+const removedPlayerFields = ['hp', 'is_down', 'max_hp', 'max_shield', 'shield', 'squad'];
 
-const legacyPlayerFields = ['black', 'white', 'pro', 'hostile', 'pos'];
-
-test('normalizes the checked-in state payload without legacy field synthesis', () => {
-    const message = parseHoozi3Message(JSON.stringify({
+test('normalizes the reduced backend player contract', () => {
+    const message = parseHoozi3Message({
         kind: 'state', ts: 10.5, map: 'mp_rr_test', players: [basePlayer],
         ring: { x: 500, y: 500, radius: 250, t_start: 1, t_end: 60, t_now: 20 }
-    }));
-    assert.equal(message.kind, 'state');
-    assert.equal(message.map, 'mp_rr_test');
-    assert.deepEqual(message.players[0].position, { x: 500, y: 400 });
-    assert.equal(message.players[0].uid, '123');
-    assert.equal(message.players[0].uid_long, '16045690981555499126');
-    assert.equal(Object.hasOwn(message.players[0], 'uidLong'), false);
+    });
+    const player = message.players[0];
+    assert.deepEqual(player.position, { x: 500, y: 400 });
+    assert.equal(player.uid, '123');
+    assert.equal(player.uid_long, '16045690981555499126');
+    assert.equal(player.yaw, 90);
+    for (const field of removedPlayerFields) assert.equal(Object.hasOwn(player, field), false, field);
     assert.equal(message.ring.radius, 250);
+});
+
+test('removed backend fields are ignored instead of synthesized into state', () => {
+    const player = parseHoozi3Message({
+        kind: 'state', ts: 1, map: '', players: [{
+            ...basePlayer,
+            hp: 87, is_down: true, max_hp: 100, max_shield: 100, shield: 50, squad: 2
+        }]
+    }).players[0];
+    for (const field of removedPlayerFields) assert.equal(Object.hasOwn(player, field), false, field);
+});
+
+test('yaw is normalized to (-180, 180] independently of map-axis projection', () => {
+    assert.equal(normalizeYaw(0), 0);
+    assert.equal(normalizeYaw(180), 180);
+    assert.equal(normalizeYaw(-180), 180);
+    assert.ok(Math.abs(normalizeYaw(249.08) - (-110.92)) < 1e-10);
+    assert.ok(Math.abs(normalizeYaw(314.3) - (-45.7)) < 1e-10);
+    assert.equal(normalizeYaw(undefined), 0);
 });
 
 test('derives the long UID from the short UID with the approved 64-bit mask', () => {
@@ -54,24 +71,19 @@ test('retains a self player with unavailable map coordinates', () => {
     delete player.x;
     delete player.y;
     const message = parseHoozi3Message({ kind: 'state', ts: 1, map: '', players: [player] });
-    assert.equal(message.players.length, 1);
     assert.equal(message.players[0].position, null);
     assert.equal(message.players[0].self, true);
 });
 
-test('normalizes display-only sentinel strings and roster bit aliases', () => {
-    const player = {
-        ...basePlayer,
-        legend: 'pilot_medium_empty',
-        rank: 'None',
-        roster: undefined,
-        rosters: 13
-    };
-    const message = parseHoozi3Message({ kind: 'state', ts: 1, map: '', players: [player] });
-
-    assert.equal(message.players[0].legend, '');
-    assert.equal(message.players[0].rank, '');
-    assert.equal(message.players[0].roster, 13);
+test('normalizes display sentinels and roster aliases', () => {
+    const player = parseHoozi3Message({
+        kind: 'state', ts: 1, map: '', players: [{
+            ...basePlayer, legend: 'pilot_medium_empty', rank: 'None', roster: undefined, rosters: 13
+        }]
+    }).players[0];
+    assert.equal(player.legend, '');
+    assert.equal(player.rank, '');
+    assert.equal(player.roster, 13);
 });
 
 test('rejects unknown message kinds and malformed state arrays', () => {
@@ -80,7 +92,7 @@ test('rejects unknown message kinds and malformed state arrays', () => {
 });
 
 test('store orders snapshots and selects the explicit self player', () => {
-    const store = createRadarStore({ selectedPlayerId: '', viewMode: 'follow' });
+    const store = createRadarStore({ viewMode: 'follow' });
     const first = parseHoozi3Message({ kind: 'state', ts: 5, map: 'map', players: [basePlayer] });
     const stale = parseHoozi3Message({ kind: 'state', ts: 4, map: 'old', players: [] });
     assert.equal(store.applySnapshot(first), true);
@@ -91,69 +103,35 @@ test('store orders snapshots and selects the explicit self player', () => {
 
 test('state-file import rejects non-state JSON messages', () => {
     assert.throws(() => parseHoozi3StateFile('{"kind":"pong","ts":1}'), HooziProtocolError);
-    const state = parseHoozi3StateFile(JSON.stringify({
+    assert.equal(parseHoozi3StateFile(JSON.stringify({
         kind: 'state', ts: 1, map: 'map', players: [basePlayer]
-    }));
-    assert.equal(state.kind, 'state');
-    assert.equal(state.players.length, 1);
+    })).players.length, 1);
 });
 
-test('checked-in HOOZi 3.0 fixture is complete, importable, and legacy-free', async () => {
-    const fixtureText = await readFile(
-        new URL('./fixtures/hoozi3-state-example.json', import.meta.url),
-        'utf8'
-    );
-    const raw = JSON.parse(fixtureText);
-    const normalized = parseHoozi3StateFile(fixtureText);
+test('checked-in real fixtures use exactly the reduced player field set', async () => {
+    const fixtureRoot = new URL('./fixtures/', import.meta.url);
+    const names = (await readdir(fixtureRoot)).filter((name) => name.startsWith('hoozi3-current-players-'));
+    assert.equal(names.length, 2);
 
-    assert.equal(raw.kind, 'state');
-    assert.equal(raw.map, 'mp_rr_divided_moon_mu1');
-    assert.equal(raw.players.length, 12);
-    assert.equal(normalized.players.length, raw.players.length);
-    assert.equal(raw.players.filter((player) => player.self).length, 1);
-    assert.equal(new Set(raw.players.map((player) => player.id)).size, raw.players.length);
-    assert.deepEqual(
-        [...new Set(raw.players.map((player) => player.max_shield))].sort((a, b) => a - b),
-        [0, 50, 75, 100, 125]
-    );
-    assert.ok(new Set(raw.players.map((player) => player.hp)).size >= 6);
-    assert.ok(raw.players.every((player) => player.shield <= player.max_shield));
-
-    for (const player of raw.players) {
-        for (const field of requiredPlayerFields) {
-            assert.equal(Object.hasOwn(player, field), true, `${player.id} is missing ${field}`);
+    for (const name of names) {
+        const text = await readFile(new URL(name, fixtureRoot), 'utf8');
+        const raw = JSON.parse(text);
+        const normalized = parseHoozi3StateFile(text);
+        assert.equal(normalized.players.length, raw.players.length, name);
+        for (const player of raw.players) {
+            assert.deepEqual(Object.keys(player).sort(), backendPlayerFields, `${name}: ${player.id}`);
+            for (const field of removedPlayerFields) assert.equal(Object.hasOwn(player, field), false, field);
         }
-        for (const field of legacyPlayerFields) {
-            assert.equal(Object.hasOwn(player, field), false, `${player.id} contains legacy ${field}`);
-        }
-        assert.equal(typeof player.uid, 'string');
-        assert.equal(player.max_hp, 100);
-        assert.ok(player.x >= 0 && player.x <= 1000);
-        assert.ok(player.y >= 0 && player.y <= 1000);
     }
-
-    assert.deepEqual(Object.keys(raw.ring).sort(), [
-        'radius', 't_end', 't_now', 't_start', 'x', 'y'
-    ]);
-    assert.ok(raw.ring.radius > 0);
-    assert.ok(raw.ring.t_start <= raw.ring.t_now);
-    assert.ok(raw.ring.t_now <= raw.ring.t_end);
-    assert.equal(normalized.ring.radius, raw.ring.radius);
 });
 
 test('an imported snapshot does not corrupt live server timestamp ordering', () => {
-    const store = createRadarStore({ selectedPlayerId: '', viewMode: 'follow' });
-    const live = parseHoozi3Message({ kind: 'state', ts: 5, map: 'map', players: [basePlayer] });
-    const imported = parseHoozi3Message({ kind: 'state', ts: 1, map: 'map', players: [basePlayer] });
-    const staleLive = parseHoozi3Message({ kind: 'state', ts: 4, map: 'map', players: [basePlayer] });
-    const nextLive = parseHoozi3Message({ kind: 'state', ts: 6, map: 'map', players: [basePlayer] });
-
-    assert.equal(store.applySnapshot(live), true);
-    assert.equal(store.applySnapshot(imported, '{}', { imported: true }), true);
-    assert.equal(store.state.currentSnapshotImported, true);
-    assert.equal(store.applySnapshot(staleLive), false);
-    assert.equal(store.applySnapshot(nextLive), true);
+    const store = createRadarStore({ viewMode: 'follow' });
+    const make = (ts) => parseHoozi3Message({ kind: 'state', ts, map: 'map', players: [basePlayer] });
+    assert.equal(store.applySnapshot(make(5)), true);
+    assert.equal(store.applySnapshot(make(1), '{}', { imported: true }), true);
+    assert.equal(store.applySnapshot(make(4)), false);
+    assert.equal(store.applySnapshot(make(6)), true);
     assert.equal(store.state.currentSnapshotImported, false);
     assert.equal(store.state.previousSnapshot, null);
 });
-

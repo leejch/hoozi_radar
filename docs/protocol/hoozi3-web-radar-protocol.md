@@ -2,420 +2,249 @@
 
 ## Scope and sources
 
-This document describes the browser protocol implemented by
-`references/hapex3-lua-script-factory/scripts/web_radar.lua`. The Lua file is
-the primary source of truth. Field types exposed by `game.*` are cross-checked
-against `references/hapex3-lua-script-factory/references/api-reference.md`.
+This document describes the payload accepted by the active browser frontend.
+The current serialized player shape is verified from the real captures under
+`tests/fixtures/`. The copied Lua reference at
+`references/hapex3-lua-script-factory/scripts/web_radar.lua` still shows an
+earlier, wider payload and is intentionally not edited in this repository.
 
-The reference snapshot is read-only. This document describes the checked-in
-Lua script, not a hypothetical server or the older HOOZi 2.0 transport.
+When the reference snapshot and current captures disagree about serialized
+fields, the current captures define the frontend boundary.
 
 ## Message flow
 
-1. `web_radar.lua` listens on `127.0.0.1:9001` with `net.ws_server`.
-2. After the page `load` event, browser auto mode attempts one target. On
-   non-HTTPS pages, including local HTTP and `file://` launch detection, the
-   automatic target is `ws://127.0.0.1:9001/ws`. On HTTPS pages, the automatic
-   target is `wss://<current-hostname>/ws` with no explicit port. The checked-in
-   Lua server listens on the loopback port and does not define
-   application-level path routing, so `/ws` is a frontend connection target path
-   used by local and Cloudflare deployments rather than a different payload
-   protocol. Failure or later closure does not schedule another attempt;
-   further attempts require an explicit connection/reconnect action.
-3. On each configured broadcast interval, the script snapshots the current
-   game state, JSON-encodes it, and broadcasts it to every connected client.
-   The menu interval is 16–500 ms and defaults to 30 ms.
-4. The browser may send `{"kind":"ping"}`. The Lua server answers only that
-   recognized control message; malformed JSON and other message kinds are
-   ignored.
-5. The Lua server binds only to loopback. Public access and authentication are
-   explicitly delegated by the Lua comments to the surrounding HClient relay.
-   They are not part of this WebSocket protocol.
+The frontend opens the automatic target `ws://127.0.0.1:9001/ws` when served
+over HTTP. HTTPS pages use `wss://<page-host>/ws`. A manual target can be chosen
+from the connection menu.
 
-## Server-to-client messages
+Server to browser:
 
-### State snapshot
+- `state`: one complete state snapshot
+- `pong`: optional response to the browser's `ping`
+
+Browser to server:
+
+```json
+{ "kind": "ping" }
+```
+
+Unknown message kinds, invalid JSON, or a `state` whose `players` value is not
+an array are rejected without applying partial state.
+
+## State message
 
 ```json
 {
-  "kind": "state",
-  "ts": 123.456,
-  "map": "mp_rr_divided_moon_mu1",
-  "players": [
-    {
-      "id": "ix7",
-      "self": true,
-      "name": "Player",
-      "index": 7,
-      "team": 1,
-      "squad": 0,
-      "x": 512.2,
-      "y": 481.8,
-      "yaw": 90,
-      "hp": 100,
-      "max_hp": 100,
-      "shield": 50,
-      "max_shield": 100,
-      "distance": 0,
-      "is_dead": false,
-      "is_down": false,
-      "legend": "",
-      "legend_icon_key": "",
-      "uid": "",
-      "level": 0,
-      "kills": 0,
-      "damage": 0,
-      "rank": "",
-      "rank_icon_key": "",
-      "rank_color": "",
-      "roster": 0
+    "kind": "state",
+    "ts": 5989.88,
+    "map": "mp_rr_tropic_island_mu2_landscape",
+    "players": [
+        {
+            "damage": 2,
+            "distance": 342,
+            "id": "ix34",
+            "index": 34,
+            "is_dead": false,
+            "kills": 2,
+            "legend": "Loba",
+            "legend_icon_key": "icon_legends/30px-Portrait_Loba_square",
+            "level": 277,
+            "name": "Yuuki",
+            "rank": "Diamond 2",
+            "rank_color": "#358DE6",
+            "rank_icon_key": "icon_rank/diamond2",
+            "roster": 0,
+            "self": false,
+            "team": 3,
+            "uid": "1018566565842",
+            "x": 333.08,
+            "y": 677.11,
+            "yaw": -101.95
+        }
+    ],
+    "ring": {
+        "x": 339.22,
+        "y": 707.45,
+        "radius": 122.19,
+        "t_start": 789.15,
+        "t_end": 847.48,
+        "t_now": 809.9
     }
-  ],
-  "ring": {
-    "x": 500,
-    "y": 500,
-    "radius": 250,
-    "t_start": 100,
-    "t_end": 160,
-    "t_now": 123.456
-  }
 }
 ```
 
-`ring`, `index`, `x`, and `y` may be absent because assigning `nil` to a Lua
-table does not create a JSON property. The browser accepts an absent or explicit
-`null` ring as “no active/convertible ring”. A self player is retained even
-when its map position is unavailable.
+`ring` may be absent, `null`, or unusable. The frontend normalizes those cases
+to no active ring.
 
-### Pong
+### Top-level fields
 
-```json
-{"kind":"pong","ts":123.456}
+| Field | Type | Frontend behavior |
+| --- | --- | --- |
+| `kind` | string | Must be `state`. |
+| `ts` | number | Orders live snapshots; older live timestamps are rejected. |
+| `map` | string | Raw runtime map name used for map classification and display. |
+| `players` | array | Full replacement player snapshot. |
+| `ring` | object or null | Optional map-space ring. |
+
+### Player fields
+
+| Field | Type | Normalization and effect |
+| --- | --- | --- |
+| `id` | string | Stable entity key within a match; fallback `snapshot-<index>`. Used for rows and focus matching. |
+| `index` | number | Preserved raw entity index. |
+| `self` | boolean | Identifies the current automatic focus/observation target for this snapshot. |
+| `name` | string | Selector, focus, table, map label, and export. Empty becomes `?`. |
+| `team` | number | Team color, ordering, links, labels, and UID-anchored local-team privacy. Missing becomes `0`. |
+| `x`, `y` | number | Map coordinates in the 1000 by 1000 domain. If either is absent, the player remains in state/table but is not plotted. |
+| `yaw` | number | Degrees normalized to `(-180, 180]`. Observed map axes use `0` as east and positive values turning toward north. |
+| `distance` | number | Non-negative display/status value. |
+| `is_dead` | boolean | Dead players remain in state/table but are not plotted on the map. |
+| `legend` | string | Legend label; `pilot_medium_empty` becomes empty. |
+| `legend_icon_key` | string | Resolved through the documented legend icon source order. |
+| `uid` | string | Platform UID. It is also the identity anchor for determining the actual local team. |
+| `level` | number | Non-negative level value. |
+| `kills` | number | Non-negative focus/table/map-label value. |
+| `damage` | number | Non-negative focus/table/map-label value. |
+| `rank` | string | Rank label; `None` becomes empty. |
+| `rank_icon_key` | string | Resolved through the documented rank icon source order. |
+| `rank_color` | string | Preserved raw metadata; not rendered as a table field. |
+| `roster` | number | Opaque bit markers used by the existing localized roster tags. |
+
+The frontend also derives:
+
+- `position`: `{x, y}` when both coordinates are finite, otherwise `null`
+- `uid_long`: the existing browser-derived long UID string
+
+Each player object is immutable after protocol normalization.
+
+### Removed player fields
+
+The current backend no longer sends these fields, and the frontend neither
+normalizes nor synthesizes them:
+
+- `hp`
+- `is_down`
+- `max_hp`
+- `max_shield`
+- `shield`
+- `squad`
+
+Consequently there are no health/shield bars, downed marker, vitals table
+column, downed table column, health/shield focus values, or related settings.
+If an older payload still contains these keys, the protocol boundary ignores
+them.
+
+## Yaw and map heading
+
+Yaw values are treated as degrees. Normalization maps arbitrary finite input to
+`(-180, 180]`, including `-180` to `180`. The heading vector is:
+
+```text
+dx = cos(yaw)
+dy = -sin(yaw)
 ```
 
-`ts` is generated with `time.now()`.
+This makes `0` point right/east, `90` point up/north, `180` point left/west,
+and `-90` point down/south. This axis mapping incorporates the observed correction
+where a player facing south previously rendered as facing west. A white needle with a dark outline is drawn from
+each live player marker. Between snapshots, yaw follows the shortest angular
+path so crossing the `180/-180` boundary does not spin the long way around.
 
-## Client-to-server messages
+## Focus and local-player identity
 
-```json
-{"kind":"ping"}
-```
+Focus and privacy use separate concepts:
 
-No other browser command is implemented by `web_radar.lua`.
+- Automatic focus is resolved from the current snapshot's `self: true` player.
+  This can legitimately be another team's player while spectating.
+- A manually selected non-self player overrides automatic focus while the same
+  `id` plus UID/name identity remains present.
+- With no `self: true` player, automatic focus is empty. It never falls back to
+  the first player.
+- When `self` returns in the next match, automatic focus follows it again.
 
-## State fields
+For local-team identity, the store captures the first non-empty UID belonging
+to `self` and keeps that UID separate from later observation-target changes.
+The UID is retained in browser `sessionStorage`, so a reload in the same tab
+while spectating can still identify the real local team. On every snapshot,
+the team is looked up from the player whose UID matches that anchor. Therefore:
 
-| Field | JSON type | Unit/domain | Verified meaning and source | Frontend behavior |
-| --- | --- | --- | --- | --- |
-| `kind` | string | — | Literal `"state"` in `snapshot()` | Selects the state parser. Other kinds are not treated as snapshots. |
-| `ts` | number | `time.now()` seconds | Snapshot wall-clock value from Lua | Stored for ordering, diagnostics, and interpolation cadence. |
-| `map` | string | runtime map identifier | `game.world.map_name` | Classifies known maps by the verified rules below, loads the verified asset through the page-protocol-dependent static fallback order, and shows the localized map name. The raw value remains in the badge title for debugging. Unknown names do not attempt synthetic image lookup; the UI reports that the current map has no web radar. Image-only maps such as `mp_lobby*` and `mp_rr_canyonlands_staging*` use the non-coordinate display mode described below. |
-| `players` | array | — | Plain-table snapshots of non-NPC `game.entities.players` | Replaces the complete player set atomically; non-dead entries determine the live-player badge. |
-| `ring` | object or absent | map pixels and game-time values | Active `game.world.ring`, converted by Lua | Drives a thin sky-blue boundary and a dark, warm-tinted map-only filter outside the boundary. The effect layer sits below every player overlay. |
+- when the local team dies and `self` moves to an enemy, that enemy team is not
+  treated as local;
+- when the same UID appears with a new entity `id` or team in the next match,
+  the local-team mapping updates automatically;
+- when the known UID is temporarily absent, the local team is unknown instead
+  of falling back to the spectated `self` team.
 
-### Verified map identifiers and assets
+If a page is opened for the first time only after spectating has already begun,
+the payload contains no independent flag that can distinguish the account UID
+from the observation target. The frontend can only anchor an identity it has
+already observed or restored in that browser session.
 
-Later underscore-delimited suffixes are variants and do not change the base
-map unless a more specific rule is listed here. For example,
-`mp_rr_canyonlands_hu_avt_uh`, `mp_rr_canyonlands_mu1`, and
-`mp_rr_canyonlands_mu2` all use `mp_rr_canyonlands.png`, but
-`mp_rr_canyonlands_staging*` is checked first and uses the firing range asset.
+## Optional local-team anonymity
 
-| Runtime prefix | Asset | Simplified Chinese | Traditional Chinese | English |
-| --- | --- | --- | --- | --- |
-| `mp_rr_canyonlands` | `mp_rr_canyonlands.png` | 诸王峡谷 | 王者峽谷 | Kings Canyon |
-| `mp_rr_desertlands` | `mp_rr_desertlands.png` | 世界尽头 | 世界邊緣 | World's Edge |
-| `mp_rr_olympus` | `mp_rr_olympus.png` | 奥林匹斯 | 奧林匹斯 | Olympus |
-| `mp_rr_divided_moon` | `mp_rr_divided_moon.png` | 残月 | 殘月 | Broken Moon |
-| `mp_rr_tropic_island` | `mp_rr_tropic_island.png` | 风暴点 | 暴風點 | Storm Point |
-| `mp_rr_district` | `mp_rr_district.png` | 电气区 | 電流區 | E-District |
+The menu option `Anonymize local team` / `本队前端匿名` is off by default.
+When enabled, the UID-anchored local team uses this display/export projection:
 
-`mp_rr_canyonlands_staging*` uses `mp_range.png` and is labeled as the firing
-range. `mp_lobby` and any raw map name beginning with `mp_lobby` use
-`mp_lobby.png`. These image-only maps are not coordinate radars: the map image
-is centered inside the map observation area, rendered with `object-fit: contain`,
-and never exceeds the available width or height. The ring and player canvases
-are cleared and hidden, so player coordinates from those snapshots are retained
-in state/table data but are not plotted.
-
-Static map/logo assets have two base URLs:
-
-- `https://img.hoozi.net/static/`
-- `static/`
-
-Non-HTTPS access, including local HTTP and the `file://` guard page, tries
-`static/` first and falls back to the R2 URL. HTTPS access tries the R2 URL
-first and falls back to `static/`. Browser image requests set
-`referrerPolicy = "origin"`, which is the browser-supported way to send the
-current page origin as the cross-origin image request referrer.
-
-## Player fields
-
-| Field | JSON type | Unit/domain | Verified meaning and transformation | Frontend behavior |
-| --- | --- | --- | --- | --- |
-| `id` | string | — | Match-local key chosen by Lua: `ix<index>`, else `uid<platform_uid>`, else `anon-<name>`; real captures show `ix<index>` values can be reused by another player in a later match | Entity identity, selection, interpolation, and keyed table updates inside the current snapshot lifecycle. It is retained in exports but is not shown in the player table. |
-| `self` | boolean | — | Player index equals `game.localplayer.index` | Automatic focus is resolved from this field on every accepted snapshot; it also controls local-player marker styling, where the fill keeps the player's team color while the outline is red. It is retained in exports but is not shown in the player table. |
-| `name` | string | — | `p.name`, fallback `"?"` | Labels, selector, and table. |
-| `index` | number or absent | entity index | `p.index` | Raw export metadata only; `id` remains the primary browser key. |
-| `team` | number | game team number | `p.team_num`, fallback `0` | Team color, teammate connection lines, selector/table sorting, a table column with a team-colored dot before the numeric value, and an independently toggleable numeric map label placed immediately before the nickname. |
-| `squad` | number | teammate flag / squad identifier | `p.squad_id`, fallback `0` | Raw export metadata only; no table column is shown. |
-| `x`, `y` | number or absent | 0–1000 map pixels | Lua calls `math.WorldToMapPixel(worldX, worldY, 1000, 1000)` and applies a two-second sticky cache | Uniformly mapped onto a square drawing surface inside the observation port. Players without both values are retained in state but not plotted; coordinates are intentionally omitted from table controls. |
-| `yaw` | number | not specified by the checked API | `p.yaw` forwarded unchanged after finite-value validation | Retained in state/export only. It is not converted into a map heading because the reference does not define its unit/orientation contract. |
-| `hp` | number | health points | `p.health`, fallback `0` | Focus value, map health bar, and the merged table shield/health bar column. The bar is hidden for dead players. |
-| `max_hp` | number | health points | Literal `100` in Lua | Health ratio denominator; hidden from table controls because it is always 100 in observed backend data. |
-| `shield` | number | shield points | `p.shield`, fallback `0` | Focus value, map shield bar, and the merged table shield/health bar column. The shield bar is omitted when `max_shield` is `0`, or when the player is down or dead. |
-| `max_shield` | number | shield points | `p.max_shield`, fallback `0` | Shield ratio denominator and shield-tier color/length selector. A zero value omits the shield bar on the map and in the merged table shield/health column. |
-| `distance` | number | meters | `p.distance`; API examples compare it to meter thresholds | Focus details only; it is retained for export but is not a player-table field. |
-| `is_dead` | boolean | — | `p.is_dead` | Dead players are retained in state/table data but are not plotted on the map; their map/table vital bars are hidden. |
-| `is_down` | boolean | — | `p.is_down` | Downed players remain plotted and use the same red X marker style that the old dead marker used; their shield bar is hidden while health remains visible. |
-| `legend` | string | runtime label | `p.legend` | Map label and merged player-table legend column. The frontend displays `pilot_medium_empty` as an empty value. |
-| `legend_icon_key` | string | icon asset key | Forwarded from `p.legend_icon_key`; observed keys use paths such as `icon_legends/30px-Portrait_Lifeline_square` | Preserved in state/export. The player table strips the leading `icon_legends/` prefix and loads the transparent PNG from `https://img.hoozi.net/icon_legends/` or local `./res/icon_legends/` using the same source order as map images. |
-| `uid` | string | short platform UID | `p.platform_uid` | Displayed exactly as received in the short-UID column. The normalized state also derives `uid_long` for display only by XORing the short UID with `0xDEADBEEF1B4DF00D` as an unsigned 64-bit value. The raw exported server message still contains only the backend `uid` field. |
-| `level` | number | account level | `p.grade` | Focus/table/stat labels. |
-| `kills` | number | count | `p.kills` | Focus/table/stat labels. |
-| `damage` | number | damage count/value from runtime | `p.damage` | Focus/table/stat labels. |
-| `rank` | string | runtime label | `p.rank` | Map label and merged player-table rank column. The frontend displays `None` as an empty value. |
-| `rank_color` | string | CSS hex color in observed backend data | Forwarded from `p.rank_color` | Preserved in state/export only. It is not exposed as a visible table field and is not used to style the merged rank column. |
-| `rank_icon_key` | string | icon asset key | Forwarded from `p.rank_icon_key`; observed keys use paths such as `icon_rank/rookie1` | Preserved in state/export. The player table strips the leading `icon_rank/` prefix and loads the transparent PNG from `https://img.hoozi.net/icon_rank/` or local `./res/icon_rank/` using the same source order as map images. |
-| `roster` | number | four-bit marker mask | `p.roster`, fallback `0`; `rosters` is accepted as a compatibility alias in the frontend normalizer | Displayed as zero to four localized bracket tags by bit mask: friend `8`, cheater `4`, pro/permission `1`, and celebrity `2`. The map label uses a single-line tag sequence colored by the leftmost/highest-priority tag, while other map label text keeps the player marker color. The table renders the same sequence before the nickname in the `name` column with per-tag colors. |
-
-NPC entries are intentionally excluded in Lua (`if not p.is_npc`). The frontend
-therefore has no NPC category to render.
-
-Roster tag labels and table colors:
-
-| Bit | Simplified Chinese | Traditional Chinese | English | Table color |
-| --- | --- | --- | --- | --- |
-| `8` | `[友]` | `[友]` | `[Friend]` | `#63B5FFCC` |
-| `4` | `[作弊]` | `[作弊]` | `[Cheater]` | `#FF0000CC` |
-| `1` | `[权]` | `[權]` | `[Pro]` | `#B300FFCC` |
-| `2` | `[名人]` | `[名人]` | `[Celebrity]` | `#FFE633CC` |
-
-### Frontend-derived player fields
-
-The normalized browser state adds `uid_long` for UI display only. It is
-computed from the backend `uid` string with:
-
-```js
-BigInt.asUintN(64, BigInt(uid) ^ BigInt('0xDEADBEEF1B4DF00D')).toString()
-```
-
-This value is not sent by `web_radar.lua`, is not written back to the raw
-exported server message, and is not used as player identity.
-
-### Focus selection lifecycle
-
-The page starts each session in automatic focus mode. Every accepted complete
-`state` snapshot resolves the focus from its current `self: true` player,
-including when that player is dead. A formerly selected ID remaining in the
-array with `self: false` does not prevent switching to the new self. This is
-required for entry, death/respawn transitions, and later matches where entity
-indices can be reassigned.
-
-If every player has `self: false`, automatic selection becomes empty. The
-renderer keeps the existing viewport transform but performs no fixed-follow
-re-centering and draws no selected-player crosshair/ring until self appears.
-It does not guess from array order.
-
-The selector's `Auto-follow self` option represents automatic mode. Explicitly
-selecting a non-self player enters manual mode and overrides later self values
-while the selected identity remains available. Because `id = ix<index>` is only
-match-local, manual continuity requires the same ID and rejects conflicting
-non-empty UIDs; when a UID is unavailable, a conflicting non-placeholder name
-also rejects the match. A missing or conflicting manual target returns to
-automatic mode. Selecting the current self player also returns to automatic
-mode. Manual selection is session-only rather than restored from persisted
-browser settings.
-
-### Local-team display and export privacy
-
-The browser identifies the local team from the player whose verified `self`
-field is `true`. That player and every player with the same numeric `team`
-value receive a presentation-only projection:
-
-- `name` is displayed as `HOOZi3.0` in the player table, follow selector, focus
-  UI, and map labels;
+- `name` becomes `HOOZi3.0`;
 - `legend`, `rank`, `level`, `uid`, and derived `uid_long` display as `-`;
-- `legend_icon_key` and `rank_icon_key` display as `-` in their merged table
-  columns without attempting an icon request.
+- legend/rank icon keys become empty so their images are not requested;
+- exported private fields become empty strings.
 
-This projection is not protocol normalization and does not mutate the atomic
-snapshot. Raw values remain available to identity, selection, and interpolation.
-At the JSON export boundary, the same players use `name = "HOOZi3.0"`; existing
-`legend`, `legend_icon_key`, `rank`, `rank_icon_key`, `level`, `uid`, and
-`uid_long` fields become empty strings. An absent `uid_long` field is not added.
-If no explicit `self` player is present, the frontend does not guess a local
-team and applies no privacy projection to the UI or export.
+The normalized snapshot remains unchanged. The projection applies only at
+selector, focus, map-label, table, and export boundaries. A spectated enemy
+whose `self` value is true remains visible unless that player's team actually
+matches the anchored local UID's team.
 
-The visible player table columns default to the user-facing order: `team`,
-`name`, merged `max_shield`/`shield`/`hp` as the shield/health bar column,
-merged `legend`/`legend_icon_key`, merged `rank`/`rank_icon_key`, `level`,
-`damage`, `kills`, `distance`, `uid`, derived `uid_long`, `is_down`, and
-`is_dead`. Raw `id`, `index`, `self`, `squad`, `x`, `y`, `yaw`, `max_hp`, and
-`rank_color` remain normalized and exported but are intentionally hidden from
-the controls and table. The `roster` value is not a standalone table column; localized
-bracket tags are rendered before the nickname in the `name` column, followed by
-one normal space before the actual player name. When one or more tags are
-present in the table, the nickname uses the leftmost tag color. On the map,
-only the bracket-tag sequence uses the leftmost tag color; nickname and other
-label fields keep the player marker color. Zero means no tags. The
-table itself uses intrinsic, non-shrinking column widths inside a
-horizontally scrollable viewport. Viewport ratios of at least `1.12`
-automatically select landscape layout, while ratios at or below `0.893`
-automatically select portrait layout; ratios between those thresholds keep the
-user-selected header-button orientation. In landscape layout, the desktop table
-panel expands toward the current intrinsic content width but is capped at 30%
-of the page content width. The map first receives enough width to remain at
-least as wide as it is tall. In portrait layout, the map stage uses a `1:1.12`
-width-to-height ratio unless it is the only visible body panel, and the player
-table expands vertically so every row is shown without an internal vertical
-scrollbar. Content beyond the table panel scrolls horizontally. This allocation
-is repeated after table content, field visibility, table visibility, menu
-visibility, or page dimensions change.
+## Map identifiers and assets
 
-Map overlay defaults start with the numeric team label and vitals turned on.
-The team-label switch is the first map-overlay control, and the value is drawn
-immediately before the nickname when both are enabled. Nickname, legend, level,
-rank, and kills/damage start turned off. Dead players are always hidden on the
-map. Downed players are always shown on the map. Shield and health share one
-map-overlay toggle; roster tags, team links, and ring display remain
-independently toggleable. The player table DOM is rebuilt only when its visible
-fields or displayed values change.
+For raw names beginning with `mp_rr_`, classification uses only the first token
+after that prefix; later suffixes are variants of the same base map.
 
-Player markers use the same four-pixel radius and team-color fill for local and
-remote players. Normal remote marker outlines are one-pixel dark lines. The
-local-player marker keeps a one-pixel `rgb(255, 0, 0)` outline. The selected focus player gets a
-white one-pixel ring outside the normal marker border, with a one-pixel visual
-gap, and a white crosshair line pair through that selected position. Team links
-connect the selected focus player to players on the same team at 65% white
-opacity. The shield bar is drawn directly above the health bar with a shared
-edge; the stacked bars sit immediately above the player marker. Downed players
-show only the health bar, and dead players show neither bar. The table
-shield/health column mirrors those visibility rules with the 125-shield length
-treated as the full unit width; the 100-health bar is therefore 80% of that
-width. Entity labels are placed
-immediately below the marker. Both bars use a 0.5-pixel dark border. Shield bar
-width is 50%, 75%, 100%, or 125% of the health-bar width for maximum shield
-values 50, 75, 100, or 125. Their fill colors are respectively
-`rgb(224, 224, 224)`, `rgb(50, 133, 205)`, `rgb(135, 65, 177)`, and
-`rgb(209, 17, 15)`. Missing or zero maximum shield omits the shield bar; actual
-shield fill is capped at its maximum. Health fill is white. Entity labels
-default to a 10-pixel font with a one-pixel dark outline.
+| Token | Base runtime name | Asset |
+| --- | --- | --- |
+| `canyonlands` | `mp_rr_canyonlands` | `mp_rr_canyonlands.png` |
+| `desertlands` | `mp_rr_desertlands` | `mp_rr_desertlands.png` |
+| `olympus` | `mp_rr_olympus` | `mp_rr_olympus.png` |
+| `divided` | `mp_rr_divided_moon` | `mp_rr_divided_moon.png` |
+| `tropic` | `mp_rr_tropic_island` | `mp_rr_tropic_island.png` |
+| `nemesis` | `mp_rr_nemesis` | `mp_rr_district.png` |
 
-The responsive map stage is only an observation port. Its initial square
-drawing-surface side is the smaller observation-port dimension. At 100%, one
-map dimension exactly reaches the corresponding port edge while the complete
-square remains visible; the longer observation axis may contain empty space.
-The surface is then retained when browser width, landscape/portrait layout,
-menu visibility, or player-table visibility changes, preventing map images,
-circles, and player geometry from being stretched. The ring and entity canvases
-are screen-space siblings of the transformed map image: their backing buffers
-track the observation port at the current `devicePixelRatio`, and their drawing
-transforms include map zoom. This keeps vector overlays sharp across display
-densities and browser zoom changes without allocating a canvas proportional to
-the map zoom. User-controlled zoom is clamped to 50%–300%
-for buttons, wheel input, and two-pointer pinch input. Page load defaults to
-fixed follow at 150%. Selecting free view resets to a centered 100%; selecting
-fixed follow resets to 150% and re-centers the selected player when one exists.
-Automatic focus has no selected player while all `self` values are false, so
-fixed-follow re-centering is suspended until self returns.
-
-The map image has no initial `src` and stays hidden until one of the configured
-static asset sources loads successfully. Empty, loading, and missing-map states
-cannot expose a browser broken-image placeholder.
+Image sources follow the location-aware order implemented in `src/config.js`:
+local first for non-HTTPS pages and HOOZi R2 first for HTTPS pages.
 
 ## Ring fields
 
-| Field | JSON type | Unit/domain | Verified meaning and transformation | Frontend behavior |
-| --- | --- | --- | --- | --- |
-| `x`, `y` | number | 0–1000 map pixels | Ring world origin converted with `WorldToMapPixel(..., 1000, 1000)` | Circle center. |
-| `radius` | number | map pixels | Lua interpolates the world radius between phase endpoints, then calls `WorldRadiusToMapPixel` | Circle radius. No second radius interpolation is invented. |
-| `t_start`, `t_end` | number | ring game-time clock | `ring.time_start`, `ring.time_end` | Preserved phase timing metadata. |
-| `t_now` | number | same ring clock | `time.curtime()` used by the Lua interpolation | Preserved in normalized state. |
-
-The Lua script clamps the radius interpolation fraction to `[0, 1]`. If ring
-origin or radius conversion fails, the entire `ring` property is omitted.
-
-## HOOZi 2.0 migration map
-
-| Legacy frontend assumption | HOOZi 3.0 equivalent | Migration action |
+| Field | Type | Meaning |
 | --- | --- | --- |
-| `ws://127.0.0.1:2334/ws` | `ws://127.0.0.1:9001/ws` locally, `wss://<hostname>/ws` on HTTPS | Default port replaced while auto mode now uses `/ws` as the frontend connection path. Full manual `ws`/`wss` targets remain configurable for local LAN devices or an external relay. |
-| Snapshot payload accepted without a message discriminator | `kind: "state"` | Strict kind-based parsing. |
-| `player.pos.x`, `player.pos.y` | Flat `player.x`, `player.y` | Normalize to a single internal `{x,y}` position. |
-| Local player identified by name `"<hoozi>"` | `player.self` | Selection and focus use `self` and stable `id`. |
-| Incoming coordinates interpreted inside a 1920×1080 frame with a 1015-pixel crop | Lua-produced 0–1000 square coordinates | Removed legacy offsets/crop; render directly against the square map. |
-| Numeric map IDs `1`–`6` and old lobby sentinel fallback | `game.world.map_name` string, empty string outside a known map | Preserve the raw string and classify it using the verified prefix rules above. Named BR assets replace the old numeric image names; `mp_lobby*` selects `mp_lobby.png`; `mp_rr_canyonlands_staging*` selects `mp_range.png`; both disable coordinate plotting. Empty map means no active map; unknown names show the unsupported-map message without requesting a generated image path. |
-| `uidShort` plus XOR-derived `uidLong` | Exact backend `uid = p.platform_uid`, plus frontend-derived display-only `uid_long` | The backend UID is preserved unchanged. The long UID conversion is restored only as an explicit table display requirement and is not added to raw exports or player identity. |
-| `pro`, `black`, `white`, `hostile` | No verified field | Removed tag/filter behavior. |
-| Threshold-generated “danger/high kills/low level” protocol semantics | `level` and `kills` are plain values | Values remain displayable; the migration does not claim protocol-level suspicion semantics. |
-| No ring rendering | `ring` object | Added a thin sky-blue boundary plus an outside-only map filter on a dedicated canvas below all player graphics. |
-| Static snapshots rendered immediately | Lua default broadcast is ~33 Hz | State store interpolates positions between the previous and latest normalized snapshots for render-frame updates. |
+| `x`, `y` | number | Ring center in map coordinates. |
+| `radius` | number | Non-negative map radius. |
+| `t_start`, `t_end`, `t_now` | number | Preserved timing metadata. |
 
-## Data not sent by this Lua script
+An invalid center or radius disables the ring for that snapshot.
 
-The API reference exposes `game.entities.loots` and
-`game.entities.projectiles`, but `web_radar.lua` never reads or serializes
-them. The frontend cannot render loot or projectiles from this protocol. Adding
-such behavior requires a future, explicit Lua protocol revision.
+## HOOZi 2.0 and earlier payload removals
 
-Likewise, the API exposes fields such as player weapon and visibility that are
-not serialized by `web_radar.lua`. They are intentionally unsupported here.
+The active frontend does not restore legacy assumptions such as nested `pos`,
+`pro`, `black`, `white`, `hostile`, a numeric map sentinel, a 1920 by 1080 crop,
+port 2334, or partial-patch messages. The six fields removed by the current
+HOOZi 3.0 backend are also not emulated in the browser.
 
-## Validation and failure behavior
+## Unsupported data and remaining uncertainties
 
-The browser parser:
+The active state payload does not contain loot or projectiles, so the browser
+cannot render them. Icon-key namespaces are implemented only for the observed
+legend and rank prefixes. The detailed semantic contract of `rank_color` and
+numeric `roster` values remains partly opaque; those raw values are not given
+new inferred meanings.
 
-- requires valid JSON and an object message;
-- accepts only `state` and `pong` kinds;
-- requires `players` to be an array for a state snapshot;
-- replaces invalid or missing optional scalar values with documented neutral
-  defaults without introducing legacy fields;
-- rejects a state snapshot whose `ts` is older than the latest applied server
-  timestamp;
-- keeps a player in lists when coordinates are absent, but does not plot it;
-- treats an incomplete or non-finite ring as absent.
+## Main implementation points
 
-The player-information toolbar exports the latest complete `state` message as
-JSON after applying the local-team privacy projection documented above. The
-export recursively orders object keys by dictionary order, uses four spaces per
-indentation level, and orders players by ascending numeric `team`, then
-dictionary-ordered `name`, then stable `id`. Imported files must use a `.json`
-filename and must parse as a `state`
-message through this same boundary; `pong`, unknown kinds, invalid JSON, and a
-non-array `players` value are rejected without changing frontend state. An
-accepted imported snapshot enters offline preview: the active connection and
-ping timer are stopped, and a pending initial connection attempt is cancelled
-until the user explicitly uses a connection/reconnect control. It also remains display-only with respect
-to server ordering: it does not replace the last accepted live timestamp, and
-the next valid live snapshot resumes without interpolation from test data.
-
-## Affected frontend modules
-
-| Module | Responsibility |
+| File | Responsibility |
 | --- | --- |
-| `src/protocol/hoozi3.js` | JSON parsing, message validation, and field normalization |
-| `src/state/store.js` | Atomic snapshots, selection, ordering, and frame interpolation |
-| `src/render/ring.js` | Map-only outside-zone filter and thin sky-blue ring boundary |
-| `src/render/entities.js` | Team links, local marker, player marker, vitals, and labels on the unaffected top canvas |
-| `src/render/viewport.js` | Pure zoom bounds, gesture anchors, observation-port resize, and fixed-follow transform math |
-| `src/render/radar.js` | Fixed drawing-surface sizing, observation-port clipping, coordinate transform, and pan/zoom/follow behavior |
-| `src/ui/layout.js` | Pure map-first landscape column allocation with menu/player-list visibility |
-| `src/ui/player-data.js` | JSON import/export filename validation, creation, formatting, and deterministic ordering |
-| `src/ui/player-sort.js` | Player table ordering, including fully-dead team placement |
-| `src/ui/roster.js` | Pure roster bit-mask labels and table colors |
-| `src/ui/controls.js` | Connection inputs, display settings, focus selector, and table |
-| `src/assets/maps.js` | Verified raw-map token mapping, localized labels, image-only map detection, and page-protocol-dependent R2/local asset fallback |
-| `src/assets/icons.js` | Legend/rank icon-key normalization and page-protocol-dependent R2/local asset fallback |
-| `src/main.js` | WebSocket lifecycle and module wiring |
-
-## Unconfirmed values and runtime checks
-
-- The API reference lists `yaw` as a number but does not specify degrees,
-  handedness, or its orientation relative to the generated map pixels. The
-  frontend exposes the value but does not draw a directional arrow.
-- `legend_icon_key` and `rank_icon_key` currently use the observed
-  `icon_legends/` and `icon_rank/` key namespaces. Other icon namespaces remain
-  unsupported until the backend asset contract is verified.
-- `rank_color` is preserved in state/export only. Its visual meaning is not
-  used by the current table or map rendering.
+| `src/protocol/hoozi3.js` | Decode, validate, remove old fields, normalize yaw, derive pure fields. |
+| `src/state/store.js` | Timestamp ordering, interpolation, focus state, UID identity anchor. |
+| `src/player-display.js` | Opt-in local-team privacy projection. |
+| `src/render/entities.js` | Player markers, yaw needles, links, and labels. |
+| `src/ui/controls.js` | Menu, selector, focus, table, import/export wiring. |
+| `src/ui/player-data.js` | Sorted JSON export and optional privacy projection. |
+| `tests/fixtures/` | Current real backend captures defining the player shape. |

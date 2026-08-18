@@ -36,11 +36,12 @@ examples matter:
 
 Resolve conflicts in this order:
 
-1. `references/hapex3-lua-script-factory/scripts/web_radar.lua`
-2. `references/hapex3-lua-script-factory/references/api-reference.md`
-3. `references/hapex3-lua-script-factory/references/guide.md`
-4. `references/hapex3-lua-script-factory/references/examples.md`
-5. Existing frontend behavior
+1. Current real WebSocket captures under `tests/fixtures/` for serialized payload shape
+2. `references/hapex3-lua-script-factory/scripts/web_radar.lua`
+3. `references/hapex3-lua-script-factory/references/api-reference.md`
+4. `references/hapex3-lua-script-factory/references/guide.md`
+5. `references/hapex3-lua-script-factory/references/examples.md`
+6. Existing frontend behavior
 
 Never invent field meanings, units, enum mappings, asset-key formats, or map
 aliases. When meaning cannot be verified, retain the raw value only if useful,
@@ -49,15 +50,18 @@ avoid interpretive UI behavior.
 
 ## Implemented HOOZi 3.0 protocol
 
-The checked-in Lua script listens on `ws://127.0.0.1:9001` with no required
-path. It sends:
+The checked-in Lua reference snapshot still shows the earlier wider player
+payload, but the active backend contract is represented by the real captures
+under `tests/fixtures/`. It sends:
 
 - `state`: `kind`, `ts`, `map`, `players`, and optional `ring`
 - `pong`: response to the optional browser `ping` control message
 
 The player payload uses flat `x`/`y` map coordinates in a 1000×1000 domain and
-contains `id`, `self`, name/team/squad data, health/shield, status, legend,
-platform UID, level/combat/rank metadata, and opaque icon/color/roster values.
+contains `id`, `index`, `self`, `name`, `team`, `x`, `y`, `yaw`, `distance`,
+`is_dead`, legend/icon, platform UID, level/combat/rank metadata, and opaque
+rank-color/roster values. It no longer contains `hp`, `is_down`, `max_hp`,
+`max_shield`, `shield`, or `squad`.
 See `docs/protocol/hoozi3-web-radar-protocol.md` for the exact contract.
 
 Important limits:
@@ -65,8 +69,10 @@ Important limits:
 - `web_radar.lua` does not serialize loot or projectiles, even though the Lua
   API exposes them. The browser cannot implement those entities without a Lua
   protocol change.
-- `yaw` orientation/units, icon-key namespaces, `rank_color` format, and
-  numeric `roster` semantics are not fully documented. Do not guess.
+- Current observed `yaw` values are degrees in `(-180, 180]`; verified map
+  headings use `0` as east, `90` as north, `180` as west, and `-90` as south. Icon
+  namespaces, `rank_color` format, and numeric `roster` semantics remain
+  partially opaque.
 - `game.world.map_name` is a raw string. The verified base-map mapping is the
   first underscore-delimited token after `mp_rr_`: `canyonlands` → `1.png`,
   `desertlands` → `2.png`, `olympus` → `3.png`, `divided` → `4.png`,

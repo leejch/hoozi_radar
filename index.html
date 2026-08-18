@@ -424,17 +424,6 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
             background-color: rgba(124, 45, 18, 0.82);
         }
 
-        .player-table-row-down {
-            background-color: rgba(51, 65, 85, 0.86);
-        }
-
-        .player-table-row-down td {
-            color: rgb(148, 163, 184);
-        }
-
-        .player-table-row-down:hover {
-            background-color: rgba(71, 85, 105, 0.9);
-        }
     </style>
 </head>
 
@@ -556,6 +545,11 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
                 <section class="glass-panel rounded-3xl py-2 px-4">
                     <h2 class="text-sm font-semibold uppercase text-slate-300" data-i18n="config.toggles">信息开关</h2>
                     <div class="mt-3 space-y-2">
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5 text-sm text-slate-200">
+                            <input id="conf_anonymizelocalteam" type="checkbox" data-setting="anonymizeLocalTeam"
+                                   class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
+                            <span data-i18n="config.anonymizeLocalTeam">本队前端匿名</span>
+                        </label>
                         <div class="grid grid-cols-2 gap-1.5 text-sm text-slate-200">
                             <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
                                 <input id="conf_showteam" type="checkbox" data-setting="showTeam"
@@ -571,11 +565,6 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
                                 <input id="conf_showlegend" type="checkbox" data-setting="showLegend"
                                        class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
                                 <span data-i18n="config.toggleLegend">传奇</span>
-                            </label>
-                            <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
-                                <input id="conf_showvitals" type="checkbox" data-setting="showVitals"
-                                       class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400 focus:ring-emerald-500/60">
-                                <span data-i18n="config.toggleVitals">护盾 &amp; 血量</span>
                             </label>
                             <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5">
                                 <input id="conf_showlevel" type="checkbox" data-setting="showLevel"
@@ -626,7 +615,6 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
                     <div class="mt-3 grid grid-cols-2 gap-1.5 text-xs text-slate-200">
                         <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableTeam" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.team">队伍</span></label>
                         <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableName" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.name">昵称</span></label>
-                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableVitals" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.vitals">护盾 &amp; 血量</span></label>
                         <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableLegend" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.legend">传奇</span></label>
                         <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableLegendIconKey" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.legendIconKey">传奇图标</span></label>
                         <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableRank" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.rank">段位</span></label>
@@ -638,7 +626,6 @@ Unauthorized copying, modification, distribution, or use of any part of this pro
                         <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableKills" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.kills">击杀</span></label>
                         <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableUid" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.uid">短UID</span></label>
                         <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableUidLong" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.uidLong">长UID</span></label>
-                        <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableDown" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.down">倒地</span></label>
                         <label class="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/40 px-2 py-1"><input type="checkbox" data-setting="tableDead" class="size-4 rounded border-slate-600 bg-slate-900 text-emerald-400"><span data-i18n="table.columns.dead">死亡</span></label>
                     </div>
                 </section>

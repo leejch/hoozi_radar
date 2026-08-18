@@ -1,4 +1,5 @@
 import { defaultScaleForMode } from '../config.js';
+import { localPlayerTeam } from '../player-display.js';
 
 export const PLAYER_SELECTION_AUTO = 'auto';
 export const PLAYER_SELECTION_MANUAL = 'manual';
@@ -19,12 +20,24 @@ function interpolatePosition(previous, current, alpha) {
     };
 }
 
+function interpolateYaw(from, to, alpha) {
+    if (!Number.isFinite(from) || !Number.isFinite(to)) return to;
+    const delta = ((to - from + 180) % 360 + 360) % 360 - 180;
+    const interpolated = from + delta * alpha;
+    const normalized = ((interpolated + 180) % 360 + 360) % 360 - 180;
+    return normalized === -180 ? 180 : normalized;
+}
+
 function interpolatePlayers(previousPlayers, currentPlayers, alpha) {
     const previousById = new Map((previousPlayers || []).map((player) => [player.id, player]));
     return currentPlayers.map((player) => {
         const previous = previousById.get(player.id);
         if (!previous) return player;
-        return { ...player, position: interpolatePosition(previous, player, alpha) };
+        return {
+            ...player,
+            position: interpolatePosition(previous, player, alpha),
+            yaw: interpolateYaw(previous.yaw, player.yaw, alpha)
+        };
     });
 }
 
@@ -66,7 +79,7 @@ function findSelfPlayer(players, preferredId = '') {
         || null;
 }
 
-export function createRadarStore(settings = {}) {
+export function createRadarStore(settings = {}, { onLocalPlayerUidChange = () => {} } = {}) {
     const state = {
         socket: null,
         connection: 'waiting',
@@ -80,6 +93,7 @@ export function createRadarStore(settings = {}) {
         snapshotIntervalMs: 30,
         selectedPlayerId: '',
         selectionMode: PLAYER_SELECTION_AUTO,
+        localPlayerUid: identityValue(settings.localPlayerUid, ['0']),
         viewMode: settings.viewMode,
         viewport: {
             scale: defaultScaleForMode(settings.viewMode),
@@ -89,6 +103,16 @@ export function createRadarStore(settings = {}) {
         latestMessageText: ''
     };
     let manualPlayerIdentity = null;
+
+    function synchronizeLocalPlayerIdentity(players) {
+        if (state.localPlayerUid) return;
+        const selfPlayer = players.find((player) => player.self);
+        const uid = identityValue(selfPlayer?.uid, ['0']);
+        if (uid) {
+            state.localPlayerUid = uid;
+            onLocalPlayerUidChange(uid);
+        }
+    }
 
     function selectAutomaticPlayer(players) {
         const selfPlayer = findSelfPlayer(players, state.selectedPlayerId);
@@ -130,6 +154,7 @@ export function createRadarStore(settings = {}) {
             if (!imported) state.latestServerTimestamp = snapshot.ts;
             state.mapName = snapshot.map;
             state.latestMessageText = rawText || JSON.stringify(snapshot, null, 2);
+            synchronizeLocalPlayerIdentity(snapshot.players);
             synchronizePlayerSelection(snapshot.players);
             return true;
         },
@@ -143,6 +168,8 @@ export function createRadarStore(settings = {}) {
             state.currentReceivedAt = 0;
             state.selectedPlayerId = '';
             state.selectionMode = PLAYER_SELECTION_AUTO;
+            state.localPlayerUid = '';
+            onLocalPlayerUidChange('');
             manualPlayerIdentity = null;
         },
         selectPlayer(id) {
@@ -171,6 +198,9 @@ export function createRadarStore(settings = {}) {
                 return players.find((player) => matchesPlayerIdentity(manualPlayerIdentity, player)) || null;
             }
             return findSelfPlayer(players, state.selectedPlayerId);
+        },
+        getLocalPlayerTeam(players = state.currentSnapshot?.players || []) {
+            return localPlayerTeam(players, state.localPlayerUid);
         },
         getRenderSnapshot(now = performance.now()) {
             const current = state.currentSnapshot;

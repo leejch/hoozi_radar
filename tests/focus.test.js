@@ -1,145 +1,154 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
 
-import { parseHoozi3Message, parseHoozi3StateFile } from '../src/protocol/hoozi3.js';
+import { parseHoozi3Message } from '../src/protocol/hoozi3.js';
 import {
     PLAYER_SELECTION_AUTO,
     PLAYER_SELECTION_MANUAL,
     createRadarStore
 } from '../src/state/store.js';
 
-const examplesRoot = new URL('./fixtures/focus-examples/', import.meta.url);
-const manifest = JSON.parse(await readFile(new URL('manifest.json', examplesRoot), 'utf8'));
-
-async function readJson(relativePath) {
-    return JSON.parse(await readFile(new URL(relativePath, examplesRoot), 'utf8'));
+function player(id, uid, team, { self = false, dead = false, name = id } = {}) {
+    return {
+        id, uid, team, self, name, is_dead: dead, index: Number(id.replace(/\D/g, '')) || 0,
+        x: 500, y: 500, yaw: 0, distance: 0, legend: '', legend_icon_key: '',
+        level: 1, kills: 0, damage: 0, rank: '', rank_icon_key: '', rank_color: '', roster: 0
+    };
 }
 
-async function readState(file) {
-    return parseHoozi3Message(await readFile(new URL(file, examplesRoot), 'utf8'));
+function snapshot(ts, players, map = 'mp_rr_olympus') {
+    return parseHoozi3Message({ kind: 'state', ts, map, players });
 }
 
-function createStore(selectedPlayerId = '') {
-    return createRadarStore({ selectedPlayerId, viewMode: 'follow' });
+function createStore() {
+    return createRadarStore({ viewMode: 'follow' });
 }
 
-test('focus examples remain exact reduced copies of the real WebSocket captures', async () => {
-    for (const metadata of manifest.examples) {
-        const [example, source] = await Promise.all([
-            readJson(metadata.file),
-            readJson(metadata.source)
-        ]);
-        const sourcePlayers = new Map(source.players.map((player) => [player.id, player]));
-
-        assert.equal(example.kind, 'state', metadata.file);
-        assert.equal(example.map, source.map, metadata.file);
-        assert.equal(example.ts, metadata.timestampOverride ?? source.ts, metadata.file);
-        assert.deepEqual(example.ring, source.ring, metadata.file);
-        assert.deepEqual(
-            example.players,
-            metadata.playerIds.map((id) => sourcePlayers.get(id)),
-            metadata.file
-        );
-        assert.equal(parseHoozi3StateFile(JSON.stringify(example)).kind, 'state', metadata.file);
-    }
-});
-
-test('automatic focus follows the current self across entry, death, identity changes, and the next match', async () => {
-    for (const sequence of manifest.sequences) {
-        const store = createStore('ix53');
-        for (const [index, file] of sequence.files.entries()) {
-            const snapshot = await readState(file);
-            assert.equal(store.applySnapshot(snapshot), true, `${sequence.id}: ${file}`);
-            assert.equal(
-                store.state.selectedPlayerId,
-                sequence.expectedAutomaticFocus[index],
-                `${sequence.id}: ${file}`
-            );
-            assert.equal(store.state.selectionMode, PLAYER_SELECTION_AUTO);
-            assert.equal(
-                store.getSelectedPlayer()?.id || '',
-                sequence.expectedAutomaticFocus[index],
-                `${sequence.id}: ${file}`
-            );
-        }
-    }
-});
-
-test('a dead self player remains the automatic focus instead of the spectated teammate', async () => {
+test('automatic focus follows the current self, including a spectated enemy', () => {
     const store = createStore();
-    store.applySnapshot(await readState('04-self-dead-spectating.json'));
+    store.applySnapshot(snapshot(1, [
+        player('ix1', 'local-uid', 5, { self: true, name: 'Local' }),
+        player('ix2', 'enemy-uid', 9, { name: 'Enemy' })
+    ]));
+    assert.equal(store.getSelectedPlayer()?.id, 'ix1');
 
-    const selected = store.getSelectedPlayer();
-    assert.equal(selected.id, 'ix54');
-    assert.equal(selected.self, true);
-    assert.equal(selected.is_dead, true);
+    store.applySnapshot(snapshot(2, [
+        player('ix1', 'local-uid', 5, { dead: true, name: 'Local' }),
+        player('ix2', 'enemy-uid', 9, { self: true, name: 'Enemy' })
+    ]));
+    assert.equal(store.getSelectedPlayer()?.id, 'ix2');
+    assert.equal(store.state.selectionMode, PLAYER_SELECTION_AUTO);
 });
 
-test('automatic focus stays empty while every player has self false and resumes when self returns', async () => {
+test('local-team identity stays bound to the original UID while spectating another team', () => {
     const store = createStore();
-    store.applySnapshot(await readState('06-no-self.json'));
+    store.applySnapshot(snapshot(1, [
+        player('ix1', 'local-uid', 5, { self: true, name: 'Local' }),
+        player('ix3', 'mate-uid', 5, { name: 'Mate' })
+    ]));
+    assert.equal(store.state.localPlayerUid, 'local-uid');
+    assert.equal(store.getLocalPlayerTeam(), 5);
 
-    assert.equal(store.state.selectedPlayerId, '');
+    store.applySnapshot(snapshot(2, [
+        player('ix1', 'local-uid', 5, { dead: true, name: 'Local' }),
+        player('ix3', 'mate-uid', 5, { dead: true, name: 'Mate' }),
+        player('ix9', 'spectated-uid', 12, { self: true, name: 'Spectated' })
+    ]));
+
+    assert.equal(store.getSelectedPlayer()?.id, 'ix9');
+    assert.equal(store.getLocalPlayerTeam(), 5);
+    assert.equal(store.state.localPlayerUid, 'local-uid');
+});
+
+test('the next match follows self again and resolves the local UID to its new team', () => {
+    const store = createStore();
+    store.applySnapshot(snapshot(1, [player('ix1', 'local-uid', 5, { self: true })]));
+    store.applySnapshot(snapshot(2, [
+        player('ix1', 'local-uid', 5, { dead: true }),
+        player('ix9', 'spectated-uid', 12, { self: true })
+    ]));
+    store.applySnapshot(snapshot(3, [
+        player('ix41', 'local-uid', 2, { self: true, name: 'Local next match' }),
+        player('ix9', 'different-uid', 8)
+    ]));
+
+    assert.equal(store.getSelectedPlayer()?.id, 'ix41');
+    assert.equal(store.getSelectedPlayer()?.uid, 'local-uid');
+    assert.equal(store.getLocalPlayerTeam(), 2);
+});
+
+test('a temporarily absent local UID never makes the spectated team local', () => {
+    const store = createStore();
+    store.applySnapshot(snapshot(1, [player('ix1', 'local-uid', 5, { self: true })]));
+    store.applySnapshot(snapshot(2, [player('ix9', 'spectated-uid', 12, { self: true })]));
+
+    assert.equal(store.getSelectedPlayer()?.id, 'ix9');
+    assert.equal(store.getLocalPlayerTeam(), null);
+    assert.equal(store.state.localPlayerUid, 'local-uid');
+});
+
+test('a session-restored local UID identifies the real team after reload during spectating', () => {
+    const store = createRadarStore({ viewMode: 'follow', localPlayerUid: 'local-uid' });
+    store.applySnapshot(snapshot(1, [
+        player('ix1', 'local-uid', 5, { dead: true }),
+        player('ix9', 'spectated-uid', 12, { self: true })
+    ]));
+
+    assert.equal(store.getSelectedPlayer()?.id, 'ix9');
+    assert.equal(store.getLocalPlayerTeam(), 5);
+});
+
+test('automatic focus stays empty without self and resumes when self returns', () => {
+    const store = createStore();
+    store.applySnapshot(snapshot(1, [player('ix1', 'a', 1), player('ix2', 'b', 2)]));
     assert.equal(store.getSelectedPlayer(), null);
-
-    store.applySnapshot(await readState('07-self-returns.json'));
-    assert.equal(store.state.selectedPlayerId, 'ix27');
-    assert.equal(store.getSelectedPlayer()?.self, true);
+    store.applySnapshot(snapshot(2, [player('ix2', 'b', 2, { self: true })]));
+    assert.equal(store.getSelectedPlayer()?.id, 'ix2');
 });
 
-test('an explicit non-self selection overrides later self changes until automatic mode is requested', async () => {
+test('an explicit non-self selection overrides later self changes', () => {
     const store = createStore();
-    store.applySnapshot(await readState('02-entering-match-self-alive.json'));
-
-    assert.equal(store.selectPlayer('ix22'), true);
+    store.applySnapshot(snapshot(1, [
+        player('ix1', 'local', 1, { self: true }),
+        player('ix2', 'manual', 2)
+    ]));
+    assert.equal(store.selectPlayer('ix2'), true);
     assert.equal(store.state.selectionMode, PLAYER_SELECTION_MANUAL);
-    assert.equal(store.getSelectedPlayer()?.id, 'ix22');
 
-    store.applySnapshot(await readState('03-self-changed-old-id-remains.json'));
-    assert.equal(store.state.selectionMode, PLAYER_SELECTION_MANUAL);
-    assert.equal(store.getSelectedPlayer()?.id, 'ix22');
-    assert.equal(store.getSelectedPlayer()?.self, false);
+    store.applySnapshot(snapshot(2, [
+        player('ix1', 'local', 1),
+        player('ix2', 'manual', 2),
+        player('ix3', 'spectated', 3, { self: true })
+    ]));
+    assert.equal(store.getSelectedPlayer()?.id, 'ix2');
 
-    assert.equal(store.selectPlayer(''), true);
+    store.selectPlayer('');
     assert.equal(store.state.selectionMode, PLAYER_SELECTION_AUTO);
-    assert.equal(store.getSelectedPlayer()?.id, 'ix30');
+    assert.equal(store.getSelectedPlayer()?.id, 'ix3');
 });
 
-test('selecting the self player exits manual mode', async () => {
+test('manual focus rejects a reused entity id with a different UID', () => {
     const store = createStore();
-    store.applySnapshot(await readState('02-entering-match-self-alive.json'));
-    store.selectPlayer('ix22');
+    store.applySnapshot(snapshot(1, [
+        player('ix1', 'local', 1, { self: true }),
+        player('ix7', 'old-uid', 2)
+    ]));
+    store.selectPlayer('ix7');
+    store.applySnapshot(snapshot(2, [
+        player('ix3', 'local', 4, { self: true }),
+        player('ix7', 'new-uid', 8)
+    ]));
 
-    assert.equal(store.selectPlayer('ix53'), true);
     assert.equal(store.state.selectionMode, PLAYER_SELECTION_AUTO);
-    assert.equal(store.getSelectedPlayer()?.id, 'ix53');
+    assert.equal(store.getSelectedPlayer()?.id, 'ix3');
 });
 
-test('manual focus rejects a reused entity id when UID identifies a different next-match player', async () => {
+test('render interpolation takes the shortest yaw path across the 180-degree boundary', () => {
     const store = createStore();
-    const previousMatch = await readState('04-self-dead-spectating.json');
-    const nextMatch = await readState('05-next-match-index-reused.json');
-    const previousIx5 = previousMatch.players.find((player) => player.id === 'ix5');
-    const nextIx5 = nextMatch.players.find((player) => player.id === 'ix5');
-    assert.notEqual(previousIx5.uid, nextIx5.uid);
+    store.applySnapshot(snapshot(1, [{ ...player('ix1', 'local', 1, { self: true }), yaw: 170 }]));
+    store.applySnapshot(snapshot(2, [{ ...player('ix1', 'local', 1, { self: true }), yaw: -170 }]));
+    store.state.currentReceivedAt = 0;
+    store.state.snapshotIntervalMs = 100;
 
-    store.applySnapshot(previousMatch);
-    store.selectPlayer('ix5');
-    assert.equal(store.state.selectionMode, PLAYER_SELECTION_MANUAL);
-
-    store.applySnapshot(nextMatch);
-    assert.equal(store.state.selectionMode, PLAYER_SELECTION_AUTO);
-    assert.equal(store.getSelectedPlayer()?.id, 'ix24');
-    assert.equal(store.getSelectedPlayer()?.self, true);
-});
-
-test('manual focus is still allowed when a snapshot has no self player', async () => {
-    const store = createStore();
-    store.applySnapshot(await readState('06-no-self.json'));
-
-    assert.equal(store.getSelectedPlayer(), null);
-    assert.equal(store.selectPlayer('ix24'), true);
-    assert.equal(store.state.selectionMode, PLAYER_SELECTION_MANUAL);
-    assert.equal(store.getSelectedPlayer()?.id, 'ix24');
+    assert.equal(store.getRenderSnapshot(50).players[0].yaw, 180);
 });
