@@ -14,15 +14,17 @@ The previous frontend was written around a HOOZi 2.0 transport and a monolithic
 identifiers, name-based local-player detection, a cropped legacy coordinate
 space, roster flags, and a derived long UID.
 
-The HOOZi 3.0 version follows the checked-in Lua script instead:
+The active HOOZi 3.0 payload shape follows the real captures in `tests/fixtures/`;
+the checked-in Lua reference still shows the earlier wider player payload:
 
 - automatic WebSocket target: `ws://127.0.0.1:9001/ws` on local/non-HTTPS access, or `wss://<current-hostname>/ws` on HTTPS
 - full `state` snapshots selected by `kind`
 - raw `game.world.map_name` strings with verified map aliases plus image-only `mp_lobby*` and `mp_rr_canyonlands_staging*` handling
 - flat `x`/`y` coordinates in a 1000×1000 map domain
 - stable player `id` and explicit `self`
-- health, shield, down/dead state, legend, UID, level, kills, damage, rank,
-  squad/team, roster bit markers, and an optional ring
+- death state, legend, UID, level, kills, damage, rank, team, yaw, roster bit
+  markers, and an optional ring; health, shield, downed state, and squad are no
+  longer sent
 - a display-only long UID derived from the backend short UID with the approved
   unsigned 64-bit XOR mask
 - optional browser `ping` and Lua `pong`
@@ -34,15 +36,13 @@ The HOOZi 3.0 version follows the checked-in Lua script instead:
 - independent map-overlay switches, with the team-number overlay enabled by
   default and drawn immediately before the nickname, plus player-table columns
   in the current HOOZi 3.0 display order; raw-only fields remain export-only
-- display-only local-team privacy: the explicit `self` player and players with
-  the same `team` show the name `HOOZi3.0`, while legend/rank icons and labels,
-  level, short UID, and long UID are replaced by `-`; the same fields are empty
-  strings in JSON exports
+- opt-in local-team privacy, disabled by default and keyed by the original local
+  UID rather than the current spectated `self` player
 - a fixed square radar drawing surface behind a responsive observation port, with
   50%–300% button, wheel, and pinch zoom
 - validated JSON import and export of the current HOOZi `state` player data
 
-Player positions and ring geometry are interpolated between Lua snapshots for
+Player positions, shortest-path yaw headings, and ring geometry are interpolated between Lua snapshots for
 the browser render loop. Unsupported HOOZi 2.0 fields are not synthesized.
 
 ## Data flow
@@ -93,7 +93,7 @@ hoozi_radar/
 │   └── assets/icons.js           Legend/rank icon fallback
 ├── static/                       Local fallback images
 ├── res/                          Local legend, rank, and item icon assets
-├── tests/fixtures/focus-examples/ Reduced real focus-lifecycle state messages
+├── tests/fixtures/                Current real backend state captures
 ├── docs/protocol/                Project-owned protocol documentation
 └── references/                   Read-only HOOZi 3.0 Lua reference snapshot
 ```
@@ -135,6 +135,13 @@ identity remains available. Selecting `Auto-follow self` (or the current self
 player), or losing that manual identity, resumes automatic focus. Manual focus
 is session-only and is not restored from an older browser setting.
 
+Focus and local-team identity are intentionally separate. Automatic focus may
+follow another team's `self: true` player while spectating. Privacy remembers
+the original local player's non-empty UID in session storage, looks up that
+UID's current `team`, and never treats the spectated team as local. When the
+same UID appears with a new entity ID/team in the next match, the mapping
+updates and automatic focus follows the new self normally.
+
 The selected focus player is marked with full-map white crosshair lines and a
 white ring outside the player dot. The local-player red marker outline remains
 independent of selection.
@@ -162,9 +169,10 @@ existing table geometry and do not request a new panel allocation.
 The player-information toolbar exports the latest complete `state` JSON as the
 current player data. Exported object keys use dictionary order with four-space
 indentation; players are ordered by ascending team number, nickname, and stable
-`id`. Before formatting, the explicit `self` player's team is privacy-filtered:
-names become `HOOZi3.0`, while legend/rank labels and icon keys, level, short
-UID, and an existing long UID field become empty strings.
+`id`. With `Anonymize local team` enabled, the UID-anchored local team's names
+become `HOOZi3.0`, while legend/rank labels and icon keys, level, short UID,
+and an existing long UID field become empty strings. Export keeps raw identity
+fields while that option is off.
 The adjacent import control accepts `.json` files only and
 runs them through the same HOOZi 3.0 protocol validator before applying them.
 Invalid JSON, non-`state` messages, and malformed player arrays do not modify
@@ -297,15 +305,15 @@ marker colors; the player name uses the leftmost tag color when tags are
 present. Map labels color only the roster tag sequence by the leftmost tag,
 while the nickname and other label text keep the player marker color. The
 sentinel legend value `pilot_medium_empty` and rank value `None` display as
-empty. The explicit `self` player's whole team uses a display-only privacy
+empty. The menu's `Anonymize local team` option is disabled by default. When
+enabled, the original local UID's current team uses a display-only privacy
 projection across the table, selector, focus UI, and map labels: names become
 `HOOZi3.0`; legend, rank, level, short UID, and long UID become `-`; and the two
 icon fields do not request assets. Raw normalized state remains unchanged; at
-the export boundary, local-team privacy fields use empty strings. Shield
-quality, shield, and health are shown as one
-`SHIELD & HEALTH` bar column; when `max_shield` is `0` or the player is down,
-only the shield bar is omitted. Dead players show neither bar. Table headers
-are rebuilt only when the selected column structure changes. Rows remain keyed
+the export boundary, local-team privacy fields use empty strings. The removed
+health, shield, downed, and squad fields have no map geometry, focus values,
+table columns, or settings. Table headers are rebuilt only when the selected
+column structure changes. Rows remain keyed
 by player `id`, and an ordinary snapshot replaces only cells whose visible
 signatures changed.
 The player-table header remains sticky at the top of its scrolling viewport.
@@ -315,8 +323,8 @@ The player-table header remains sticky at the top of its scrolling viewport.
 - Read the root `AGENTS.md` and required reference files before changing the
   protocol or rendering semantics.
 - Treat `references/hapex3-lua-script-factory/` as read-only.
-- Use `web_radar.lua` as the primary source of truth; do not infer HOOZi 3.0
-  semantics from the old frontend.
+- Use current real fixtures for the serialized field shape and the Lua snapshot
+  for runtime behavior not contradicted by those captures.
 - Keep protocol parsing, state, canvas rendering, DOM controls, and asset
   fallback in their existing modules.
 - Update Simplified Chinese, Traditional Chinese, and English strings together.
@@ -326,7 +334,8 @@ The player-table header remains sticky at the top of its scrolling viewport.
 ## Known protocol limits
 
 The checked-in Lua script does not send loot or projectile arrays, so the
-frontend cannot render them. It also does not document yaw orientation. The
-frontend retains yaw without drawing a directional arrow; see the protocol
-document for the full uncertainty list.
+frontend cannot render them. Current yaw is treated as degrees in `(-180,180]`,
+with `0` pointing east, `90` north, `180` west, and `-90` south; the map draws
+a heading needle for each live player. See the protocol document for the
+remaining uncertainty list.
 

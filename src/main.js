@@ -20,7 +20,29 @@ applyTranslations();
 
 const refs = collectDomReferences();
 const settings = loadSettings();
-const store = createRadarStore(settings);
+const LOCAL_PLAYER_UID_SESSION_KEY = 'hoozi3_radar_local_player_uid';
+
+function readSessionLocalPlayerUid() {
+    try {
+        return sessionStorage.getItem(LOCAL_PLAYER_UID_SESSION_KEY) || '';
+    } catch {
+        return '';
+    }
+}
+
+function saveSessionLocalPlayerUid(uid) {
+    try {
+        if (uid) sessionStorage.setItem(LOCAL_PLAYER_UID_SESSION_KEY, uid);
+        else sessionStorage.removeItem(LOCAL_PLAYER_UID_SESSION_KEY);
+    } catch {
+        // Storage can be unavailable in hardened browser contexts.
+    }
+}
+
+const store = createRadarStore(
+    { ...settings, localPlayerUid: readSessionLocalPlayerUid() },
+    { onLocalPlayerUidChange: saveSessionLocalPlayerUid }
+);
 let pingTimer = null;
 const initialConnectionGate = createInitialConnectionGate();
 

@@ -244,7 +244,7 @@ export function createRadarRenderer({ refs, store, settings, t }) {
             selected,
             { width: surface.width, height: surface.height },
             t,
-            { clear: false }
+            { clear: false, localTeam: store.getLocalPlayerTeam(snapshot?.players) }
         );
         animationFrame = requestAnimationFrame(renderFrame);
     }

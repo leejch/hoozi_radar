@@ -11,8 +11,8 @@ import {
 import { configureFallbackIconImage } from '../assets/icons.js';
 import { mapDisplayName } from '../assets/maps.js';
 import { activeLanguage } from '../i18n.js';
-import { localPlayerTeam, playerForDisplay, playersForDisplay } from '../player-display.js';
-import { formatPlayerStatus, shieldBarStyle } from '../render/entities.js';
+import { playerForDisplay, playersForDisplay } from '../player-display.js';
+import { formatPlayerStatus } from '../render/entities.js';
 import { formatRosterTags, rosterTags } from './roster.js';
 import { allocateDesktopLayout, resolveResponsiveLayoutOrientation } from './layout.js';
 import { currentPlayerExportFileName, formatPlayerExportJson, isJsonFileName } from './player-data.js';
@@ -22,9 +22,6 @@ const DESKTOP_QUERY = window.matchMedia('(min-width: 1024px)');
 const DESKTOP_CONFIG_WIDTH = 300;
 const DESKTOP_TABLE_MIN_WIDTH = 180;
 const DESKTOP_TABLE_MAX_RATIO = 0.3;
-const TABLE_VITALS_MAX_WIDTH = 70;
-const TABLE_VITALS_HEALTH_WIDTH = TABLE_VITALS_MAX_WIDTH * 0.8;
-const TABLE_VITALS_BAR_HEIGHT = 4;
 
 export function collectDomReferences(root = document) {
     const byId = (id) => root.getElementById(id);
@@ -199,58 +196,8 @@ function nameCell(player) {
     return nodeCell(wrapper);
 }
 
-function barSegment(width, fillWidth, color) {
-    const bar = document.createElement('span');
-    bar.className = 'relative block border border-black bg-slate-950/60';
-    bar.style.width = `${width}px`;
-    bar.style.height = `${TABLE_VITALS_BAR_HEIGHT}px`;
-    const fill = document.createElement('span');
-    fill.className = 'absolute inset-y-0 left-0';
-    fill.style.width = `${Math.max(0, Math.min(width, fillWidth))}px`;
-    fill.style.backgroundColor = color;
-    bar.appendChild(fill);
-    return bar;
-}
-
-function vitalsCell(player) {
-    const wrapper = document.createElement('div');
-    wrapper.className = 'flex w-[70px] flex-col items-start gap-0.5';
-
-    if (player.is_dead) return nodeCell(wrapper);
-
-    const showShield = !player.is_down;
-    wrapper.title = showShield
-        ? `${displayValue(player.shield)}/${displayValue(player.max_shield)} · ${displayValue(player.hp)}/${displayValue(player.max_hp)}`
-        : `${displayValue(player.hp)}/${displayValue(player.max_hp)}`;
-
-    const maximumShield = Number(player.max_shield);
-    const shieldStyle = shieldBarStyle(maximumShield);
-    if (showShield && shieldStyle && maximumShield > 0) {
-        const shieldWidth = TABLE_VITALS_MAX_WIDTH * Math.min(1, maximumShield / 125);
-        const shieldValue = Math.max(0, Number(player.shield) || 0);
-        wrapper.appendChild(barSegment(
-            shieldWidth,
-            shieldWidth * Math.min(1, shieldValue / maximumShield),
-            shieldStyle.color
-        ));
-    }
-
-    const maximumHealth = Math.max(1, Number(player.max_hp) || 100);
-    const healthValue = Math.max(0, Number(player.hp) || 0);
-    wrapper.appendChild(barSegment(
-        TABLE_VITALS_HEALTH_WIDTH,
-        TABLE_VITALS_HEALTH_WIDTH * Math.min(1, healthValue / maximumHealth),
-        '#FFFFFF'
-    ));
-    return nodeCell(wrapper);
-}
-
 function deadCell(player, t) {
     return cell(player.is_dead ? t('player.dead') : '', player.is_dead ? 'font-semibold text-orange-200' : 'text-slate-500');
-}
-
-function downCell(player, t) {
-    return cell(player.is_down ? t('player.down') : '', player.is_down ? 'font-semibold text-slate-300' : 'text-slate-500');
 }
 
 export function createUiController({ refs, store, settings, t, onReconnect, onViewModeChange, onImportPlayerData }) {
@@ -399,14 +346,14 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
 
     function populatePlayerSelect(players) {
         const selectedId = store.state.selectedPlayerId;
-        const localTeam = localPlayerTeam(players);
+        const localTeam = store.getLocalPlayerTeam(players);
         const fragment = document.createDocumentFragment();
         const automaticOption = document.createElement('option');
         automaticOption.value = '';
         automaticOption.textContent = t('header.playerAutoFollow');
         fragment.appendChild(automaticOption);
         for (const player of [...players].sort(comparePlayersByTeamAndName)) {
-            const displayPlayer = playerForDisplay(player, localTeam);
+            const displayPlayer = playerForDisplay(player, localTeam, settings.anonymizeLocalTeam);
             const option = document.createElement('option');
             option.value = player.id;
             option.textContent = `${player.self ? '★ ' : ''}${displayPlayer.name} · T${player.team}`;
@@ -424,32 +371,24 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
             refs.focusName.style.color = '';
             refs.focusName.title = '';
             refs.focusTeamBadge.style.backgroundColor = '#64748B';
-            refs.focusMeta.textContent = `${t('map.focusHealth')} — · ${t('map.focusShield')} — · ${t('map.focusKills')} —`;
+            refs.focusMeta.textContent = `${t('map.focusKills')} — · ${t('map.focusDamage')} —`;
             return;
         }
-        const player = playerForDisplay(selectedPlayer, localPlayerTeam(players));
+        const player = playerForDisplay(
+            selectedPlayer,
+            store.getLocalPlayerTeam(players),
+            settings.anonymizeLocalTeam
+        );
         refs.focusName.textContent = `${player.self ? '★ ' : ''}${player.name}`;
         refs.focusName.style.color = teamColorFor(player.team);
         refs.focusTeamBadge.style.backgroundColor = teamColorFor(player.team);
-        const shieldText = Number(player.max_shield) > 0 ? `${player.shield}/${player.max_shield}` : '';
-        refs.focusMeta.textContent = `${t('map.focusHealth')} ${player.hp}/${player.max_hp} · ${t('map.focusShield')} ${shieldText} · ${t('map.focusKills')} ${player.kills}`;
+        refs.focusMeta.textContent = `${t('map.focusKills')} ${player.kills} · ${t('map.focusDamage')} ${player.damage}`;
         refs.focusName.title = `${t('player.team', { team: player.team })} · ${displayStatus(player, t)}`;
     }
 
     const columns = [
         { key: 'team', visible: () => settings.tableTeam, signature: (p) => p.team, label: 'table.columns.team', render: (p) => teamCell(p) },
         { key: 'name', visible: () => settings.tableName, signature: (p) => [p.name, p.roster], label: 'table.columns.name', render: (p) => nameCell(p) },
-        {
-            key: 'vitals',
-            visible: () => settings.tableVitals,
-            signature: (p) => p.is_dead
-                ? ['dead']
-                : p.is_down
-                    ? ['down', p.hp, p.max_hp]
-                    : ['alive', p.shield, p.max_shield, p.hp, p.max_hp],
-            label: 'table.columns.vitals',
-            render: (p) => vitalsCell(p)
-        },
         {
             key: 'legend',
             visible: () => settings.tableLegend || settings.tableLegendIconKey,
@@ -487,19 +426,7 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
         { key: 'kills', visible: () => settings.tableKills, signature: (p) => p.kills, label: 'table.columns.kills', render: (p) => cell(displayValue(p.kills)) },
         { key: 'uid', visible: () => settings.tableUid, signature: (p) => p.uid, label: 'table.columns.uid', render: (p) => cell(displayValue(p.uid), 'font-mono') },
         { key: 'uidLong', visible: () => settings.tableUidLong, signature: (p) => p.uid_long, label: 'table.columns.uidLong', render: (p) => cell(displayValue(p.uid_long), 'font-mono') },
-        { key: 'down', visible: () => settings.tableDown, signature: (p) => p.is_down, label: 'table.columns.down', render: (p) => downCell(p, t) },
         { key: 'dead', visible: () => settings.tableDead, signature: (p) => p.is_dead, label: 'table.columns.dead', render: (p) => deadCell(p, t) }
-
-        // Removed from the visible table by request. The raw state/export
-        // payload still keeps these fields when the backend sends them.
-        // { visible: () => settings.tableId, label: 'table.columns.id', render: (p) => cell(displayValue(p.id), 'font-mono') },
-        // { visible: () => settings.tableIndex, label: 'table.columns.index', render: (p) => cell(displayValue(p.index)) },
-        // { visible: () => settings.tableSelf, label: 'table.columns.self', render: (p) => cell(p.self ? t('player.yes') : t('player.no')) },
-        // { visible: () => settings.tableSquad, label: 'table.columns.squad', render: (p) => cell(displayValue(p.squad)) },
-        // { visible: () => settings.tableX, label: 'table.columns.x', render: (p) => cell(displayValue(p.x)) },
-        // { visible: () => settings.tableY, label: 'table.columns.y', render: (p) => cell(displayValue(p.y)) },
-        // { visible: () => settings.tableYaw, label: 'table.columns.yaw', render: (p) => cell(displayValue(p.yaw)) },
-        // { visible: () => settings.tableMaxHp, label: 'table.columns.maxHp', render: (p) => cell(displayValue(p.max_hp)) }
     ];
 
     function tableRenderSignature(sortedPlayers, activeColumns) {
@@ -507,7 +434,7 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
             columns: activeColumns.map((column) => [column.key, column.settingsSignature?.() || null]),
             players: sortedPlayers.map((player) => ({
                 id: player.id,
-                row: [Boolean(player.is_dead), Boolean(player.is_down)],
+                row: [Boolean(player.is_dead)],
                 cells: activeColumns.map((column) => column.signature(player))
             }))
         });
@@ -523,7 +450,6 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
     function rowStateClassName(player, bandIndex) {
         const classNames = ['player-table-row', `player-table-row-band-${bandIndex}`];
         if (player.is_dead) classNames.push('player-table-row-dead');
-        else if (player.is_down) classNames.push('player-table-row-down');
         return classNames.join(' ');
     }
 
@@ -558,7 +484,11 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
     }
 
     function renderTable(players) {
-        const displayPlayers = playersForDisplay(players);
+        const displayPlayers = playersForDisplay(
+            players,
+            store.getLocalPlayerTeam(players),
+            settings.anonymizeLocalTeam
+        );
         const activeColumns = columns.filter((column) => column.visible());
         const sortedPlayers = sortPlayersForTable(displayPlayers);
         const signature = tableRenderSignature(sortedPlayers, activeColumns);
@@ -686,6 +616,12 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
             if (key.startsWith('table')) {
                 renderTable(store.state.currentSnapshot?.players || []);
             }
+            if (key === 'anonymizeLocalTeam') {
+                const players = store.state.currentSnapshot?.players || [];
+                populatePlayerSelect(players);
+                updateFocus(players);
+                renderTable(players);
+            }
         });
     }
     refs.inputs.fontSize.value = String(settings.fontSize);
@@ -732,7 +668,10 @@ export function createUiController({ refs, store, settings, t, onReconnect, onVi
     });
     refs.exportPlayerDataButton.addEventListener('click', () => {
         if (!store.state.latestMessageText) return;
-        const json = formatPlayerExportJson(store.state.latestMessageText);
+        const json = formatPlayerExportJson(store.state.latestMessageText, {
+            anonymizeLocalTeam: settings.anonymizeLocalTeam,
+            localPlayerUid: store.state.localPlayerUid
+        });
         const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);

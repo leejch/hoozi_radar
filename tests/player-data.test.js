@@ -58,7 +58,7 @@ test('player data export sorts players by team and then nickname', () => {
     assert.ok(json.includes('            "id": "1",\n            "name": "Alpha",\n            "team": 1'));
 });
 
-test('player data export empties private fields for the local team only', () => {
+test('player data export keeps raw identity fields by default', () => {
     const source = {
         kind: 'state',
         players: [
@@ -81,6 +81,36 @@ test('player data export empties private fields for the local team only', () => 
     };
 
     const payload = JSON.parse(formatPlayerExportJson(source));
+    assert.equal(payload.players.find((player) => player.id === 'self').name, 'Local');
+    assert.equal(payload.players.find((player) => player.id === 'mate').uid, '789');
+});
+
+test('enabled export anonymity uses the known local UID instead of spectated self', () => {
+    const source = {
+        kind: 'state',
+        players: [
+            {
+                id: 'self', self: false, team: 5, name: 'Local', legend: 'Wraith',
+                legend_icon_key: 'wraith', rank: 'Gold', rank_icon_key: 'gold',
+                level: 100, uid: '123', uid_long: '456'
+            },
+            {
+                id: 'mate', self: false, team: 5, name: 'Mate', legend: 'Loba',
+                legend_icon_key: 'loba', rank: 'Silver', rank_icon_key: 'silver',
+                level: 200, uid: '789'
+            },
+            {
+                id: 'enemy', self: true, team: 9, name: 'Enemy', legend: 'Ash',
+                legend_icon_key: 'ash', rank: 'Platinum', rank_icon_key: 'platinum',
+                level: 300, uid: '999', uid_long: '111'
+            }
+        ]
+    };
+
+    const payload = JSON.parse(formatPlayerExportJson(source, {
+        anonymizeLocalTeam: true,
+        localPlayerUid: '123'
+    }));
     const self = payload.players.find((player) => player.id === 'self');
     const teammate = payload.players.find((player) => player.id === 'mate');
     const enemy = payload.players.find((player) => player.id === 'enemy');
@@ -101,7 +131,7 @@ test('player data export empties private fields for the local team only', () => 
     assert.equal(source.players[0].level, 100);
 });
 
-test('player data export does not guess a local team without self', () => {
+test('enabled export anonymity does not guess a local team without identity', () => {
     const source = { kind: 'state', players: [{ id: 'p1', team: 5, name: 'Visible', uid: '123' }] };
-    assert.deepEqual(JSON.parse(formatPlayerExportJson(source)), source);
+    assert.deepEqual(JSON.parse(formatPlayerExportJson(source, { anonymizeLocalTeam: true })), source);
 });

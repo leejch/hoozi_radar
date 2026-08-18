@@ -1,6 +1,6 @@
 import { MAP_SIDE, teamColorFor } from '../config.js';
 import { activeLanguage } from '../i18n.js';
-import { localPlayerTeam, playerForDisplay } from '../player-display.js';
+import { playerForDisplay } from '../player-display.js';
 import { rosterTags } from '../ui/roster.js';
 
 const PLAYER_RADIUS = 4;
@@ -9,20 +9,12 @@ const LOCAL_BORDER_COLOR = 'rgb(255, 0, 0)';
 const SELECTED_RING_COLOR = 'rgb(255, 255, 255)';
 const SELECTED_RING_GAP = 1;
 const SELECTED_RING_WIDTH = 1;
-const BAR_WIDTH = 28;
-const BAR_HEIGHT = 3;
-const BAR_BORDER_WIDTH = 0.5;
-const BAR_BORDER_COLOR = 'rgb(0, 0, 0)';
+const HEADING_LENGTH = 10;
+const HEADING_OUTLINE_WIDTH = 3;
+const HEADING_WIDTH = 1.25;
 const TEXT_OUTLINE_WIDTH = 1;
-const PLAYER_DECORATION_GAP = 3;
 const LABEL_GAP = 2;
 const LABEL_LINE_GAP = 2;
-const SHIELD_TIERS = Object.freeze({
-    50: Object.freeze({ widthScale: 0.5, color: 'rgb(224, 224, 224)' }),
-    75: Object.freeze({ widthScale: 0.75, color: 'rgb(50, 133, 205)' }),
-    100: Object.freeze({ widthScale: 1, color: 'rgb(135, 65, 177)' }),
-    125: Object.freeze({ widthScale: 1.25, color: 'rgb(209, 17, 15)' })
-});
 
 function mapPoint(position, width, height) {
     const mapScale = Math.min(width, height) / MAP_SIDE;
@@ -34,8 +26,31 @@ function mapPoint(position, width, height) {
 
 function playerStatus(player, t) {
     if (player.is_dead) return t('player.dead');
-    if (player.is_down) return t('player.down');
     return t('player.alive');
+}
+
+export function headingVector(yaw) {
+    const numericYaw = Number(yaw);
+    if (!Number.isFinite(numericYaw)) return null;
+    const radians = numericYaw * Math.PI / 180;
+    return Object.freeze({ x: Math.cos(radians), y: -Math.sin(radians) });
+}
+
+function drawHeading(ctx, point, yaw) {
+    const direction = headingVector(yaw);
+    if (!direction) return;
+    const endX = point.x + direction.x * HEADING_LENGTH;
+    const endY = point.y + direction.y * HEADING_LENGTH;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = 'rgba(2, 6, 23, 0.95)';
+    ctx.lineWidth = HEADING_OUTLINE_WIDTH;
+    ctx.beginPath();
+    ctx.moveTo(point.x, point.y);
+    ctx.lineTo(endX, endY);
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
+    ctx.lineWidth = HEADING_WIDTH;
+    ctx.stroke();
 }
 
 function compactValue(value) {
@@ -184,38 +199,18 @@ function drawLabelLine(ctx, line, label, y) {
     ctx.textAlign = 'center';
 }
 
-function drawBar(ctx, x, y, width, height, value, maximum, color) {
-    const ratio = maximum > 0 ? Math.min(1, Math.max(0, value / maximum)) : 0;
-    const innerWidth = Math.max(0, width - BAR_BORDER_WIDTH * 2);
-    const innerHeight = Math.max(0, height - BAR_BORDER_WIDTH * 2);
-    const fillWidth = innerWidth * ratio;
-    if (fillWidth > 0 && innerHeight > 0) {
-        ctx.fillStyle = color;
-        ctx.fillRect(
-            x + BAR_BORDER_WIDTH,
-            y + BAR_BORDER_WIDTH,
-            fillWidth,
-            innerHeight
-        );
-    }
-    ctx.strokeStyle = BAR_BORDER_COLOR;
-    ctx.lineWidth = BAR_BORDER_WIDTH;
-    ctx.strokeRect(x, y, width, height);
-}
-
-export function shieldBarStyle(maxShield) {
-    const numericMaximum = Number(maxShield);
-    if (!Number.isFinite(numericMaximum) || numericMaximum <= 0) return null;
-    const tier = SHIELD_TIERS[numericMaximum];
-    return tier ? { width: BAR_WIDTH * tier.widthScale, color: tier.color } : null;
-}
-
-export function renderEntities(ctx, snapshot, settings, selectedPlayer, dimensions, t, { clear = true } = {}) {
+export function renderEntities(
+    ctx,
+    snapshot,
+    settings,
+    selectedPlayer,
+    dimensions,
+    t,
+    { clear = true, localTeam = null } = {}
+) {
     const { width, height } = dimensions;
     if (clear) ctx.clearRect(0, 0, width, height);
     if (!snapshot) return;
-    const localTeam = localPlayerTeam(snapshot.players);
-
     const visiblePlayers = snapshot.players.filter((player) => {
         if (!player.position) return false;
         if (player.is_dead) return false;
@@ -267,6 +262,7 @@ export function renderEntities(ctx, snapshot, settings, selectedPlayer, dimensio
         ctx.arc(point.x, point.y, PLAYER_RADIUS, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
+        drawHeading(ctx, point, player.yaw);
 
         if (selected) {
             ctx.strokeStyle = SELECTED_RING_COLOR;
@@ -282,39 +278,7 @@ export function renderEntities(ctx, snapshot, settings, selectedPlayer, dimensio
             ctx.stroke();
         }
 
-        if (player.is_down) {
-            ctx.strokeStyle = '#FB7185';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(point.x - 5, point.y - 5);
-            ctx.lineTo(point.x + 5, point.y + 5);
-            ctx.moveTo(point.x + 5, point.y - 5);
-            ctx.lineTo(point.x - 5, point.y + 5);
-            ctx.stroke();
-        }
-
-        const showHealthBar = settings.showVitals && !player.is_dead;
-        const shieldStyle = showHealthBar && !player.is_down ? shieldBarStyle(player.max_shield) : null;
-        const visibleBarCount = Number(Boolean(shieldStyle)) + Number(showHealthBar);
-        let barY = point.y - PLAYER_RADIUS - PLAYER_DECORATION_GAP - visibleBarCount * BAR_HEIGHT;
-        if (shieldStyle) {
-            drawBar(
-                ctx,
-                point.x - BAR_WIDTH / 2,
-                barY,
-                shieldStyle.width,
-                BAR_HEIGHT,
-                player.shield,
-                Number(player.max_shield),
-                shieldStyle.color
-            );
-            barY += BAR_HEIGHT;
-        }
-        if (showHealthBar) {
-            drawBar(ctx, point.x - BAR_WIDTH / 2, barY, BAR_WIDTH, BAR_HEIGHT, player.hp, player.max_hp, '#FFFFFF');
-        }
-
-        const lines = mapInfoLines(playerForDisplay(player, localTeam), settings);
+        const lines = mapInfoLines(playerForDisplay(player, localTeam, settings.anonymizeLocalTeam), settings);
         if (lines.length) labels.push({ point, color: player.self ? '#FFFFFF' : teamColor, lines, alpha, player });
         ctx.restore();
     }

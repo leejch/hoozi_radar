@@ -46,18 +46,16 @@ export const DEFAULT_SETTINGS = Object.freeze({
     manualPort: DEFAULT_WS_PORT,
     manualPath: DEFAULT_WS_PATH,
     fontSize: 10,
+    anonymizeLocalTeam: false,
     showTeam: true,
     showName: false,
     showLegend: false,
-    showVitals: true,
     showLevel: false,
     showRank: false,
     showCombat: false,
     showRoster: true,
     showTeamLinks: true,
     showRing: true,
-    showDead: false,
-    showDown: true,
     menuVisible: true,
     tableVisible: true,
     tableTeam: true,
@@ -69,9 +67,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
     tableRankIconKey: true,
     tableDamage: true,
     tableKills: true,
-    tableVitals: true,
     tableDead: true,
-    tableDown: true,
     tableUid: true,
     tableUidLong: true,
     // rank_color is preserved in normalized/exported state but no longer shown
@@ -82,27 +78,23 @@ export const DEFAULT_SETTINGS = Object.freeze({
     // tableId: true,
     // tableIndex: true,
     // tableSelf: true,
-    // tableSquad: true,
     // tableX: true,
     // tableY: true,
     // tableYaw: true,
-    // tableMaxHp: true,
     viewMode: VIEW_MODE_FOLLOW,
     layoutOrientation: LAYOUT_ORIENTATION_LANDSCAPE
 });
 
 const STORAGE_PREFIX = 'hoozi3_radar_';
-const SETTINGS_SCHEMA_VERSION = '6';
+const SETTINGS_SCHEMA_VERSION = '7';
 const RESET_TO_DEFAULT_ON_SCHEMA_UPDATE = Object.freeze([
+    'anonymizeLocalTeam',
     'showTeam',
     'showName',
     'showLegend',
-    'showVitals',
     'showLevel',
     'showRank',
     'showCombat',
-    'showDead',
-    'showDown',
     'manualProtocol',
     'manualPort',
     'manualPath'
@@ -204,8 +196,6 @@ export function loadSettings() {
     settings.manualPath = normalizeWebSocketPath(settings.manualPath || DEFAULT_SETTINGS.manualPath);
     settings.fontSize = clamp(Math.round(Number(settings.fontSize) || DEFAULT_SETTINGS.fontSize), 7, 32);
     settings.layoutOrientation = normalizeLayoutOrientation(settings.layoutOrientation);
-    settings.showDead = false;
-    settings.showDown = true;
     // Every page load starts in fixed-follow mode. View-mode changes are
     // intentionally session-only so an old persisted free-view choice cannot
     // move the focus away from the local player on the next launch.
